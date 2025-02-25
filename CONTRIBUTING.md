@@ -10,13 +10,13 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
 
 ### Reporting Bugs
 
-- **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/flowrs-dev/flowrs/issues).
-- If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/flowrs-dev/flowrs/issues/new). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
+- **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/aitoroses/flowrs/issues).
+- If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/aitoroses/flowrs/issues/new). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
 
 ### Suggesting Enhancements
 
-- **Check if the enhancement has already been suggested** by searching on GitHub under [Issues](https://github.com/flowrs-dev/flowrs/issues).
-- If it hasn't, [create a new issue](https://github.com/flowrs-dev/flowrs/issues/new) with a clear title and description of the suggested enhancement.
+- **Check if the enhancement has already been suggested** by searching on GitHub under [Issues](https://github.com/aitoroses/flowrs/issues).
+- If it hasn't, [create a new issue](https://github.com/aitoroses/flowrs/issues/new) with a clear title and description of the suggested enhancement.
 
 ### Pull Requests
 
@@ -79,4 +79,4 @@ The release process is automated through GitHub Actions. When a new version is r
 
 ## Questions?
 
-If you have any questions or need help with the contribution process, feel free to [open an issue](https://github.com/flowrs-dev/flowrs/issues/new) with your question.
+If you have any questions or need help with the contribution process, feel free to [open an issue](https://github.com/aitoroses/flowrs/issues/new) with your question.
