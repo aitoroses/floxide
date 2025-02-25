@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-timer"
-version = "0.1.1"
+version = "1.0.0"
 edition = "2021"
 authors = ["Flowrs Contributors"]
 description = "Timer-based node extensions for the Flowrs framework"
@@ -10,7 +10,7 @@ keywords = ["workflow", "timer", "scheduling", "async"]
 categories = ["asynchronous"]
 
 [dependencies]
-flowrs-core = { path = "../flowrs-core", version = "=0.1.1" }
+flowrs-core = { path = "../flowrs-core", version = "=1.0.0" }
 async-trait = "0.1.77"
 chrono = "0.4.34"
 tokio = { version = "1.36.0", features = ["full"] }
