@@ -12,6 +12,7 @@ This directory contains the Architectural Decision Records (ADRs) for the flowrs
 | [ADR-0010](0010-workflow-cloning-strategy.md)           | Workflow Cloning Strategy                       | Accepted | 2024-02-25 | Defines an approach for cloning workflows using Arc<dyn Node>                       |
 | [ADR-0011](0011-closure-lifetime-management.md)         | Closure Lifetime Management in Async Contexts   | Accepted | 2024-02-25 | Outlines strategies for managing lifetimes in async closures                        |
 | [ADR-0012](0012-test-implementation-patterns.md)        | Testing Patterns for Async Node Implementations | Accepted | 2024-02-26 | Defines patterns for testing async code with concrete trait implementations         |
+| [ADR-0013](0013-workflow-patterns.md)                   | Workflow Patterns                               | Accepted | 2024-02-25 | Documents the eight core workflow patterns supported by the framework               |
 
 ## How to Create a New ADR
 
@@ -77,9 +78,45 @@ These ADRs document the key architectural decisions made during the development 
    - Provides mechanisms for workflow checkpointing and resumption
 
 6. [ADR-0006: Workflow Observability](0006-workflow-observability.md) _(Accepted)_
+
    - Adopts OpenTelemetry as the primary observability solution
    - Designs an event-based system integrated with OpenTelemetry traces and metrics
    - Provides tools for debugging, monitoring, and visualizing workflow execution
+
+7. [ADR-0007: Batch Processing Implementation](0007-batch-processing-implementation.md) _(Accepted)_
+
+   - Defines the approach for parallel batch processing using Tokio tasks and semaphores
+   - Establishes patterns for handling multiple contexts concurrently
+
+8. [ADR-0008: Node Lifecycle Methods](0008-node-lifecycle-methods.md) _(Accepted)_
+
+   - Defines the three-phase lifecycle (prep/exec/post) for nodes
+   - Establishes adapter patterns for implementing lifecycle methods
+
+9. [ADR-0009: Cloneable Types for Batch Processing](0009-cloneable-traits-for-batch-contexts.md) _(Accepted)_
+
+   - Requires item types in batch processing to implement Clone
+   - Defines strategies for handling non-cloneable types
+
+10. [ADR-0010: Workflow Cloning Strategy](0010-workflow-cloning-strategy.md) _(Accepted)_
+
+    - Defines an approach for cloning workflows using Arc<dyn Node>
+    - Establishes patterns for sharing workflow definitions
+
+11. [ADR-0011: Closure Lifetime Management](0011-closure-lifetime-management.md) _(Accepted)_
+
+    - Outlines strategies for managing lifetimes in async closures
+    - Provides solutions for common lifetime issues in async contexts
+
+12. [ADR-0012: Testing Patterns for Async Node Implementations](0012-test-implementation-patterns.md) _(Accepted)_
+
+    - Defines patterns for testing async code with concrete trait implementations
+    - Establishes best practices for unit and integration testing
+
+13. [ADR-0013: Workflow Patterns](0013-workflow-patterns.md) _(Accepted)_
+    - Documents the eight core workflow patterns supported by the framework
+    - Defines implementation approaches for each pattern
+    - Provides examples and use cases for each pattern type
 
 ## ADR Statuses
 
@@ -103,11 +140,15 @@ graph TD
     A --> D[0004: Async Runtime Selection]
     A --> E[0005: State Serialization]
     A --> F[0006: OpenTelemetry Observability]
+    A --> G[0013: Workflow Patterns]
     B --> C
     C --> D
     C --> E
     C --> F
+    C --> G
+    D --> G
     E -.-> F
+    G --> F
 ```
 
-_Note: This diagram shows the dependencies between ADRs. Each subsequent ADR builds upon the decisions established in the previous ones. The dotted line indicates that the observability system can utilize the state serialization system for event persistence._
+_Note: This diagram shows the dependencies between ADRs. Each subsequent ADR builds upon the decisions established in the previous ones. The dotted line indicates that the observability system can utilize the state serialization system for event persistence. The workflow patterns ADR (0013) depends on core framework abstractions (0003) and async runtime selection (0004), and influences observability (0006)._

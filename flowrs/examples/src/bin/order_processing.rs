@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 /// Custom action type for our order workflow
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[allow(dead_code)]
+
 enum OrderAction {
     Default,
     Next,
