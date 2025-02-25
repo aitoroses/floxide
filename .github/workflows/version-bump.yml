@@ -63,13 +63,32 @@ jobs:
       - name: Bump versions
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            cargo workspaces version ${{ github.event.inputs.bump_type }} --no-git-commit --exact --yes
+            cargo workspaces version ${{ github.event.inputs.bump_type }} --no-git-commit --exact --yes --all
+            
+            # Get the new version for informational purposes
+            NEW_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
+            echo "Would update to version $NEW_VERSION (dry run)"
           else
-            # Use --no-git-tag to handle tagging manually
-            cargo workspaces version ${{ github.event.inputs.bump_type }} --exact --yes --no-git-tag
+            # Use --no-git-tag to handle tagging manually and --all to update all packages
+            cargo workspaces version ${{ github.event.inputs.bump_type }} --exact --yes --no-git-tag --all
             
             # Get the new version
             NEW_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
+            echo "Updated to version $NEW_VERSION"
+            
+            # Also update the explicit version requirements in the main Cargo.toml
+            # This is needed because cargo-workspaces doesn't update these
+            sed -i "s/flowrs-core = { path = \"crates\/flowrs-core\", version = \"[0-9.]*\"/flowrs-core = { path = \"crates\/flowrs-core\", version = \"$NEW_VERSION\"/g" Cargo.toml
+            sed -i "s/flowrs-transform = { path = \"crates\/flowrs-transform\", version = \"[0-9.]*\"/flowrs-transform = { path = \"crates\/flowrs-transform\", version = \"$NEW_VERSION\"/g" Cargo.toml
+            sed -i "s/flowrs-event = { path = \"crates\/flowrs-event\", version = \"[0-9.]*\"/flowrs-event = { path = \"crates\/flowrs-event\", version = \"$NEW_VERSION\"/g" Cargo.toml
+            sed -i "s/flowrs-timer = { path = \"crates\/flowrs-timer\", version = \"[0-9.]*\"/flowrs-timer = { path = \"crates\/flowrs-timer\", version = \"$NEW_VERSION\"/g" Cargo.toml
+            sed -i "s/flowrs-longrunning = { path = \"crates\/flowrs-longrunning\", version = \"[0-9.]*\"/flowrs-longrunning = { path = \"crates\/flowrs-longrunning\", version = \"$NEW_VERSION\"/g" Cargo.toml
+            sed -i "s/flowrs-reactive = { path = \"crates\/flowrs-reactive\", version = \"[0-9.]*\"/flowrs-reactive = { path = \"crates\/flowrs-reactive\", version = \"$NEW_VERSION\"/g" Cargo.toml
+            
+            # Commit the changes to the explicit version requirements
+            git add Cargo.toml
+            git commit --amend --no-edit
+            git push --force-with-lease origin HEAD
             
             # Create and push tag if not skipped
             if [ "${{ github.event.inputs.skip_tagging }}" != "true" ]; then

@@ -88,7 +88,7 @@ We provide a GitHub Actions workflow for automated version bumping and releasing
 6. Click "Run workflow"
 
 This workflow will:
-- Update version numbers across all crates in the workspace
+- Update version numbers across all crates in the workspace (all crates will have the same version)
 - Commit the changes (if not a dry run)
 - Create and push Git tags (if not skipped)
 - Trigger the release workflow (if trigger_release is true)
@@ -104,7 +104,7 @@ For a complete release to crates.io, follow these steps:
    - Trigger release: true
 
 2. The workflow will:
-   - Update all version numbers
+   - Update all version numbers consistently across all crates
    - Commit and push changes
    - Create/update the version tag
    - Trigger the release workflow
@@ -119,7 +119,7 @@ For a complete release to crates.io, follow these steps:
 
 For manual releases:
 
-1. Update the version numbers in Cargo.toml files
+1. Update the version numbers in Cargo.toml files (ensure all crates have the same version)
 2. Create a pull request with these changes
 3. Once merged, create a new tag with the version number (e.g., `v0.1.0`)
 4. Push the tag to trigger the release workflow

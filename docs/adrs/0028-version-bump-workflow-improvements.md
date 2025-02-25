@@ -12,7 +12,9 @@ Proposed
 
 The Flowrs framework uses GitHub Actions for CI/CD, including a workflow for version bumping that automates the process of updating version numbers across the workspace. This workflow uses `cargo-workspaces` to coordinate version changes and creates Git tags for releases.
 
-We've encountered an issue where the version bump workflow fails with the error:
+We've encountered several issues with the version bump workflow:
+
+1. **Tag Conflict Error**: The workflow fails with the error:
 
 ```
 fatal: tag 'v1.0.0' already exists
@@ -20,22 +22,35 @@ Error: Process completed with exit code 128
 ```
 
 This occurs because:
+- The workflow attempts to create a tag that already exists in the repository
+- The current implementation doesn't check for existing tags before attempting to create them
+- The workflow creates both individual package tags (e.g., `flowrs-core@1.0.0`) and a global version tag (e.g., `v1.0.0`)
 
-1. The workflow attempts to create a tag that already exists in the repository
-2. The current implementation doesn't check for existing tags before attempting to create them
-3. The workflow creates both individual package tags (e.g., `flowrs-core@1.0.0`) and a global version tag (e.g., `v1.0.0`)
+2. **Dependency Version Mismatch**: When trying to update only some crates in the workspace, we encounter errors like:
 
-Investigation shows that the repository already contains the following tags:
-- `v1.0.0` (global version tag)
-- Individual package tags like `flowrs-core@1.0.0`, `flowrs-event@1.0.0`, etc.
+```
+error: failed to select a version for the requirement `flowrs-core = "=1.0.0"`
+candidate versions found which didn't match: 1.0.1
+```
 
-This prevents the workflow from completing successfully when attempting to bump versions to a value that has already been tagged.
+This happens because:
+- Some crates are updated while others remain at the previous version
+- Crates have exact version dependencies on each other (using `=` in version requirements)
+- This creates inconsistent dependency requirements that cannot be satisfied
+
+3. **Explicit Version Requirements Not Updated**: The main `flowrs` crate at the root has explicit version requirements for its dependencies:
+
+```toml
+flowrs-core = { path = "crates/flowrs-core", version = "1.0.0", optional = true }
+```
+
+When the workspace version is updated, these explicit version requirements are not automatically updated by `cargo-workspaces`, causing dependency resolution errors.
 
 Additionally, when the version bump workflow fails, it doesn't trigger the release workflow that publishes the crates to crates.io, breaking the automated release process.
 
 ## Decision
 
-We will improve the version bump workflow to handle existing tags gracefully and ensure proper triggering of the release workflow by implementing the following changes:
+We will improve the version bump workflow to handle existing tags gracefully, ensure consistent versioning across all crates, update explicit version requirements, and ensure proper triggering of the release workflow by implementing the following changes:
 
 1. **Check for Existing Tags**: Before attempting to create tags, check if they already exist.
 
@@ -47,7 +62,11 @@ We will improve the version bump workflow to handle existing tags gracefully and
 
 5. **Handle Individual Crate Tags**: When force-updating tags, also handle individual crate tags.
 
-6. **Improved Error Handling**: Enhance error handling to provide clearer messages when tag-related issues occur.
+6. **Update All Crates Together**: Use the `--all` flag with `cargo workspaces` to ensure all crates in the workspace are updated to the same version, maintaining consistent dependencies.
+
+7. **Update Explicit Version Requirements**: Add a step to update the explicit version requirements in the main Cargo.toml file.
+
+8. **Improved Error Handling**: Enhance error handling to provide clearer messages when tag-related issues occur.
 
 The implementation will involve updating the `.github/workflows/version-bump.yml` file to include these improvements.
 
@@ -88,7 +107,29 @@ inputs:
     default: false
 ```
 
-And the tag creation step will be updated to:
+The version bump command will be updated to:
+
+```yaml
+# Use --no-git-tag to handle tagging manually and --all to update all packages
+cargo workspaces version ${{ github.event.inputs.bump_type }} --exact --yes --no-git-tag --all
+```
+
+And we'll add a step to update explicit version requirements:
+
+```yaml
+# Also update the explicit version requirements in the main Cargo.toml
+# This is needed because cargo-workspaces doesn't update these
+sed -i "s/flowrs-core = { path = \"crates\/flowrs-core\", version = \"[0-9.]*\"/flowrs-core = { path = \"crates\/flowrs-core\", version = \"$NEW_VERSION\"/g" Cargo.toml
+sed -i "s/flowrs-transform = { path = \"crates\/flowrs-transform\", version = \"[0-9.]*\"/flowrs-transform = { path = \"crates\/flowrs-transform\", version = \"$NEW_VERSION\"/g" Cargo.toml
+# ... (similar lines for other crates)
+
+# Commit the changes to the explicit version requirements
+git add Cargo.toml
+git commit --amend --no-edit
+git push --force-with-lease origin HEAD
+```
+
+The tag creation step will be updated to:
 
 ```yaml
 # Create and push tag if not skipped
@@ -141,12 +182,6 @@ else
 fi
 ```
 
-Additionally, we'll update the `cargo workspaces version` command to include the `--no-git-tag` option when we want to manage tags manually:
-
-```yaml
-cargo workspaces version ${{ github.event.inputs.bump_type }} --exact --yes --no-git-tag
-```
-
 ## Consequences
 
 ### Positive
@@ -157,11 +192,15 @@ cargo workspaces version ${{ github.event.inputs.bump_type }} --exact --yes --no
 4. **Safer Operations**: Prevents accidental tag overwrites without explicit permission.
 5. **Complete Release Process**: Ensures the entire release pipeline from version bump to crates.io publishing works correctly.
 6. **Comprehensive Tag Management**: Handles both global and individual crate tags properly.
+7. **Consistent Versioning**: Ensures all crates in the workspace are updated together, preventing dependency version mismatches.
+8. **Dependency Coherence**: Updates explicit version requirements in the main Cargo.toml to match the new workspace version.
 
 ### Negative
 
 1. **Increased Complexity**: The workflow becomes slightly more complex with additional options.
 2. **Potential for Confusion**: More options may require better documentation for users.
+3. **Less Granular Control**: Using `--all` means individual crates cannot be versioned independently, which may be limiting in some scenarios.
+4. **Brittle Version Updating**: The sed commands for updating explicit version requirements are somewhat brittle and may need maintenance if the Cargo.toml structure changes.
 
 ## Alternatives Considered
 
@@ -209,4 +248,27 @@ We chose a hybrid approach that leverages cargo-workspaces for version managemen
   - More manual steps
   - Potential for inconsistency between version and release
 
-We chose to enhance the existing workflow structure to maintain the automated pipeline while adding more control options. 
+We chose to enhance the existing workflow structure to maintain the automated pipeline while adding more control options.
+
+### Independent Versioning of Crates
+
+- **Pros**:
+  - More granular control over individual crate versions
+  - Allows for different release cycles per crate
+- **Cons**:
+  - Requires more complex dependency management
+  - Prone to version mismatch errors
+  - More difficult to maintain
+
+We chose to use the `--all` flag to ensure consistent versioning across all crates, which simplifies dependency management and reduces the chance of errors.
+
+### Using Cargo Workspace Inheritance Without Explicit Versions
+
+- **Pros**:
+  - Simpler dependency declarations
+  - Automatic version synchronization
+- **Cons**:
+  - Less explicit about version requirements
+  - May not work well with external consumers of the crates
+
+We chose to maintain explicit version requirements in the main Cargo.toml for clarity and compatibility with external consumers, while adding automation to keep these versions in sync. 
