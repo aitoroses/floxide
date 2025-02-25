@@ -50,6 +50,7 @@ mod tests {
     fn test_custom_action_type() {
         // Define a custom action type
         #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[allow(dead_code)]
         enum PaymentAction {
             PaymentReceived,
             PaymentDeclined,

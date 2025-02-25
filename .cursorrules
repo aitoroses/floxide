@@ -1,0 +1,311 @@
+# 10x Rust Flow Framework .cursorrules
+
+These **.cursorrules** define how the AI agent should behave when working on the Rust Flow Framework, focusing on:
+
+1. **MANDATORY creation and maintenance of Architectural Decision Records (ADRs) for EVERY architectural decision**
+2. Expert-level Rust knowledge and best practices
+3. Strong Test-Driven Development (TDD) for the framework
+4. Framework-specific design patterns for directed graph workflows
+5. Capability to propose or create new ADRs when architecture evolves or contradictions arise
+
+All generated Rust code must adhere to these rules.
+
+**CRITICAL FIRST STEP: Before writing ANY code, ALWAYS create or update relevant ADRs. No development task should begin without addressing ADR requirements first.**
+
+Start all your responses prefixed with "🦀"
+
+---
+
+## 1. MANDATORY ADR CREATION & MAINTENANCE
+
+1. **Create Initial ADRs Before Implementation**
+
+   - **BEFORE any coding begins**, create initial ADRs for core architectural decisions
+   - Create the `/docs/adrs/` directory structure if it doesn't exist
+   - Document fundamental architecture choices (e.g., async runtime, error handling approach, module structure)
+   - Establish ADR format and numbering convention
+
+2. **ADRs as Living Documentation**
+
+   - Treat ADRs as **living documentation** that evolves with the project
+   - Update existing ADRs when understanding evolves or decisions change
+   - Mark superseded ADRs as such rather than deleting them
+   - Maintain a chronological record of decision evolution
+
+3. **Document ALL Architectural Decisions**
+
+   - **EVERY architectural decision** must be documented in an ADR
+   - No significant design choice should be implemented without ADR documentation
+   - Include context, consequences, alternatives considered, and implementation approach
+   - Create ADRs incrementally as decisions are made
+
+4. **Review Existing ADRs Before Every Task**
+
+   - Before starting any task, review relevant existing ADRs
+   - Identify if the task requires new architectural decisions
+   - Determine if existing ADRs need to be updated based on new requirements
+   - Ensure consistency between implementation and documented architecture
+
+5. **Framework-Specific ADRs**
+   - Document key design decisions for the Flow Framework
+   - Document performance considerations and optimizations
+   - Create ADRs for any significant architectural changes
+
+---
+
+## 2. RUST EXPERTISE & BEST PRACTICES
+
+1. **Idiomatic Rust**
+
+   - Write code aligned with Rust naming and style conventions (snake_case for functions/variables, UpperCamelCase for types).
+   - Favor Rust's standard library and established crates for common patterns (e.g., `serde` for serialization).
+   - Avoid unnecessary `unsafe`. If `unsafe` is essential, document its use and keep it minimal.
+   - Follow the Rust API Guidelines: https://rust-lang.github.io/api-guidelines/
+   - Prefer trait-based designs over inheritance-based patterns
+
+2. **Ownership & Borrowing**
+
+   - Respect Rust's ownership and borrowing rules at all times.
+   - Avoid unnecessary data copying or `clone`; prefer references where viable.
+   - Use Rc/Arc for shared ownership when appropriate, especially for the node graph structure
+   - Leverage lifetime parameters to express relationships between objects
+
+3. **Type Safety**
+
+   - Use strong Rust types throughout the project
+   - Use generics to parameterize node types instead of relying on runtime type checking
+   - Use enums for node action types instead of strings
+   - Leverage Rust's type system for compile-time safety
+
+4. **Concurrent & Asynchronous Code**
+
+   - Use Tokio for asynchronous runtime (as specified in ADRs)
+   - Properly handle async/await for node execution chains
+   - Ensure thread safety for parallel node execution
+   - Use appropriate synchronization primitives (Mutex, RwLock) where needed
+
+5. **Error Handling**
+
+   - Use `Result` types consistently throughout the framework
+   - Create custom error types for the framework-specific errors
+   - Implement proper error propagation with the `?` operator
+   - Provide clear error messages and types
+
+6. **Code Preservation**
+   - NEVER remove or modify substantive comments without user validation
+   - Treat comments as architectural decisions that need review
+   - Ask for permission when a comment seems outdated or needs changes
+
+---
+
+## 3. TEST-DRIVEN DEVELOPMENT (TDD)
+
+1. **Red-Green-Refactor Cycle**
+
+   - Write failing tests first (Red).
+   - Write minimal code to pass the tests (Green).
+   - Refactor to improve clarity, maintainability, or performance (Refactor).
+
+2. **Framework-Specific Testing**
+
+   - Test all node types and their interactions
+   - Test flow execution and orchestration
+   - Test error handling and recovery mechanisms
+   - Test parallel and batch processing
+   - Create integration tests that simulate real-world workflows
+
+3. **Comprehensive Test Coverage**
+
+   - Create unit tests for core modules in `src/*/tests/` modules
+   - Create integration tests in `tests/`
+   - Consider boundary cases, error conditions, and property-based testing with proptest
+   - Ensure tests for concurrency and async behavior
+
+4. **Continuous Testing**
+   - Run tests frequently during development with `cargo test`
+   - Address failing tests or design flaws immediately
+
+---
+
+## 4. FRAMEWORK DESIGN PATTERNS
+
+1. **Trait-Based Architecture**
+
+   - Use traits for core abstractions (Node, Action, Context)
+   - Implement concrete types that follow these abstractions
+   - Use associated types for dynamic return types
+   - Prefer static dispatch over dynamic dispatch where possible
+
+2. **Composable Workflows**
+
+   - Create modular, composable workflow components
+   - Implement mechanisms for combining and nesting workflows
+   - Design clean abstractions for workflow orchestration
+   - Support both synchronous and asynchronous execution paths
+
+3. **Data Structures**
+
+   - Use appropriate Rust collections (HashMaps, BTreeMaps, Vecs) for workflow data
+   - Consider performance implications of collection choices
+   - Use enum-based variants or trait objects for dynamic behavior
+
+4. **Error Handling & Recovery**
+
+   - Design comprehensive error handling for each workflow stage
+   - Support timeout and retry mechanisms
+   - Implement graceful error recovery when appropriate
+   - Provide detailed error context for debugging
+
+5. **State Management**
+   - Design clear patterns for state management across workflow steps
+   - Support serialization/deserialization of workflow state
+   - Consider immutable state patterns where appropriate
+   - Use Arc/Rc for shared state with proper synchronization
+
+---
+
+## 5. FRAMEWORK SPECIFICS
+
+1. **Core Node Abstractions**
+
+   - Implement the `Node` trait as the core abstraction
+   - Create a `Workflow` struct for orchestrating node execution
+   - Implement `BatchFlow` for parallel processing
+   - Use generics for shareable state types
+
+2. **Graph Structure**
+
+   - Use Rc/Arc for node sharing in the graph structure
+   - Implement proper Clone semantics for graph nodes
+   - Use enum for action types instead of strings
+
+3. **Execution Model**
+
+   - Implement the prep/exec/post workflow using async Rust
+   - Use proper error handling for all execution steps
+   - Ensure thread safety for parallel execution
+
+4. **Extensions**
+   - Optimize for performance using Rust-specific techniques
+   - Implement serialization/deserialization for workflow persistence
+   - Design for extensibility and plugin architecture
+
+---
+
+## 6. WORKFLOW SUMMARY
+
+1. **Initialize**
+
+   - **FIRST: Create or update ADRs for fundamental architecture decisions**
+   - Understand core concepts and requirements
+   - Plan the implementation approach
+
+2. **Plan & Test**
+
+   - **FIRST: Create or update ADRs for any new design decisions**
+   - Outline the solution (trait definitions, structs, modules)
+   - Write tests first (TDD) capturing success and failure paths
+   - Create test cases for all expected behaviors
+
+3. **Implement**
+
+   - **FIRST: Ensure implementation aligns with documented ADRs**
+   - Implement Rust code to pass the tests, respecting ownership, concurrency, and error handling best practices
+   - Use idiomatic Rust constructs
+   - Apply the design patterns established for the framework
+
+4. **Refactor & Optimize**
+
+   - **FIRST: Update ADRs if refactoring changes architectural approach**
+   - Improve design clarity, remove duplication, and consider performance
+   - Use `cargo fmt` and `cargo clippy` to ensure code consistency and correctness
+   - Apply Rust-specific optimizations where appropriate
+
+5. **Review & Document**
+
+   - **FIRST: Ensure all architectural decisions are documented in ADRs**
+   - Verify all tests pass
+   - Add or update Rustdoc comments for any new public APIs
+
+6. **Finalize & Integrate**
+   - **FIRST: Review ADR completeness and consistency with implementation**
+   - Confirm that the solution is thoroughly tested and documented
+   - Ensure compatibility with other parts of the framework
+
+---
+
+## 7. COMMUNITY-INSPIRED GUIDELINES
+
+- **Stay Current**
+
+  - Track major Rust updates, RFCs, and best practices
+  - Integrate improvements suggested by Clippy
+  - **Update ADRs when adopting new Rust patterns or features**
+
+- **Documentation First**
+
+  - Add doc-comments (`///`) with examples for all public APIs
+  - Ensure major functionalities or modules have clear, cohesive documentation
+  - Keep documentation in sync with implementation
+
+- **Proactive Debugging & Error Handling**
+
+  - Investigate warnings, clippy suggestions, or failing tests immediately
+  - Provide thorough error messages and structured error types
+  - **Document error handling strategies in ADRs**
+
+- **Performance Awareness**
+  - Be mindful of allocation patterns
+  - Use benchmarks to validate performance claims
+  - Consider memory usage patterns, especially for large workflow graphs
+  - **Document performance-critical decisions in ADRs**
+
+---
+
+## 8. PROJECT STRUCTURE
+
+1. **Cargo Workspace**
+
+   - Organize the project as a Cargo workspace
+   - Create separate crates for core, extensions, and examples
+   - Use proper version management for internal crate dependencies
+   - **Document workspace structure in an ADR**
+
+2. **Module Organization**
+
+   - Follow Rust's module organization patterns
+   - Create public APIs through lib.rs
+   - Use private modules for implementation details
+   - **Document module organization in an ADR**
+
+3. **Dependency Management**
+
+   - Keep dependencies minimal and well-justified
+   - Use semantic versioning for all dependencies
+   - Prefer well-maintained and secure crates
+   - **Document dependency selection rationale in ADRs**
+
+4. **ADR Structure**
+
+   - Create `/docs/adrs/` directory with numbered files (e.g., `0001-async-runtime-selection.md`)
+   - Include metadata (date, status, author) in each ADR
+   - Follow a consistent format (context, decision, consequences)
+   - Maintain an index/README of all ADRs
+
+5. **Example Code**
+   - Provide well-documented example implementations
+   - Create runnable examples in the examples/ directory
+   - Cover common use cases in examples
+
+---
+
+## 9. NOTES FROM USER
+
+- The Flow Framework is based on a directed graph workflow system
+- All nodes must properly implement the prep/exec/post lifecycle
+- Focus on type safety and performance
+- Prioritize user experience and API ergonomics
+
+---
+
+> **Note:** These .cursorrules require that EVERY architectural decision must be documented in an ADR. No significant code should be written without first documenting the architectural approach.
