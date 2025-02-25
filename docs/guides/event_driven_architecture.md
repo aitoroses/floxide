@@ -43,19 +43,17 @@ let (source, sender) = ChannelEventSource::new(100);
 
 ### 2. Event-Driven Workflow
 
-- Receives events from sources
-- Routes events to appropriate processors
-- Contains an event classification node
+- Receives events from the event source
+- Processes events through a chain of nodes
+- Maintains state between events using context
+- Handles errors and retries gracefully
 
 ```rust
-// Create the event-driven workflow with a termination action of Complete
-let mut workflow = EventDrivenWorkflow::new(
-    source.clone(),
-    TempAction::Complete,
-);
-
-// Add the classifier node to the workflow
-workflow.add_node(classifier.clone());
+let workflow = EventDrivenWorkflow::new()
+    .source(source)
+    .node("process_temperature", process_temperature)
+    .node("check_threshold", check_threshold)
+    .node("alert", alert_handler);
 ```
 
 ### 3. Event Classification
@@ -71,9 +69,9 @@ let classifier = TemperatureClassifier::new(30.0, 10.0, 40.0);
 
 ### 4. Handler Workflows
 
-- Specialized nodes for different temperature ranges
-- Trigger appropriate actions based on classification
-- Can terminate the workflow when needed
+- Execute specific actions based on event processing
+- Can spawn additional workflows if needed
+- Report results back to the main workflow
 
 ```rust
 // Add nodes for different temperature classifications
@@ -85,9 +83,12 @@ let critical_handler = CriticalTempHandler::new();
 
 ### 5. Context Management
 
-- Maintains state across events
-- Records temperature history
-- Tracks alerts and statistics
+The context in event-driven workflows needs to handle:
+
+- Event history and aggregation
+- State persistence between events
+- Configuration and thresholds
+- Error tracking and recovery state
 
 ```rust
 // The context maintains state across the workflow
@@ -97,6 +98,15 @@ struct MonitoringContext {
     average_temperatures: HashMap<String, f32>,
 }
 ```
+
+### 6. Feedback Loop
+
+The feedback loop enables:
+
+- Dynamic threshold adjustments
+- Learning from historical data
+- Adaptive event processing
+- System health monitoring
 
 ## Flow of Events
 
@@ -120,7 +130,54 @@ When implementing an event-driven workflow, consider the following:
 6. **Timeout Handling**: How to handle hanging or slow event sources
 7. **Context Management**: What state needs to be maintained across events
 
+## Best Practices
+
+1. **Error Handling**
+   - Implement proper error recovery mechanisms
+   - Use retries with exponential backoff
+   - Log errors for debugging and monitoring
+
+2. **State Management**
+   - Keep state minimal and focused
+   - Consider persistence for critical state
+   - Use atomic operations when updating state
+
+3. **Performance Optimization**
+   - Buffer events appropriately
+   - Use async processing where beneficial
+   - Implement backpressure mechanisms
+
+4. **Testing**
+   - Test event sources independently
+   - Mock events for workflow testing
+   - Verify error handling paths
+   - Test state persistence and recovery
+
+5. **Monitoring**
+   - Track event processing latency
+   - Monitor queue depths
+   - Set up alerting for anomalies
+   - Log important state transitions
+
+6. **Timeout Handling**
+   - Set appropriate timeouts for event processing
+   - Implement deadletter queues
+   - Handle slow event sources gracefully
+   - Clean up resources on timeout
+
+7. **Context Management**
+   - Define clear boundaries for context data
+   - Implement proper serialization
+   - Handle context versioning
+   - Clean up stale context data
+
 ## Integration with Standard Workflows
+
+Event-driven workflows can be integrated with standard request-response workflows:
+
+1. Use event sources as triggers for standard workflows
+2. Convert workflow results into events
+3. Implement hybrid patterns for complex use cases
 
 Event-driven workflows can be integrated with standard workflows using adapters:
 
@@ -138,4 +195,4 @@ This allows for combining both synchronous and asynchronous processing patterns.
 ## References
 
 - [ADR-0009: Event-Driven Workflow Pattern](../adrs/0009-event-driven-workflow-pattern.md)
-- [Example: Temperature Monitoring System](../../examples/examples/event_driven_workflow.rs)
+- [View the complete example](../examples/event-driven-workflow.md)

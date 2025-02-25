@@ -1,0 +1,129 @@
+site_name: Flowrs Documentation
+site_description: Documentation for the Flowrs framework - A type-safe, composable directed graph workflow system written in Rust
+site_author: Flowrs Team
+repo_url: https://github.com/aitoroses/flowrs
+repo_name: aitoroses/flowrs
+edit_uri: edit/main/docs/
+
+theme:
+  name: terminal
+  palette: dark
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.expand
+    - navigation.indexes
+    - content.code.copy
+  font:
+    text: Roboto
+    code: JetBrains Mono
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: false
+      line_spans: __span
+      pygments_lang_class: true
+      use_pygments: true
+      linenums: false
+      language_prefix: language-
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      preserve_tabs: true
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+extra_css:
+  - css/extra.css
+
+extra_javascript:
+  - https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Error Handling: getting-started/error-handling.md
+  - Core Concepts:
+    - Overview: core-concepts/overview.md
+    - Nodes: core-concepts/nodes.md
+    - Workflows: core-concepts/workflows.md
+    - Actions: core-concepts/actions.md
+    - Contexts: core-concepts/contexts.md
+  - Guides:
+    - Event-Driven Architecture: guides/event_driven_architecture.md
+    - Using Mermaid Diagrams: guides/using-mermaid-diagrams.md
+  - Examples:
+    - Basic Workflow: examples/basic-workflow.md
+    - Event-Driven Workflow: examples/event-driven-workflow.md
+    - Timer Node: examples/timer-node.md
+    - Reactive Node: examples/reactive-node.md
+    - Transform Node: examples/transform-node.md
+    - Long-Running Node: examples/longrunning-node.md
+    - Batch Processing: examples/batch-processing.md
+  - Architecture:
+    - ADR Process: architecture/adr-process.md
+    - Core Framework Abstractions: architecture/core-framework-abstractions.md
+    - Project Structure: architecture/project-structure.md
+    - Async Runtime Selection: architecture/async-runtime-selection.md
+    - Node Lifecycle Methods: architecture/node-lifecycle-methods.md
+    - Event-Driven Workflow Pattern: architecture/event-driven-workflow-pattern.md
+    - Reactive Node Implementation: architecture/reactive-node-implementation.md
+    - Timer Node Implementation: architecture/timer-node-implementation.md
+    - Long-Running Node Implementation: architecture/longrunning-node-implementation.md
+    - Transform Node Implementation: architecture/transform-node-implementation.md
+    - Batch Processing Implementation: architecture/batch-processing-implementation.md
+  - API Reference:
+    - flowrs-core: api/flowrs-core.md
+    - flowrs-transform: api/flowrs-transform.md
+    - flowrs-event: api/flowrs-event.md
+    - flowrs-timer: api/flowrs-timer.md
+    - flowrs-reactive: api/flowrs-reactive.md
+    - flowrs-longrunning: api/flowrs-longrunning.md
+    - flowrs-batch: api/flowrs-batch.md
+  - ADRs:
+    - Overview: adrs/README.md
+    - Process and Format: adrs/0001-adr-process-and-format.md
+    - Project Structure: adrs/0002-project-structure-and-crate-organization.md
+    - Core Framework Abstractions: adrs/0003-core-framework-abstractions.md
+    - Async Runtime Selection: adrs/0004-async-runtime-selection.md
+    - State Serialization: adrs/0005-state-serialization-deserialization.md
+    - Workflow Observability: adrs/0006-workflow-observability.md
+    - Batch Processing: adrs/0007-batch-processing-implementation.md
+    - Event-Driven Node Extensions: adrs/0008-event-driven-node-extensions.md
+    - Node Lifecycle Methods: adrs/0008-node-lifecycle-methods.md
+    - Cloneable Traits: adrs/0009-cloneable-traits-for-batch-contexts.md
+    - Event-Driven Workflow: adrs/0009-event-driven-workflow-pattern.md
+    - Workflow Cloning: adrs/0010-workflow-cloning-strategy.md
+    - Closure Lifetime: adrs/0011-closure-lifetime-management.md
+    - Test Implementation: adrs/0012-test-implementation-patterns.md
+    - Workflow Patterns: adrs/0013-workflow-patterns.md
+    - Crate Publishing: adrs/0014-crate-publishing-and-cicd.md
+    - Node Abstraction: adrs/0015-node-abstraction-hierarchy.md
+    - Batch Processing Examples: adrs/0015-batch-processing-examples-and-patterns.md
+    - Transform Node Extensions: adrs/0016-transform-node-and-async-extensions.md
+    - Event-Driven Pattern: adrs/0017-event-driven-node-pattern.md
+    - Reactive Implementation: adrs/0017-reactive-node-implementation.md
+    - Rename flowrs-async: adrs/0018-rename-flowrs-async-to-flowrs-transform.md
+    - Examples Structure: adrs/0019-examples-structure-standardization.md
+    - Workflow Routing: adrs/0020-event-driven-workflow-routing-guidelines.md
+    - Timer Implementation: adrs/0021-timer-node-implementation.md
+    - Long-Running Implementation: adrs/0022-longrunning-node-implementation.md
+    - Documentation Structure: adrs/0022-documentation-structure-and-cross-references.md
+    - Examples Restructuring: adrs/0023-examples-directory-restructuring.md
+    - MkDocs Setup: adrs/0024-mkdocs-documentation-setup.md
+    - Mermaid Support: adrs/0025-mermaid-diagrams-for-mkdocs.md
+    - ADR Template: adrs/adr-template.md
+  - Contributing: contributing.md

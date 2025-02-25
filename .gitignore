@@ -31,3 +31,6 @@
 
 # Logs
 *.log
+
+# MkDocs
+/site/
