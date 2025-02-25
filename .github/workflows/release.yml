@@ -5,6 +5,10 @@ on:
     tags:
       - "v*"
 
+# Sets permissions of the GITHUB_TOKEN to allow creating releases
+permissions:
+  contents: write # Needed for creating GitHub releases
+
 env:
   CARGO_TERM_COLOR: always
 

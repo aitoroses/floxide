@@ -17,6 +17,10 @@ on:
         type: boolean
         default: true
 
+# Sets permissions of the GITHUB_TOKEN to allow pushing to the repository
+permissions:
+  contents: write # Needed to push commits and tags
+
 jobs:
   bump-version:
     runs-on: ubuntu-latest

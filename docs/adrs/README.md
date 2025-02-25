@@ -16,6 +16,7 @@ This directory contains the Architectural Decision Records (ADRs) for the flowrs
 | [ADR-0014](0014-crate-publishing-and-cicd.md)              | Crate Publishing and CI/CD Setup                | Accepted | 2024-02-25 | Defines the approach for publishing crates and setting up CI/CD pipelines           |
 | [ADR-0015](0015-batch-processing-examples-and-patterns.md) | Batch Processing Examples and Best Practices    | Accepted | 2024-02-25 | Documents concrete patterns and best practices for implementing batch processing    |
 | [ADR-0026](0026-documentation-deployment-strategy.md)      | Documentation Deployment Strategy               | Accepted | 2024-02-25 | Defines the approach for deploying documentation to GitHub Pages                   |
+| [ADR-0027](0027-github-actions-workflow-permissions.md)    | GitHub Actions Workflow Permissions             | Accepted | 2024-02-25 | Defines the permission requirements for GitHub Actions workflows                    |
 
 ## How to Create a New ADR
 
@@ -140,6 +141,12 @@ These ADRs document the key architectural decisions made during the development 
     - Establishes best practices for permissions and security in deployment workflows
     - Provides guidance on setting up GitHub Pages with GitHub Actions as the source
 
+17. [ADR-0027: GitHub Actions Workflow Permissions](0027-github-actions-workflow-permissions.md) _(Accepted)_
+    - Documents the permission requirements for GitHub Actions workflows
+    - Addresses issues with the version bump workflow permissions
+    - Establishes best practices for setting permissions in GitHub Actions workflows
+    - Provides guidance on using the principle of least privilege for workflow permissions
+
 ## ADR Statuses
 
 - **Proposed**: Initial draft state
@@ -165,6 +172,7 @@ graph TD
     A --> G[0013: Workflow Patterns]
     A --> H[0014: Crate Publishing and CI/CD]
     A --> I[0026: Documentation Deployment]
+    A --> J[0027: GitHub Actions Permissions]
     B --> C
     B --> H
     B --> I
@@ -176,6 +184,8 @@ graph TD
     E -.-> F
     G --> F
     H --> I
+    H --> J
+    I --> J
 ```
 
 _Note: This diagram shows the dependencies between ADRs. Each subsequent ADR builds upon the decisions established in the previous ones. The dotted line indicates that the observability system can utilize the state serialization system for event persistence. The workflow patterns ADR (0013) depends on core framework abstractions (0003) and async runtime selection (0004), and influences observability (0006)._
