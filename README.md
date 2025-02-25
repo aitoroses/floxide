@@ -123,9 +123,9 @@ A basic sequence of nodes executed one after another. This is the foundation of 
 ```mermaid
 graph LR
     A["Process Data"] --> B["Format Output"] --> C["Store Result"]
-    style A fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px
-    style B fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px
-    style C fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px
+    style A fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
+    style B fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
+    style C fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
 ```
 
 **Example:** [lifecycle_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/lifecycle_node.rs)
@@ -140,10 +140,10 @@ graph TD
     A -->|Invalid| C["Error Handler"]
     B -->|Success| D["Format Output"]
     B -->|Error| C
-    style A fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px
-    style B fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px
-    style C fill:#ffcccc,stroke:#e53935,stroke-width:2px
-    style D fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px
+    style A fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
+    style B fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
+    style C fill:#ffcccc,stroke:#e53935,stroke-width:2px,color:black
+    style D fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
 ```
 
 **Example:** [order_processing.rs](https://github.com/aitoroses/flowrs/tree/main/examples/order_processing.rs)
@@ -155,11 +155,11 @@ A specialized workflow for data transformation, where each node transforms input
 ```mermaid
 graph LR
     A["Raw Data"] --> B["Validate"] --> C["Transform"] --> D["Format"] --> E["Output"]
-    style A fill:#e8f5e9,stroke:#43a047,stroke-width:2px
-    style B fill:#e8f5e9,stroke:#43a047,stroke-width:2px
-    style C fill:#e8f5e9,stroke:#43a047,stroke-width:2px
-    style D fill:#e8f5e9,stroke:#43a047,stroke-width:2px
-    style E fill:#e8f5e9,stroke:#43a047,stroke-width:2px
+    style A fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
+    style B fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
+    style C fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
+    style D fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
+    style E fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
 ```
 
 **Example:** [transform_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/transform_node.rs)
@@ -177,12 +177,12 @@ graph TD
     C1 --> D["Aggregate Results"]
     C2 --> D
     C3 --> D
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style C1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style C2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style C3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
+    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
+    style C1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
+    style C2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
+    style C3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
+    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
 ```
 
 **Example:** [batch_processing.rs](https://github.com/aitoroses/flowrs/tree/main/examples/batch_processing.rs)
@@ -200,12 +200,12 @@ graph TD
     C --> F["Event Source"]
     D --> F
     E --> F
-    style A fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
-    style B fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
-    style C fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
-    style D fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
-    style E fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
-    style F fill:#e8eaf6,stroke:#3949ab,stroke-width:2px
+    style A fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
+    style B fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
+    style C fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
+    style D fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
+    style E fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
+    style F fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
 ```
 
 **Example:** [event_driven_workflow.rs](https://github.com/aitoroses/flowrs/tree/main/examples/event_driven_workflow.rs)
@@ -219,9 +219,9 @@ graph TD
     A["Timer Source"] -->|Trigger| B["Scheduled Task"]
     B --> C["Process Result"]
     C -->|Reschedule| A
-    style A fill:#fff8e1,stroke:#ff8f00,stroke-width:2px
-    style B fill:#fff8e1,stroke:#ff8f00,stroke-width:2px
-    style C fill:#fff8e1,stroke:#ff8f00,stroke-width:2px
+    style A fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
+    style B fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
+    style C fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
 ```
 
 **Example:** [timer_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/timer_node.rs)
@@ -236,10 +236,10 @@ graph TD
     B --> C["Process Change"]
     C --> D["Update State"]
     D --> A
-    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
+    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
+    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
+    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
 ```
 
 **Example:** [reactive_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/reactive_node.rs)
@@ -254,10 +254,10 @@ graph TD
     B -->|Complete| C["Final Result"]
     B -->|Suspend| D["Save State"]
     D -->|Resume| B
-    style A fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    style B fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    style C fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-    style D fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+    style A fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
+    style B fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
+    style C fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
+    style D fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
 ```
 
 **Example:** [longrunning_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/longrunning_node.rs)
@@ -277,14 +277,14 @@ graph TD
     E --> F
     F --> G["Response Generator"]
     G --> H["User Output"]
-    style A fill:#e0f7fa,stroke:#00838f,stroke-width:2px
-    style B fill:#e0f7fa,stroke:#00838f,stroke-width:2px
-    style C fill:#e0f7fa,stroke:#00838f,stroke-width:2px
-    style D fill:#e0f7fa,stroke:#00838f,stroke-width:2px
-    style E fill:#e0f7fa,stroke:#00838f,stroke-width:2px
-    style F fill:#e0f7fa,stroke:#00838f,stroke-width:2px
-    style G fill:#e0f7fa,stroke:#00838f,stroke-width:2px
-    style H fill:#e0f7fa,stroke:#00838f,stroke-width:2px
+    style A fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
+    style B fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
+    style C fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
+    style D fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
+    style E fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
+    style F fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
+    style G fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
+    style H fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
 ```
 
 This pattern demonstrates how to build a multi-agent LLM system where specialized agents handle different aspects of a task. Each agent is implemented as a node in the workflow, with the router determining which agents to invoke based on the task requirements. The aggregator combines results from multiple agents before generating the final response.
