@@ -33,7 +33,6 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Verify tag version matches Cargo.toml
-        working-directory: ./flowrs
         run: |
           TAG_VERSION=${GITHUB_REF#refs/tags/v}
           CARGO_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
@@ -43,18 +42,17 @@ jobs:
           fi
 
       - name: Run tests
-        working-directory: ./flowrs
         run: cargo test --all-features
 
       - name: Publish flowrs-core
-        working-directory: ./flowrs/crates/flowrs-core
+        working-directory: ./crates/flowrs-core
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Wait for crates.io to index
         run: sleep 30
 
       - name: Publish flowrs-async
-        working-directory: ./flowrs/crates/flowrs-async
+        working-directory: ./crates/flowrs-async
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Create GitHub Release

@@ -41,19 +41,15 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Check formatting
-        working-directory: ./flowrs
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        working-directory: ./flowrs
         run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run tests
-        working-directory: ./flowrs
         run: cargo test --all-features
 
       - name: Build documentation
-        working-directory: ./flowrs
         run: cargo doc --no-deps --all-features
 
   security_audit:
@@ -73,5 +69,4 @@ jobs:
         run: cargo install cargo-audit
 
       - name: Run security audit
-        working-directory: ./flowrs
         run: cargo audit
