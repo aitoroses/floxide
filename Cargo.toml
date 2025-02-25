@@ -5,6 +5,7 @@ members = [
     "crates/flowrs-event",
     "crates/flowrs-timer",
     "crates/flowrs-longrunning",
+    "crates/flowrs-reactive",
     "examples",
     "benches",
 ]
