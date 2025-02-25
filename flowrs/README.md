@@ -1,5 +1,10 @@
 # Flowrs Framework
 
+[![CI](https://github.com/flowrs-dev/flowrs/actions/workflows/ci.yml/badge.svg)](https://github.com/flowrs-dev/flowrs/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/flowrs-core.svg)](https://crates.io/crates/flowrs-core)
+[![Documentation](https://docs.rs/flowrs-core/badge.svg)](https://docs.rs/flowrs-core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A directed graph workflow system written in Rust.
 
 ## Overview
@@ -15,6 +20,57 @@ Flowrs is a robust framework for building and executing workflow graphs. It prov
 - Batch processing and parallel execution
 - Workflow state serialization
 - Comprehensive observability through OpenTelemetry
+
+## Installation
+
+Add the following to your `Cargo.toml`:
+
+```toml
+[dependencies]
+flowrs-core = "0.1.0"
+flowrs-async = "0.1.0"
+```
+
+## Quick Start
+
+```rust
+use flowrs_core::{Node, Workflow};
+use flowrs_async::AsyncNode;
+use std::sync::Arc;
+
+// Define your node
+struct MyNode;
+
+#[async_trait::async_trait]
+impl AsyncNode for MyNode {
+    type Input = String;
+    type Output = String;
+    type Error = anyhow::Error;
+
+    async fn prep(&self, input: Self::Input) -> Result<Self::Input, Self::Error> {
+        Ok(input)
+    }
+
+    async fn exec(&self, input: Self::Input) -> Result<Self::Output, Self::Error> {
+        Ok(format!("Processed: {}", input))
+    }
+
+    async fn post(&self, output: Self::Output) -> Result<Self::Output, Self::Error> {
+        Ok(output)
+    }
+}
+
+// Create a workflow
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let node = Arc::new(MyNode);
+    let workflow = Workflow::new(node);
+
+    let result = workflow.execute("Hello, world!".to_string()).await?;
+    println!("{}", result); // Prints: Processed: Hello, world!
+
+    Ok(())
+}
+```
 
 ## Workflow Patterns
 
@@ -335,60 +391,31 @@ graph TD
     style E fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
-## Getting Started
-
-Add flowrs to your Cargo.toml:
-
-```toml
-[dependencies]
-flowrs-core = "0.1.0"
-flowrs-async = "0.1.0"
-```
-
-### Example Usage
-
-```rust
-use flowrs_core::{Node, NodeOutcome, Workflow, ActionType, DefaultAction};
-
-// Define a simple workflow node
-struct GreetingNode;
-
-impl Node<String, DefaultAction> for GreetingNode {
-    type Output = String;
-
-    async fn process(&self, name: &mut String) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
-        let greeting = format!("Hello, {}!", name);
-        Ok(NodeOutcome::Complete(greeting))
-    }
-}
-
-// Build and run a workflow
-async fn run_workflow() {
-    let mut workflow = Workflow::new(GreetingNode);
-    let mut name = String::from("World");
-
-    let result = workflow.execute(&mut name).await;
-    assert_eq!(result.unwrap(), "Hello, World!");
-}
-```
-
-## Project Structure
-
-The framework is organized as a Cargo workspace with multiple crates:
-
-- `flowrs-core`: Core traits and structures for the framework
-- `flowrs-async`: Async runtime integration
-- `examples`: Example workflow implementations
-- `benches`: Performance benchmarks
-
 ## Documentation
 
-For detailed documentation, see:
+For more detailed documentation, visit:
 
-- [API Documentation](https://docs.rs/flowrs-core) (coming soon)
-- [User Guide](docs/guide/README.md) (coming soon)
-- [Architectural Decision Records](docs/adrs/README.md)
+- [API Documentation](https://docs.rs/flowrs-core)
+- [User Guide](https://github.com/flowrs-dev/flowrs/wiki)
+- [Examples](https://github.com/flowrs-dev/flowrs/tree/main/examples)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please make sure your code follows the project's coding standards and includes appropriate tests.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- The Rust community for their excellent crates and support
+- Contributors who have helped shape this project

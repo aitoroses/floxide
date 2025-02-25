@@ -7,9 +7,13 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Flowrs Contributors"]
 license = "MIT"
-repository = "https://github.com/username/flowrs"
+repository = "https://github.com/flowrs-dev/flowrs"
 readme = "README.md"
 description = "A directed graph workflow system in Rust"
+keywords = ["workflow", "graph", "async", "pipeline", "directed-graph"]
+categories = ["asynchronous", "concurrency", "data-structures"]
+homepage = "https://github.com/flowrs-dev/flowrs"
+documentation = "https://docs.rs/flowrs"
 
 [workspace.dependencies]
 tokio = { version = "1.36.0", features = ["full"] }

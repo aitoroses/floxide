@@ -13,6 +13,7 @@ This directory contains the Architectural Decision Records (ADRs) for the flowrs
 | [ADR-0011](0011-closure-lifetime-management.md)         | Closure Lifetime Management in Async Contexts   | Accepted | 2024-02-25 | Outlines strategies for managing lifetimes in async closures                        |
 | [ADR-0012](0012-test-implementation-patterns.md)        | Testing Patterns for Async Node Implementations | Accepted | 2024-02-26 | Defines patterns for testing async code with concrete trait implementations         |
 | [ADR-0013](0013-workflow-patterns.md)                   | Workflow Patterns                               | Accepted | 2024-02-25 | Documents the eight core workflow patterns supported by the framework               |
+| [ADR-0014](0014-crate-publishing-and-cicd.md)           | Crate Publishing and CI/CD Setup                | Accepted | 2024-02-25 | Defines the approach for publishing crates and setting up CI/CD pipelines           |
 
 ## How to Create a New ADR
 
@@ -114,9 +115,15 @@ These ADRs document the key architectural decisions made during the development 
     - Establishes best practices for unit and integration testing
 
 13. [ADR-0013: Workflow Patterns](0013-workflow-patterns.md) _(Accepted)_
+
     - Documents the eight core workflow patterns supported by the framework
     - Defines implementation approaches for each pattern
     - Provides examples and use cases for each pattern type
+
+14. [ADR-0014: Crate Publishing and CI/CD Setup](0014-crate-publishing-and-cicd.md) _(Accepted)_
+    - Defines the approach for publishing crates to crates.io
+    - Establishes GitHub Actions workflows for CI/CD
+    - Documents versioning strategy and release automation
 
 ## ADR Statuses
 
@@ -141,7 +148,9 @@ graph TD
     A --> E[0005: State Serialization]
     A --> F[0006: OpenTelemetry Observability]
     A --> G[0013: Workflow Patterns]
+    A --> H[0014: Crate Publishing and CI/CD]
     B --> C
+    B --> H
     C --> D
     C --> E
     C --> F
