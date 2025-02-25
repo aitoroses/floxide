@@ -1,7 +1,6 @@
-use std::fmt::{self, Display};
+use std::fmt::{Display};
 use thiserror::Error;
 
-use crate::node::NodeId;
 
 /// All possible errors that can occur in the flowrs framework
 #[derive(Error, Debug, Clone)]

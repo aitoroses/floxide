@@ -3,8 +3,6 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::{stream, StreamExt};
-use tokio::sync::Mutex;
 use tokio::sync::Semaphore;
 use tracing::{debug, info};
 use uuid::Uuid;
@@ -30,7 +28,7 @@ where
     /// Update the main context with results from item processing
     fn update_with_results(
         &mut self,
-        results: &Vec<Result<T, FlowrsError>>,
+        results: &[Result<T, FlowrsError>],
     ) -> Result<(), FlowrsError>;
 }
 
@@ -209,7 +207,7 @@ where
 mod tests {
     use super::*;
     use crate::action::DefaultAction;
-    use crate::node::node::node;
+    use crate::node::closure::node;
 
     // Test context implementation for batch processing
     #[derive(Debug, Clone)]
@@ -233,9 +231,9 @@ mod tests {
 
         fn update_with_results(
             &mut self,
-            results: &Vec<Result<i32, FlowrsError>>,
+            results: &[Result<i32, FlowrsError>],
         ) -> Result<(), FlowrsError> {
-            self.results = results.clone();
+            self.results = results.to_vec();
             Ok(())
         }
     }

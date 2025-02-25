@@ -317,7 +317,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::node;
+    use crate::node::closure;
 
     #[derive(Debug, Clone)]
     struct TestContext {
@@ -328,19 +328,19 @@ mod tests {
     #[tokio::test]
     async fn test_simple_linear_workflow() {
         // Create nodes
-        let start_node = node::node(|mut ctx: TestContext| async move {
+        let start_node = closure::node(|mut ctx: TestContext| async move {
             ctx.value += 1;
             ctx.visited.push("start".to_string());
             Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))
         });
 
-        let middle_node = node::node(|mut ctx: TestContext| async move {
+        let middle_node = closure::node(|mut ctx: TestContext| async move {
             ctx.value *= 2;
             ctx.visited.push("middle".to_string());
             Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))
         });
 
-        let end_node = node::node(|mut ctx: TestContext| async move {
+        let end_node = closure::node(|mut ctx: TestContext| async move {
             ctx.value -= 3;
             ctx.visited.push("end".to_string());
             Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))
@@ -399,7 +399,7 @@ mod tests {
         }
 
         // Create nodes
-        let start_node = node::node(|mut ctx: TestContext| async move {
+        let start_node = closure::node(|mut ctx: TestContext| async move {
             ctx.visited.push("start".to_string());
             // Route based on value
             if ctx.value > 5 {
@@ -415,13 +415,13 @@ mod tests {
             }
         });
 
-        let path1_node = node::node(|mut ctx: TestContext| async move {
+        let path1_node = closure::node(|mut ctx: TestContext| async move {
             ctx.value += 100;
             ctx.visited.push("path1".to_string());
             Ok((ctx, NodeOutcome::<(), TestAction>::Success(())))
         });
 
-        let path2_node = node::node(|mut ctx: TestContext| async move {
+        let path2_node = closure::node(|mut ctx: TestContext| async move {
             ctx.value *= 10;
             ctx.visited.push("path2".to_string());
             Ok((ctx, NodeOutcome::<(), TestAction>::Success(())))
@@ -464,12 +464,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_workflow_with_skipped_node() {
-        let start_node = node::node(|mut ctx: TestContext| async move {
+        let start_node = closure::node(|mut ctx: TestContext| async move {
             ctx.visited.push("start".to_string());
             Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))
         });
 
-        let skip_node = node::node(|mut ctx: TestContext| async move {
+        let skip_node = closure::node(|mut ctx: TestContext| async move {
             ctx.visited.push("skip_check".to_string());
             if ctx.value > 5 {
                 // Skip this node
@@ -480,7 +480,7 @@ mod tests {
             }
         });
 
-        let end_node = node::node(|mut ctx: TestContext| async move {
+        let end_node = closure::node(|mut ctx: TestContext| async move {
             ctx.visited.push("end".to_string());
             ctx.value += 5;
             Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))

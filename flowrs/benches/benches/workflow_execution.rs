@@ -1,9 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use flowrs_core::{ActionType, DefaultAction, Node, NodeOutcome, Workflow};
 use std::time::Duration;
 
 // Simple test context
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct BenchContext {
     counter: usize,
 }

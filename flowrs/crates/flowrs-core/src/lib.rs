@@ -16,7 +16,7 @@ pub use action::{ActionType, DefaultAction};
 pub use batch::{BatchContext, BatchFlow, BatchNode};
 pub use error::{FlowrsError, FlowrsResult};
 pub use lifecycle::{lifecycle_node, LifecycleNode};
-pub use node::node::node;
+pub use node::closure::node;
 pub use node::{Node, NodeId, NodeOutcome};
 pub use retry::{BackoffStrategy, RetryNode};
 pub use workflow::{Workflow, WorkflowError};
