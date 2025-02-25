@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-timer"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Flowrs Contributors"]
 description = "Timer-based node extensions for the Flowrs framework"
