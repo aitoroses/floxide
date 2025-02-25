@@ -38,7 +38,11 @@ jobs:
           pip install mkdocstrings[python]
 
       - name: Setup Pages
+        id: pages
         uses: actions/configure-pages@v4
+        with:
+          # Enable GitHub Pages in this repository if not already enabled
+          enablement: true
 
       - name: Build documentation
         run: mkdocs build
@@ -49,8 +53,9 @@ jobs:
           path: "site"
 
   deploy:
+    # Use the built-in GitHub Pages environment
     environment:
-      name: github-pages
+      name: "github-pages"
       url: ${{ steps.deployment.outputs.page_url }}
     needs: build
     runs-on: ubuntu-latest
