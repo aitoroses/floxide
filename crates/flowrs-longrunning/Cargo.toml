@@ -8,7 +8,7 @@ repository = "https://github.com/aitoroses/Pocket-Flow-Framework"
 authors = ["The Flowrs Authors"]
 
 [dependencies]
-flowrs-core = { path = "../flowrs-core", version = "=1.0.0" }
+flowrs-core = { path = "../flowrs-core" }
 async-trait = "0.1.77"
 chrono = "0.4.33"
 serde = { version = "1.0", features = ["derive"] }
