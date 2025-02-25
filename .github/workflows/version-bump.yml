@@ -76,57 +76,6 @@ jobs:
             NEW_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
             echo "Updated to version $NEW_VERSION"
             
-            # Also update the explicit version requirements in the main Cargo.toml
-            # This is needed because cargo-workspaces doesn't update these
-            sed -i "s/flowrs-core = { path = \"crates\/flowrs-core\", version = \"[0-9.]*\"/flowrs-core = { path = \"crates\/flowrs-core\", version = \"$NEW_VERSION\"/g" Cargo.toml
-            sed -i "s/flowrs-transform = { path = \"crates\/flowrs-transform\", version = \"[0-9.]*\"/flowrs-transform = { path = \"crates\/flowrs-transform\", version = \"$NEW_VERSION\"/g" Cargo.toml
-            sed -i "s/flowrs-event = { path = \"crates\/flowrs-event\", version = \"[0-9.]*\"/flowrs-event = { path = \"crates\/flowrs-event\", version = \"$NEW_VERSION\"/g" Cargo.toml
-            sed -i "s/flowrs-timer = { path = \"crates\/flowrs-timer\", version = \"[0-9.]*\"/flowrs-timer = { path = \"crates\/flowrs-timer\", version = \"$NEW_VERSION\"/g" Cargo.toml
-            sed -i "s/flowrs-longrunning = { path = \"crates\/flowrs-longrunning\", version = \"[0-9.]*\"/flowrs-longrunning = { path = \"crates\/flowrs-longrunning\", version = \"$NEW_VERSION\"/g" Cargo.toml
-            sed -i "s/flowrs-reactive = { path = \"crates\/flowrs-reactive\", version = \"[0-9.]*\"/flowrs-reactive = { path = \"crates\/flowrs-reactive\", version = \"$NEW_VERSION\"/g" Cargo.toml
-            
-            # Simple direct approach - create a new version of each crate's Cargo.toml
-            echo "Directly updating individual crate Cargo.toml files..."
-            for crate_toml in crates/*/Cargo.toml; do
-              echo "Processing $crate_toml"
-              
-              # Create backup of original file
-              cp "$crate_toml" "${crate_toml}.bak"
-              
-              # Simple and reliable update without regex complexity
-              while IFS= read -r line; do
-                if [[ "$line" == *"flowrs-core = { path = \"../flowrs-core\", version = "* ]]; then
-                  # Replace with new version
-                  echo "flowrs-core = { path = \"../flowrs-core\", version = \"$NEW_VERSION\" }" 
-                elif [[ "$line" == *"flowrs-transform = { path = \"../flowrs-transform\", version = "* ]]; then
-                  echo "flowrs-transform = { path = \"../flowrs-transform\", version = \"$NEW_VERSION\" }"
-                elif [[ "$line" == *"flowrs-event = { path = \"../flowrs-event\", version = "* ]]; then
-                  echo "flowrs-event = { path = \"../flowrs-event\", version = \"$NEW_VERSION\" }"
-                elif [[ "$line" == *"flowrs-timer = { path = \"../flowrs-timer\", version = "* ]]; then
-                  echo "flowrs-timer = { path = \"../flowrs-timer\", version = \"$NEW_VERSION\" }"
-                elif [[ "$line" == *"flowrs-longrunning = { path = \"../flowrs-longrunning\", version = "* ]]; then
-                  echo "flowrs-longrunning = { path = \"../flowrs-longrunning\", version = \"$NEW_VERSION\" }"
-                elif [[ "$line" == *"flowrs-reactive = { path = \"../flowrs-reactive\", version = "* ]]; then
-                  echo "flowrs-reactive = { path = \"../flowrs-reactive\", version = \"$NEW_VERSION\" }"
-                else
-                  echo "$line"
-                fi
-              done < "${crate_toml}.bak" > "$crate_toml"
-              
-              # Remove backup
-              rm "${crate_toml}.bak"
-              
-              # Add to git
-              git add "$crate_toml"
-            done
-            
-            # Extra check for flowrs-timer
-            echo "Special check for flowrs-timer/Cargo.toml..."
-            if [ -f "crates/flowrs-timer/Cargo.toml" ]; then
-              echo "Content of flowrs-timer/Cargo.toml after update:"
-              cat crates/flowrs-timer/Cargo.toml | grep "flowrs-core"
-            fi
-            
             # Commit the changes to the explicit version requirements
             git add Cargo.toml
             git commit --amend --no-edit
