@@ -36,6 +36,13 @@ pub enum ReactiveError {
     ResourceNotFound(String),
 }
 
+/// A handler function for file changes
+pub type ChangeHandlerFn<Context, Action> = Box<
+    dyn Fn(FileChange, &mut Context) -> BoxFuture<'static, Result<Action, FlowrsError>>
+        + Send
+        + Sync,
+>;
+
 /// Trait for nodes that react to changes in external data sources
 #[async_trait]
 pub trait ReactiveNode<Change, Context, Action>: Send + Sync
@@ -175,13 +182,7 @@ where
 {
     file_path: String,
     poll_interval: Duration,
-    change_handler: Option<
-        Box<
-            dyn Fn(FileChange, &mut Context) -> BoxFuture<'static, Result<Action, FlowrsError>>
-                + Send
-                + Sync,
-        >,
-    >,
+    change_handler: Option<ChangeHandlerFn<Context, Action>>,
 }
 
 impl<Context, Action> FileWatcherNode<Context, Action>

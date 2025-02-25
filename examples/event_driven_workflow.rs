@@ -155,7 +155,7 @@ impl MonitoringContext {
         let history = self
             .temperature_history
             .entry(sensor_id.to_string())
-            .or_insert_with(Vec::new);
+            .or_default();
 
         history.push(temp);
 

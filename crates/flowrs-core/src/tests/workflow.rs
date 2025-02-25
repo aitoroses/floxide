@@ -5,7 +5,6 @@ mod tests {
     use crate::node::*;
     use crate::workflow::*;
     use async_trait::async_trait;
-    
 
     // Simple test context
     #[derive(Debug, Clone)]

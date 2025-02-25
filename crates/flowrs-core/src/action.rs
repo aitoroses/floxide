@@ -1,4 +1,4 @@
-use std::fmt::{Debug};
+use std::fmt::Debug;
 use std::hash::Hash;
 
 /// Trait for action types that can be used for node transitions

@@ -47,10 +47,7 @@ impl FileWatchContext {
         self.change_count += 1;
         self.latest_size = change.size;
 
-        let changes = self
-            .changes
-            .entry(change.path.clone())
-            .or_insert_with(Vec::new);
+        let changes = self.changes.entry(change.path.clone()).or_default();
         changes.push(change);
     }
 }
@@ -84,10 +81,7 @@ impl SensorContext {
         self.latest_values
             .insert(data.sensor_id.clone(), data.value);
 
-        let measurements = self
-            .measurements
-            .entry(data.sensor_id.clone())
-            .or_insert_with(Vec::new);
+        let measurements = self.measurements.entry(data.sensor_id.clone()).or_default();
         measurements.push(data);
     }
 }

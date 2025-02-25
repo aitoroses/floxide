@@ -232,7 +232,7 @@ async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Ima
 
     let semaphore = std::sync::Arc::new(Semaphore::new(parallelism));
 
-    let tasks = stream::iter(images)
+    stream::iter(images)
         .map(|image| {
             let semaphore = semaphore.clone();
             async move {
@@ -244,9 +244,7 @@ async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Ima
         })
         .buffer_unordered(parallelism)
         .collect::<Vec<_>>()
-        .await;
-
-    tasks
+        .await
 }
 
 fn main() {

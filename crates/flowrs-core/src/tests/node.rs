@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use async_trait::async_trait;
-    use crate::node::*;
     use crate::action::*;
     use crate::error::*;
+    use crate::node::*;
+    use async_trait::async_trait;
 
     // Simple test context
     #[derive(Debug, Clone)]
@@ -30,7 +30,10 @@ mod tests {
             self.id.clone()
         }
 
-        async fn process(&self, ctx: &mut TestContext) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+        async fn process(
+            &self,
+            ctx: &mut TestContext,
+        ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
             ctx.value += 1;
             Ok(NodeOutcome::Success(ctx.value))
         }
@@ -55,7 +58,10 @@ mod tests {
             self.id.clone()
         }
 
-        async fn process(&self, ctx: &mut TestContext) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+        async fn process(
+            &self,
+            ctx: &mut TestContext,
+        ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
             if ctx.value > 0 {
                 Ok(NodeOutcome::RouteToAction(DefaultAction::Next))
             } else {
@@ -83,8 +89,14 @@ mod tests {
             self.id.clone()
         }
 
-        async fn process(&self, _ctx: &mut TestContext) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
-            Err(FlowrsError::node_execution(self.id(), "This node always fails"))
+        async fn process(
+            &self,
+            _ctx: &mut TestContext,
+        ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+            Err(FlowrsError::node_execution(
+                self.id(),
+                "This node always fails",
+            ))
         }
     }
 
@@ -92,10 +104,10 @@ mod tests {
     async fn test_add_node() {
         let node = AddNode::new("add");
         let mut ctx = TestContext { value: 5 };
-        
+
         let result = node.process(&mut ctx).await;
         assert!(result.is_ok());
-        
+
         match result.unwrap() {
             NodeOutcome::Success(value) => {
                 assert_eq!(value, 6);
@@ -108,24 +120,24 @@ mod tests {
     #[tokio::test]
     async fn test_check_positive_node() {
         let node = CheckPositiveNode::new("check_positive");
-        
+
         // Test with positive value
         let mut ctx_positive = TestContext { value: 5 };
         let result_positive = node.process(&mut ctx_positive).await;
         assert!(result_positive.is_ok());
-        
+
         match result_positive.unwrap() {
             NodeOutcome::RouteToAction(action) => {
                 assert_eq!(action, DefaultAction::Next);
             }
             _ => panic!("Expected RouteToAction outcome"),
         }
-        
+
         // Test with negative value
         let mut ctx_negative = TestContext { value: -5 };
         let result_negative = node.process(&mut ctx_negative).await;
         assert!(result_negative.is_ok());
-        
+
         match result_negative.unwrap() {
             NodeOutcome::RouteToAction(action) => {
                 assert_eq!(action, DefaultAction::Error);
@@ -138,10 +150,10 @@ mod tests {
     async fn test_failing_node() {
         let node = FailingNode::new("failing");
         let mut ctx = TestContext { value: 0 };
-        
+
         let result = node.process(&mut ctx).await;
         assert!(result.is_err());
-        
+
         let error = result.unwrap_err();
         match error {
             FlowrsError::NodeExecution(msg) => {
@@ -151,4 +163,4 @@ mod tests {
             _ => panic!("Expected NodeExecution error"),
         }
     }
-} 
+}

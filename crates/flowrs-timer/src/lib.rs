@@ -74,7 +74,7 @@ impl Schedule {
 
                 // If this time has already passed today, schedule it for tomorrow
                 if next <= now {
-                    next = next + ChronoDuration::days(1);
+                    next += ChronoDuration::days(1);
                 }
 
                 Ok(next)
@@ -97,9 +97,9 @@ impl Schedule {
 
                 // If the time has already passed today and it's the specified weekday, schedule it for next week
                 if days_until_weekday == 0 && next <= now {
-                    next = next + ChronoDuration::days(7);
+                    next += ChronoDuration::days(7);
                 } else {
-                    next = next + ChronoDuration::days(days_until_weekday as i64);
+                    next += ChronoDuration::days(days_until_weekday as i64);
                 }
 
                 Ok(next)
@@ -136,7 +136,7 @@ impl Schedule {
                     // schedule it for next month
                     if next <= now || *day < current_day {
                         // Move to the 1st of next month and then try to set the day
-                        next = next + ChronoDuration::days(32); // Move well into next month
+                        next += ChronoDuration::days(32); // Move well into next month
                         next = next.with_day(1).ok_or_else(|| {
                             FlowrsError::Other("Failed to set day to 1".to_string())
                         })?;

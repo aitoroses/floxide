@@ -6,9 +6,7 @@
 //! the EventDrivenNode trait and various event source implementations.
 
 use async_trait::async_trait;
-use flowrs_core::{
-    error::FlowrsError, ActionType, DefaultAction, Node, NodeId, NodeOutcome,
-};
+use flowrs_core::{error::FlowrsError, ActionType, DefaultAction, Node, NodeId, NodeOutcome};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -27,14 +25,10 @@ where
 {
     /// Wait for an external event to occur
     async fn wait_for_event(&mut self) -> Result<Event, FlowrsError>;
-    
+
     /// Process the received event and update context
-    async fn process_event(
-        &self, 
-        event: Event, 
-        ctx: &mut Context
-    ) -> Result<Action, FlowrsError>;
-    
+    async fn process_event(&self, event: Event, ctx: &mut Context) -> Result<Action, FlowrsError>;
+
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;
 }
@@ -87,17 +81,17 @@ where
             None => Err(FlowrsError::Other("Event channel closed".to_string())),
         }
     }
-    
+
     async fn process_event(
-        &self, 
-        _event: Event, 
-        _ctx: &mut Context
+        &self,
+        _event: Event,
+        _ctx: &mut Context,
     ) -> Result<Action, FlowrsError> {
         // ChannelEventSource just passes events through, it doesn't process them
         // Return the default action
         Ok(Action::default())
     }
-    
+
     fn id(&self) -> NodeId {
         self.id.clone()
     }
@@ -126,18 +120,37 @@ where
     /// Create a new event processor with a default ID
     pub fn new(capacity: usize, processor: F) -> (Self, mpsc::Sender<Event>) {
         let (source, sender) = ChannelEventSource::new(capacity);
-        (Self { source: Arc::new(tokio::sync::Mutex::new(source)), processor, _phantom: PhantomData }, sender)
+        (
+            Self {
+                source: Arc::new(tokio::sync::Mutex::new(source)),
+                processor,
+                _phantom: PhantomData,
+            },
+            sender,
+        )
     }
-    
+
     /// Create a new event processor with a specific ID
-    pub fn with_id(capacity: usize, id: impl Into<String>, processor: F) -> (Self, mpsc::Sender<Event>) {
+    pub fn with_id(
+        capacity: usize,
+        id: impl Into<String>,
+        processor: F,
+    ) -> (Self, mpsc::Sender<Event>) {
         let (source, sender) = ChannelEventSource::with_id(capacity, id);
-        (Self { source: Arc::new(tokio::sync::Mutex::new(source)), processor, _phantom: PhantomData }, sender)
+        (
+            Self {
+                source: Arc::new(tokio::sync::Mutex::new(source)),
+                processor,
+                _phantom: PhantomData,
+            },
+            sender,
+        )
     }
 }
 
 #[async_trait]
-impl<Event, Context, Action, F> EventDrivenNode<Event, Context, Action> for EventProcessor<Event, Context, Action, F>
+impl<Event, Context, Action, F> EventDrivenNode<Event, Context, Action>
+    for EventProcessor<Event, Context, Action, F>
 where
     Event: Send + 'static,
     Context: Send + Sync + 'static,
@@ -146,23 +159,28 @@ where
 {
     async fn wait_for_event(&mut self) -> Result<Event, FlowrsError> {
         let mut source = self.source.lock().await;
-        <ChannelEventSource<Event> as EventDrivenNode<Event, Context, Action>>::wait_for_event(&mut *source).await
+        <ChannelEventSource<Event> as EventDrivenNode<Event, Context, Action>>::wait_for_event(
+            &mut *source,
+        )
+        .await
     }
-    
-    async fn process_event(
-        &self, 
-        event: Event, 
-        ctx: &mut Context
-    ) -> Result<Action, FlowrsError> {
+
+    async fn process_event(&self, event: Event, ctx: &mut Context) -> Result<Action, FlowrsError> {
         (self.processor)(event, ctx)
     }
-    
+
     fn id(&self) -> NodeId {
-        self.source.try_lock().map(|source| 
-            <ChannelEventSource<Event> as EventDrivenNode<Event, Context, Action>>::id(&*source)
-        ).unwrap_or_else(|_| "locked".to_string())
+        self.source
+            .try_lock()
+            .map(|source| {
+                <ChannelEventSource<Event> as EventDrivenNode<Event, Context, Action>>::id(&*source)
+            })
+            .unwrap_or_else(|_| "locked".to_string())
     }
 }
+
+/// Type alias for a thread-safe reference to an event-driven node
+type EventNodeRef<E, C, A> = Arc<tokio::sync::Mutex<dyn EventDrivenNode<E, C, A>>>;
 
 /// A workflow that processes events using event-driven nodes
 pub struct EventDrivenWorkflow<Event, Context, Action>
@@ -171,7 +189,7 @@ where
     Context: Send + Sync + 'static,
     Action: ActionType + Send + Sync + 'static + Default,
 {
-    nodes: HashMap<NodeId, Arc<tokio::sync::Mutex<dyn EventDrivenNode<Event, Context, Action>>>>,
+    nodes: HashMap<NodeId, EventNodeRef<Event, Context, Action>>,
     routes: HashMap<(NodeId, Action), NodeId>,
     initial_node: NodeId,
     termination_action: Action,
@@ -189,12 +207,15 @@ where
         termination_action: Action,
     ) -> Self {
         let id = {
-            initial_node.try_lock().map(|n| n.id()).unwrap_or_else(|_| "locked".to_string())
+            initial_node
+                .try_lock()
+                .map(|n| n.id())
+                .unwrap_or_else(|_| "locked".to_string())
         };
-        
+
         let mut nodes = HashMap::new();
         nodes.insert(id.clone(), initial_node);
-        
+
         Self {
             nodes,
             routes: HashMap::new(),
@@ -202,23 +223,28 @@ where
             termination_action,
         }
     }
-    
+
     /// Add a node to the workflow
-    pub fn add_node(&mut self, node: Arc<tokio::sync::Mutex<dyn EventDrivenNode<Event, Context, Action>>>) {
+    pub fn add_node(
+        &mut self,
+        node: Arc<tokio::sync::Mutex<dyn EventDrivenNode<Event, Context, Action>>>,
+    ) {
         let id = {
-            node.try_lock().map(|n| n.id()).unwrap_or_else(|_| "locked".to_string())
+            node.try_lock()
+                .map(|n| n.id())
+                .unwrap_or_else(|_| "locked".to_string())
         };
         self.nodes.insert(id, node);
     }
-    
+
     /// Set a route from one node to another based on an action
     pub fn set_route(&mut self, from_id: &NodeId, action: Action, to_id: &NodeId) {
         // Store the route in the routing table
         self.routes.insert((from_id.clone(), action), to_id.clone());
     }
-    
+
     /// Sets a route with validation to ensure proper event flow
-    /// 
+    ///
     /// This method ensures that processor nodes (non-event sources) route back to
     /// valid event sources, preventing the "not an event source" error during execution.
     ///
@@ -232,42 +258,45 @@ where
     ///
     /// * `Result<(), FlowrsError>` - Ok if the route is valid, Error otherwise
     pub fn set_route_with_validation(
-        &mut self, 
-        from_id: &NodeId, 
-        action: Action, 
-        to_id: &NodeId
+        &mut self,
+        from_id: &NodeId,
+        action: Action,
+        to_id: &NodeId,
     ) -> Result<(), FlowrsError> {
         // Check if the destination node exists
         if !self.nodes.contains_key(to_id) {
-            return Err(FlowrsError::Other(
-                format!("Destination node '{}' not found in workflow", to_id)
-            ));
+            return Err(FlowrsError::Other(format!(
+                "Destination node '{}' not found in workflow",
+                to_id
+            )));
         }
-        
+
         // Check if the source node is a processor (not an event source)
         // and the destination is also not an event source
         // This is done by attempting to call wait_for_event on both nodes
         // If the method returns an error containing "not an event source", it's a processor
-        
+
         // For now we'll just add the route, but in a future implementation,
         // we should check if the source node is a processor and the destination
         // is also a processor, which would be an invalid routing pattern
-        
+
         // Store the route in the routing table
         self.routes.insert((from_id.clone(), action), to_id.clone());
-        
+
         Ok(())
     }
-    
+
     /// Execute the workflow, processing events until the termination action is returned
     pub async fn execute(&self, ctx: &mut Context) -> Result<(), FlowrsError> {
         let mut current_node_id = self.initial_node.clone();
-        
+
         loop {
             // Get the current node
-            let node = self.nodes.get(&current_node_id)
+            let node = self
+                .nodes
+                .get(&current_node_id)
                 .ok_or_else(|| FlowrsError::node_not_found(current_node_id.clone()))?;
-            
+
             // Wait for an event and process it
             let event = {
                 let mut node_guard = node.lock().await;
@@ -278,15 +307,20 @@ where
                         if e.to_string().contains("not an event source") {
                             // This is a processor node, not an event source
                             // We need to find the initial node (which should be an event source)
-                            warn!("Node '{}' is not an event source, routing to initial node", current_node_id);
-                            
+                            warn!(
+                                "Node '{}' is not an event source, routing to initial node",
+                                current_node_id
+                            );
+
                             // Get the initial node and try to get an event from there
                             current_node_id = self.initial_node.clone();
-                            let source_node = self.nodes.get(&current_node_id)
-                                .ok_or_else(|| FlowrsError::Other(
-                                    "Initial node not found in workflow".to_string()
-                                ))?;
-                                
+                            let source_node =
+                                self.nodes.get(&current_node_id).ok_or_else(|| {
+                                    FlowrsError::Other(
+                                        "Initial node not found in workflow".to_string(),
+                                    )
+                                })?;
+
                             let mut source_guard = source_node.lock().await;
                             source_guard.wait_for_event().await?
                         } else {
@@ -296,36 +330,43 @@ where
                     }
                 }
             };
-            
+
             let action = {
                 let node_guard = node.lock().await;
                 node_guard.process_event(event, ctx).await?
             };
-            
+
             // If the action is the termination action, we're done
             if action == self.termination_action {
                 info!("Event-driven workflow terminated with termination action");
                 return Ok(());
             }
-            
+
             // Find the next node to route to
-            current_node_id = self.routes.get(&(current_node_id, action.clone()))
-                .ok_or_else(|| FlowrsError::WorkflowDefinitionError(
-                    format!("No route defined for action: {}", action.name())
-                ))?
+            current_node_id = self
+                .routes
+                .get(&(current_node_id, action.clone()))
+                .ok_or_else(|| {
+                    FlowrsError::WorkflowDefinitionError(format!(
+                        "No route defined for action: {}",
+                        action.name()
+                    ))
+                })?
                 .clone();
         }
     }
-    
+
     /// Execute the workflow with a timeout
     pub async fn execute_with_timeout(
-        &self, 
-        ctx: &mut Context, 
-        timeout: Duration
+        &self,
+        ctx: &mut Context,
+        timeout: Duration,
     ) -> Result<(), FlowrsError> {
         match tokio::time::timeout(timeout, self.execute(ctx)).await {
             Ok(result) => result,
-            Err(_) => Err(FlowrsError::timeout("Event-driven workflow execution timed out"))
+            Err(_) => Err(FlowrsError::timeout(
+                "Event-driven workflow execution timed out",
+            )),
         }
     }
 }
@@ -356,9 +397,11 @@ where
         timeout_action: A,
     ) -> Self {
         let id = {
-            node.try_lock().map(|n| n.id()).unwrap_or_else(|_| "locked".to_string())
+            node.try_lock()
+                .map(|n| n.id())
+                .unwrap_or_else(|_| "locked".to_string())
         };
-        
+
         Self {
             node,
             id,
@@ -397,13 +440,13 @@ where
     }
 
     async fn process(&self, ctx: &mut C) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
-        match tokio::time::timeout(self.timeout, async {
-            let event = {
-                let mut node_guard = self.node.lock().await;
-                node_guard.wait_for_event().await
-            };
-            event
-        }).await {
+        // Extract the async block to a separate variable
+        let wait_for_event_future = async {
+            let mut node_guard = self.node.lock().await;
+            node_guard.wait_for_event().await
+        };
+
+        match tokio::time::timeout(self.timeout, wait_for_event_future).await {
             Ok(Ok(event)) => {
                 let action = {
                     let node_guard = self.node.lock().await;
@@ -531,7 +574,7 @@ where
 pub trait EventActionExt: ActionType {
     /// Create a terminate action for event-driven workflows
     fn terminate() -> Self;
-    
+
     /// Create a timeout action for timed operations
     fn timeout() -> Self;
 }
@@ -540,8 +583,8 @@ impl EventActionExt for DefaultAction {
     fn terminate() -> Self {
         DefaultAction::Custom("terminate".into())
     }
-    
+
     fn timeout() -> Self {
         DefaultAction::Custom("timeout".into())
     }
-} 
+}

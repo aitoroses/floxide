@@ -1,7 +1,7 @@
+use async_trait::async_trait;
 use std::fmt::{self, Debug, Formatter};
 use std::marker::PhantomData;
 use std::time::Duration;
-use async_trait::async_trait;
 
 use crate::action::ActionType;
 use crate::error::FlowrsError;
@@ -13,15 +13,9 @@ pub enum BackoffStrategy {
     /// Constant time between retries
     Constant(Duration),
     /// Linear increase in time between retries
-    Linear { 
-        base: Duration,
-        increment: Duration,
-    },
+    Linear { base: Duration, increment: Duration },
     /// Exponential increase in time between retries (base * 2^attempt)
-    Exponential { 
-        base: Duration, 
-        max: Duration,
-    },
+    Exponential { base: Duration, max: Duration },
     /// Custom backoff strategy implemented as a function
     Custom(CustomBackoff),
 }
@@ -67,9 +61,7 @@ impl BackoffStrategy {
 impl Debug for BackoffStrategy {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Constant(duration) => {
-                f.debug_tuple("Constant").field(duration).finish()
-            }
+            Self::Constant(duration) => f.debug_tuple("Constant").field(duration).finish(),
             Self::Linear { base, increment } => f
                 .debug_struct("Linear")
                 .field("base", base)
@@ -181,7 +173,10 @@ where
         self.inner_node.id()
     }
 
-    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
+    async fn process(
+        &self,
+        ctx: &mut Context,
+    ) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
         let mut attempt = 0;
         loop {
             attempt += 1;
@@ -236,7 +231,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     use crate::DefaultAction;
 
     #[derive(Debug, Clone)]
@@ -261,12 +256,17 @@ mod tests {
                 self.id.clone()
             }
 
-            async fn process(&self, ctx: &mut TestContext) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+            async fn process(
+                &self,
+                ctx: &mut TestContext,
+            ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
                 ctx.counter += 1;
                 if ctx.counter <= ctx.should_fail_until {
                     Err(FlowrsError::node_execution("test", "Simulated failure"))
                 } else {
-                    Ok(NodeOutcome::<String, DefaultAction>::Success("success".to_string()))
+                    Ok(NodeOutcome::<String, DefaultAction>::Success(
+                        "success".to_string(),
+                    ))
                 }
             }
         }
@@ -307,7 +307,10 @@ mod tests {
                 self.id.clone()
             }
 
-            async fn process(&self, _ctx: &mut TestContext) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+            async fn process(
+                &self,
+                _ctx: &mut TestContext,
+            ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
                 Err(FlowrsError::node_execution("test", "Always failing"))
             }
         }
@@ -363,4 +366,4 @@ mod tests {
         assert_eq!(custom.calculate_delay(2), Duration::from_millis(50));
         assert_eq!(custom.calculate_delay(10), Duration::from_millis(250));
     }
-} 
+}

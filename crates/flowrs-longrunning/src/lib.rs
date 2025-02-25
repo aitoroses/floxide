@@ -11,7 +11,6 @@ use std::time::Duration;
 use async_trait::async_trait;
 use flowrs_core::{ActionType, DefaultAction, FlowrsError, Node, NodeId, NodeOutcome};
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 /// Represents the outcome of a long-running process.
 #[derive(Debug)]
@@ -245,18 +244,14 @@ where
         match self.node.process(state, ctx).await {
             Ok(LongRunningOutcome::Complete(_output)) => {
                 // Processing is complete, clean up state
-                if let Err(e) = self.state_store.remove_state(node_id).await {
-                    return Err(e);
-                }
+                self.state_store.remove_state(node_id).await?;
 
                 // Return with complete action
                 Ok(NodeOutcome::RouteToAction(Action::complete()))
             }
             Ok(LongRunningOutcome::Suspend(state)) => {
                 // Save the state
-                if let Err(e) = self.state_store.save_state(node_id, &state).await {
-                    return Err(e);
-                }
+                self.state_store.save_state(node_id, &state).await?;
 
                 // Return with suspend action
                 Ok(NodeOutcome::RouteToAction(Action::suspend()))
@@ -457,7 +452,6 @@ impl StateStore for InMemoryStateStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[tokio::test]
     async fn test_simple_long_running_node() {

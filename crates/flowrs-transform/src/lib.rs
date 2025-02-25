@@ -19,13 +19,11 @@
 //! from `flowrs_async` to `flowrs_transform`.
 
 use async_trait::async_trait;
-use flowrs_core::{
-    error::FlowrsError, ActionType, LifecycleNode, NodeId,
-};
+use flowrs_core::{error::FlowrsError, ActionType, LifecycleNode, NodeId};
+use futures::future::BoxFuture;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use uuid::Uuid;
-use futures::future::BoxFuture;
 
 /// A simplified transform node trait for functional data transformations
 ///
@@ -142,7 +140,8 @@ where
     }
 }
 
-impl<TN, Input, Output, Error, Action> Debug for TransformNodeAdapter<TN, Input, Output, Error, Action>
+impl<TN, Input, Output, Error, Action> Debug
+    for TransformNodeAdapter<TN, Input, Output, Error, Action>
 where
     TN: TransformNode<Input, Output, Error> + Debug,
     Input: Clone + Send + Sync + 'static,
@@ -188,7 +187,10 @@ where
         self.id.clone()
     }
 
-    async fn prep(&self, ctx: &mut TransformContext<Input>) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(
+        &self,
+        ctx: &mut TransformContext<Input>,
+    ) -> Result<Self::PrepOutput, FlowrsError> {
         self.node
             .prep(ctx.input.clone())
             .await
@@ -294,4 +296,4 @@ where
     Err: std::error::Error + Send + Sync + 'static,
 {
     transform_node(prep_fn, exec_fn, post_fn)
-} 
+}
