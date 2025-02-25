@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Implemented
 
 ## Date
 
@@ -51,6 +51,10 @@ The implementation will involve:
 3. Keeping all existing `.rs` example files in the `examples/` directory
 4. Ensuring all examples use dependencies from the root `Cargo.toml`
 5. Testing that all examples can be run using `cargo run --example example_name`
+
+## Repository Information
+
+This ADR applies to the Flowrs project hosted at [github.com/aitoroses/flowrs](https://github.com/aitoroses/flowrs).
 
 ## Related ADRs
 

@@ -130,10 +130,19 @@ These examples collectively showcase several advanced concepts in the Flow Frame
 
 When creating your own examples:
 
-1. Add your example file to the `examples/` directory
-2. Add an entry to `Cargo.toml` under the `[[example]]` section
+1. Add your example file to the `examples/` directory (e.g., `examples/my_example.rs`)
+2. Add an entry to the root `Cargo.toml` under the `[[example]]` section:
+   ```toml
+   [[example]]
+   name = "my_example"
+   path = "examples/my_example.rs"
+   ```
 3. Ensure your example has proper documentation
 4. Follow the established patterns for node and workflow creation
+
+## Repository Information
+
+These examples are part of the Flowrs project hosted at [github.com/aitoroses/flowrs](https://github.com/aitoroses/flowrs).
 
 ## References
 
