@@ -11,6 +11,11 @@ on:
 permissions:
   contents: write # Needed to push to gh-pages branch
 
+# Concurrency control to ensure only one deployment runs at a time
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

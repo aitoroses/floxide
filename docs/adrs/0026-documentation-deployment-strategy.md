@@ -25,8 +25,12 @@ We will implement a documentation deployment strategy using GitHub Actions with 
 
 We will maintain two types of documentation:
 
-1. **API Documentation**: Generated from Rustdoc comments in the codebase
-2. **Conceptual Documentation**: Written in Markdown and built with MkDocs
+1. **API Documentation**: Generated from Rustdoc comments in the codebase (planned for future implementation)
+2. **Conceptual Documentation**: Written in Markdown and built with MkDocs (currently implemented)
+
+### Current Implementation Status
+
+The current implementation focuses on MkDocs-based conceptual documentation. Rustdoc API documentation will be added in a future iteration.
 
 ### Deployment Approach
 
@@ -76,6 +80,12 @@ concurrency:
 1. **Setup Complexity**: Initial setup requires configuring GitHub Pages in repository settings.
 2. **Maintenance Overhead**: The workflow may need updates as GitHub Actions evolves.
 3. **Potential Conflicts**: Multiple documentation types may require careful coordination.
+4. **Incomplete Implementation**: The current implementation only includes MkDocs documentation, with Rustdoc integration planned for the future.
+
+## Future Work
+
+1. **Rustdoc Integration**: Add Rust API documentation generation to the workflow.
+2. **Combined Documentation**: Ensure both documentation types are accessible from a unified interface.
 
 ## Alternatives Considered
 
@@ -102,4 +112,4 @@ We initially tried this approach but encountered permission issues with the GitH
   - Separate authentication and deployment process
   - Disconnected from the repository
 
-We chose GitHub Pages for its tight integration with our GitHub repository and sufficient feature set for our documentation needs. 
+We chose GitHub Pages for its tight integration with our GitHub repository and sufficient feature set for our documentation needs.
