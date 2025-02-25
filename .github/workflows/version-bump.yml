@@ -85,6 +85,17 @@ jobs:
             sed -i "s/flowrs-longrunning = { path = \"crates\/flowrs-longrunning\", version = \"[0-9.]*\"/flowrs-longrunning = { path = \"crates\/flowrs-longrunning\", version = \"$NEW_VERSION\"/g" Cargo.toml
             sed -i "s/flowrs-reactive = { path = \"crates\/flowrs-reactive\", version = \"[0-9.]*\"/flowrs-reactive = { path = \"crates\/flowrs-reactive\", version = \"$NEW_VERSION\"/g" Cargo.toml
             
+            # Update all exact version dependencies in individual crate Cargo.toml files
+            # Handle both ="x.y.z" and = "=x.y.z" formats
+            find crates -name "Cargo.toml" -exec sed -i "s/flowrs-core = { path = \"..\/flowrs-core\", version = \"=[0-9.]*\"/flowrs-core = { path = \"..\/flowrs-core\", version = \"=$NEW_VERSION\"/g" {} \;
+            find crates -name "Cargo.toml" -exec sed -i "s/flowrs-core = { path = \"..\/flowrs-core\", version = \"[0-9.]*\"/flowrs-core = { path = \"..\/flowrs-core\", version = \"$NEW_VERSION\"/g" {} \;
+            
+            # Similarly for all other crates that might be used as dependencies
+            for crate in core transform event timer longrunning reactive; do
+              find crates -name "Cargo.toml" -exec sed -i "s/flowrs-$crate = { path = \"..\/flowrs-$crate\", version = \"=[0-9.]*\"/flowrs-$crate = { path = \"..\/flowrs-$crate\", version = \"=$NEW_VERSION\"/g" {} \;
+              find crates -name "Cargo.toml" -exec sed -i "s/flowrs-$crate = { path = \"..\/flowrs-$crate\", version = \"[0-9.]*\"/flowrs-$crate = { path = \"..\/flowrs-$crate\", version = \"$NEW_VERSION\"/g" {} \;
+            done
+            
             # Commit the changes to the explicit version requirements
             git add Cargo.toml
             git commit --amend --no-edit
