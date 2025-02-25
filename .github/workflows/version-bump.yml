@@ -16,6 +16,21 @@ on:
         required: true
         type: boolean
         default: true
+      force_tag:
+        description: "Force update existing tags"
+        required: false
+        type: boolean
+        default: false
+      skip_tagging:
+        description: "Skip tag creation entirely"
+        required: false
+        type: boolean
+        default: false
+      trigger_release:
+        description: "Trigger release workflow after version bump"
+        required: false
+        type: boolean
+        default: false
 
 # Sets permissions of the GITHUB_TOKEN to allow pushing to the repository
 permissions:
@@ -50,12 +65,58 @@ jobs:
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             cargo workspaces version ${{ github.event.inputs.bump_type }} --no-git-commit --exact --yes
           else
-            cargo workspaces version ${{ github.event.inputs.bump_type }} --exact --yes
+            # Use --no-git-tag to handle tagging manually
+            cargo workspaces version ${{ github.event.inputs.bump_type }} --exact --yes --no-git-tag
             
             # Get the new version
             NEW_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
             
-            # Create and push tag
-            git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
-            git push origin "v${NEW_VERSION}"
+            # Create and push tag if not skipped
+            if [ "${{ github.event.inputs.skip_tagging }}" != "true" ]; then
+              TAG_NAME="v${NEW_VERSION}"
+              
+              # Check if tag exists
+              if git show-ref --tags "$TAG_NAME" --quiet; then
+                if [ "${{ github.event.inputs.force_tag }}" = "true" ]; then
+                  echo "Tag $TAG_NAME exists, force updating"
+                  git tag -d "$TAG_NAME"
+                  git push origin ":refs/tags/$TAG_NAME" || true
+                  
+                  # Also delete individual crate tags if they exist
+                  for CRATE_TAG in $(git tag | grep "@${NEW_VERSION}$"); do
+                    echo "Deleting individual crate tag: $CRATE_TAG"
+                    git tag -d "$CRATE_TAG"
+                    git push origin ":refs/tags/$CRATE_TAG" || true
+                  done
+                  
+                  # Create new tag
+                  git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+                  git push origin "$TAG_NAME"
+                  
+                  echo "Tags updated successfully"
+                else
+                  echo "Tag $TAG_NAME already exists. Use force_tag option to update it."
+                  exit 0
+                fi
+              else
+                git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+                git push origin "$TAG_NAME"
+              fi
+              
+              # If trigger_release is true, wait a moment for tag to be processed
+              # and then manually trigger the release workflow
+              if [ "${{ github.event.inputs.trigger_release }}" = "true" ]; then
+                echo "Waiting for tag to be processed before triggering release workflow..."
+                sleep 10
+                
+                # Check if the tag was successfully pushed
+                if git ls-remote --tags origin | grep -q "$TAG_NAME"; then
+                  echo "Tag $TAG_NAME successfully pushed, release workflow should be triggered automatically."
+                else
+                  echo "Warning: Tag $TAG_NAME not found on remote. Release workflow may not trigger."
+                fi
+              fi
+            else
+              echo "Skipping tag creation as requested"
+            fi
           fi

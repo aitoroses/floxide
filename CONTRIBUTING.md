@@ -70,7 +70,54 @@ For significant architectural changes, we use ADRs to document the decision-maki
 
 ## Releasing
 
-The release process is automated through GitHub Actions. When a new version is ready:
+The release process is automated through GitHub Actions. There are two main approaches:
+
+### Automated Version Bump and Release Workflow
+
+We provide a GitHub Actions workflow for automated version bumping and releasing:
+
+1. Go to the "Actions" tab in the GitHub repository
+2. Select the "Version Bump" workflow
+3. Click "Run workflow"
+4. Choose the version bump type (patch, minor, or major)
+5. Configure additional options:
+   - **Dry run**: Preview changes without committing (default: true)
+   - **Force tag**: Force update existing tags if they exist (default: false)
+   - **Skip tagging**: Skip tag creation entirely (default: false)
+   - **Trigger release**: Ensure the release workflow is triggered after version bump (default: false)
+6. Click "Run workflow"
+
+This workflow will:
+- Update version numbers across all crates in the workspace
+- Commit the changes (if not a dry run)
+- Create and push Git tags (if not skipped)
+- Trigger the release workflow (if trigger_release is true)
+
+#### Complete Release Process
+
+For a complete release to crates.io, follow these steps:
+
+1. Run the Version Bump workflow with:
+   - Appropriate bump type (patch/minor/major)
+   - Dry run: false
+   - Force tag: true (if the tag already exists)
+   - Trigger release: true
+
+2. The workflow will:
+   - Update all version numbers
+   - Commit and push changes
+   - Create/update the version tag
+   - Trigger the release workflow
+
+3. The release workflow will then:
+   - Verify the tag matches the Cargo.toml version
+   - Run tests
+   - Publish all crates to crates.io in dependency order
+   - Create a GitHub release with release notes
+
+### Manual Release Process
+
+For manual releases:
 
 1. Update the version numbers in Cargo.toml files
 2. Create a pull request with these changes
