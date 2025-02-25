@@ -342,6 +342,7 @@ dependencies = [
  "flowrs-async",
  "flowrs-core",
  "flowrs-event",
+ "flowrs-timer",
  "flowrs-transform",
  "futures",
  "rand",
@@ -351,6 +352,19 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
+name = "flowrs-timer"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "flowrs-core",
+ "thiserror",
+ "tokio",
+ "tracing",
  "uuid",
 ]
 

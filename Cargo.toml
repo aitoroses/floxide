@@ -3,6 +3,7 @@ members = [
     "crates/flowrs-core",
     "crates/flowrs-transform",
     "crates/flowrs-event",
+    "crates/flowrs-timer",
     "examples",
     "benches",
 ]

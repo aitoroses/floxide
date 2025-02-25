@@ -8,6 +8,7 @@ publish = false
 flowrs-core = { path = "../crates/flowrs-core" }
 flowrs-transform = { path = "../crates/flowrs-transform" }
 flowrs-event = { path = "../crates/flowrs-event" }
+flowrs-timer = { path = "../crates/flowrs-timer" }
 flowrs-async = { path = "../crates/flowrs-async" }
 
 anyhow = "1.0"
@@ -42,3 +43,7 @@ path = "examples/batch_processing.rs"
 [[example]]
 name = "event_driven_workflow"
 path = "examples/event_driven_workflow.rs"
+
+[[example]]
+name = "timer_node"
+path = "examples/timer_node.rs"
