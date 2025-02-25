@@ -477,6 +477,26 @@ graph TD
     style E fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
+### Event-Driven
+
+Processes asynchronous events from external sources and routes them through the workflow based on event classification. This pattern is ideal for IoT systems, message processors, and monitoring applications.
+
+```mermaid
+graph TD
+    A["Event Source"] -->|Events| B["Event Classifier"]
+    B -->|Normal Event| C["Normal Handler"]
+    B -->|Warning Event| D["Warning Handler"]
+    B -->|Critical Event| E["Critical Handler"]
+    E -->|Terminate| F["Workflow End"]
+    C --> A
+    D --> A
+    style A fill:#bbf,stroke:#333,stroke-width:2px
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#f9f,stroke:#333,stroke-width:2px
+    style D fill:#f9f,stroke:#333,stroke-width:2px
+    style E fill:#f9f,stroke:#333,stroke-width:2px
+```
+
 ## Documentation
 
 For more detailed documentation, visit:
@@ -484,6 +504,11 @@ For more detailed documentation, visit:
 - [API Documentation](https://docs.rs/flowrs-core)
 - [User Guide](https://github.com/flowrs-dev/flowrs/wiki)
 - [Examples](https://github.com/flowrs-dev/flowrs/tree/main/examples)
+- [Architecture](./docs/architecture.md)
+- [API Reference](https://docs.rs/flowrs-core)
+- [Examples](./examples/)
+- [Architectural Decision Records](./docs/adrs/)
+- [Event-Driven Architecture Guide](./docs/guides/event_driven_architecture.md)
 
 ## Contributing
 

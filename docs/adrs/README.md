@@ -4,16 +4,17 @@ This directory contains the Architectural Decision Records (ADRs) for the flowrs
 
 ## Index of ADRs
 
-| ADR                                                     | Title                                           | Status   | Date       | Summary                                                                             |
-| ------------------------------------------------------- | ----------------------------------------------- | -------- | ---------- | ----------------------------------------------------------------------------------- |
-| [ADR-0007](0007-batch-processing-implementation.md)     | Batch Processing Implementation                 | Accepted | 2024-02-25 | Defines the approach for parallel batch processing using Tokio tasks and semaphores |
-| [ADR-0008](0008-node-lifecycle-methods.md)              | Node Lifecycle Methods                          | Accepted | 2024-02-25 | Defines the three-phase lifecycle (prep/exec/post) for nodes and adapter patterns   |
-| [ADR-0009](0009-cloneable-traits-for-batch-contexts.md) | Cloneable Types for Batch Processing            | Accepted | 2024-02-25 | Requires item types in batch processing to implement Clone                          |
-| [ADR-0010](0010-workflow-cloning-strategy.md)           | Workflow Cloning Strategy                       | Accepted | 2024-02-25 | Defines an approach for cloning workflows using Arc<dyn Node>                       |
-| [ADR-0011](0011-closure-lifetime-management.md)         | Closure Lifetime Management in Async Contexts   | Accepted | 2024-02-25 | Outlines strategies for managing lifetimes in async closures                        |
-| [ADR-0012](0012-test-implementation-patterns.md)        | Testing Patterns for Async Node Implementations | Accepted | 2024-02-26 | Defines patterns for testing async code with concrete trait implementations         |
-| [ADR-0013](0013-workflow-patterns.md)                   | Workflow Patterns                               | Accepted | 2024-02-25 | Documents the eight core workflow patterns supported by the framework               |
-| [ADR-0014](0014-crate-publishing-and-cicd.md)           | Crate Publishing and CI/CD Setup                | Accepted | 2024-02-25 | Defines the approach for publishing crates and setting up CI/CD pipelines           |
+| ADR                                                        | Title                                           | Status   | Date       | Summary                                                                             |
+| ---------------------------------------------------------- | ----------------------------------------------- | -------- | ---------- | ----------------------------------------------------------------------------------- |
+| [ADR-0007](0007-batch-processing-implementation.md)        | Batch Processing Implementation                 | Accepted | 2024-02-25 | Defines the approach for parallel batch processing using Tokio tasks and semaphores |
+| [ADR-0008](0008-node-lifecycle-methods.md)                 | Node Lifecycle Methods                          | Accepted | 2024-02-25 | Defines the three-phase lifecycle (prep/exec/post) for nodes and adapter patterns   |
+| [ADR-0009](0009-cloneable-traits-for-batch-contexts.md)    | Cloneable Types for Batch Processing            | Accepted | 2024-02-25 | Requires item types in batch processing to implement Clone                          |
+| [ADR-0010](0010-workflow-cloning-strategy.md)              | Workflow Cloning Strategy                       | Accepted | 2024-02-25 | Defines an approach for cloning workflows using Arc<dyn Node>                       |
+| [ADR-0011](0011-closure-lifetime-management.md)            | Closure Lifetime Management in Async Contexts   | Accepted | 2024-02-25 | Outlines strategies for managing lifetimes in async closures                        |
+| [ADR-0012](0012-test-implementation-patterns.md)           | Testing Patterns for Async Node Implementations | Accepted | 2024-02-26 | Defines patterns for testing async code with concrete trait implementations         |
+| [ADR-0013](0013-workflow-patterns.md)                      | Workflow Patterns                               | Accepted | 2024-02-25 | Documents the eight core workflow patterns supported by the framework               |
+| [ADR-0014](0014-crate-publishing-and-cicd.md)              | Crate Publishing and CI/CD Setup                | Accepted | 2024-02-25 | Defines the approach for publishing crates and setting up CI/CD pipelines           |
+| [ADR-0015](0015-batch-processing-examples-and-patterns.md) | Batch Processing Examples and Best Practices    | Accepted | 2024-02-25 | Documents concrete patterns and best practices for implementing batch processing    |
 
 ## How to Create a New ADR
 
@@ -121,9 +122,16 @@ These ADRs document the key architectural decisions made during the development 
     - Provides examples and use cases for each pattern type
 
 14. [ADR-0014: Crate Publishing and CI/CD Setup](0014-crate-publishing-and-cicd.md) _(Accepted)_
+
     - Defines the approach for publishing crates to crates.io
     - Establishes GitHub Actions workflows for CI/CD
     - Documents versioning strategy and release automation
+
+15. [ADR-0015: Batch Processing Examples and Best Practices](0015-batch-processing-examples-and-patterns.md) _(Accepted)_
+    - Documents concrete patterns for batch processing implementations
+    - Provides solutions for handling type parameters in generic batch processing
+    - Outlines alternative approaches for simpler use cases
+    - Builds on ADR-0007 with practical implementation guidance
 
 ## ADR Statuses
 

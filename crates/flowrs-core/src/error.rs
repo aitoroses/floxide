@@ -1,6 +1,5 @@
-use std::fmt::{Display};
+use std::fmt::Display;
 use thiserror::Error;
-
 
 /// All possible errors that can occur in the flowrs framework
 #[derive(Error, Debug, Clone)]
@@ -74,5 +73,23 @@ impl FlowrsError {
     /// Create a new unexpected outcome error
     pub fn unexpected_outcome(message: impl Display) -> Self {
         Self::UnexpectedOutcome(message.to_string())
+    }
+
+    /// Create a new node not found error
+    pub fn node_not_found(node_id: impl Display) -> Self {
+        Self::NodeNotFound(node_id.to_string())
+    }
+
+    /// Create a new timeout error
+    pub fn timeout(message: impl Display) -> Self {
+        Self::Other(format!("Timeout: {}", message))
+    }
+
+    /// Check if this error is a timeout error
+    pub fn is_timeout(&self) -> bool {
+        match self {
+            Self::Other(msg) => msg.starts_with("Timeout:"),
+            _ => false,
+        }
     }
 }

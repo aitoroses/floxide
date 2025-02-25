@@ -20,12 +20,11 @@
 
 use async_trait::async_trait;
 use flowrs_core::{
-    error::FlowrsError, lifecycle_node, ActionType, DefaultAction, LifecycleNode, NodeId,
+    error::FlowrsError, ActionType, LifecycleNode, NodeId,
 };
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use uuid::Uuid;
-use std::sync::Arc;
 use futures::future::BoxFuture;
 
 /// A simplified transform node trait for functional data transformations
@@ -206,7 +205,7 @@ where
         exec_result: Self::ExecOutput,
         _ctx: &mut TransformContext<Input>,
     ) -> Result<Action, FlowrsError> {
-        let result = self.node.post(exec_result).await.map_err(|e| e.into())?;
+        let _result = self.node.post(exec_result).await.map_err(|e| e.into())?;
         Ok(Action::default())
     }
 }
