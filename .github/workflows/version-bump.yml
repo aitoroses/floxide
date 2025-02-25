@@ -85,16 +85,61 @@ jobs:
             sed -i "s/flowrs-longrunning = { path = \"crates\/flowrs-longrunning\", version = \"[0-9.]*\"/flowrs-longrunning = { path = \"crates\/flowrs-longrunning\", version = \"$NEW_VERSION\"/g" Cargo.toml
             sed -i "s/flowrs-reactive = { path = \"crates\/flowrs-reactive\", version = \"[0-9.]*\"/flowrs-reactive = { path = \"crates\/flowrs-reactive\", version = \"$NEW_VERSION\"/g" Cargo.toml
             
-            # Update all exact version dependencies in individual crate Cargo.toml files
-            # Handle both ="x.y.z" and = "=x.y.z" formats
-            find crates -name "Cargo.toml" -exec sed -i "s/flowrs-core = { path = \"..\/flowrs-core\", version = \"=[0-9.]*\"/flowrs-core = { path = \"..\/flowrs-core\", version = \"=$NEW_VERSION\"/g" {} \;
-            find crates -name "Cargo.toml" -exec sed -i "s/flowrs-core = { path = \"..\/flowrs-core\", version = \"[0-9.]*\"/flowrs-core = { path = \"..\/flowrs-core\", version = \"$NEW_VERSION\"/g" {} \;
-            
-            # Similarly for all other crates that might be used as dependencies
-            for crate in core transform event timer longrunning reactive; do
-              find crates -name "Cargo.toml" -exec sed -i "s/flowrs-$crate = { path = \"..\/flowrs-$crate\", version = \"=[0-9.]*\"/flowrs-$crate = { path = \"..\/flowrs-$crate\", version = \"=$NEW_VERSION\"/g" {} \;
-              find crates -name "Cargo.toml" -exec sed -i "s/flowrs-$crate = { path = \"..\/flowrs-$crate\", version = \"[0-9.]*\"/flowrs-$crate = { path = \"..\/flowrs-$crate\", version = \"$NEW_VERSION\"/g" {} \;
+            # Handle all possible version formats in crates
+            echo "Updating individual crate dependencies..."
+            for crate_dir in crates/flowrs-*; do
+              echo "Processing $crate_dir"
+              
+              # First check if Cargo.toml exists (safety check)
+              if [ -f "$crate_dir/Cargo.toml" ]; then
+                echo "Updating dependencies in $crate_dir/Cargo.toml"
+                
+                # Handle different version formats
+                # 1. Format: version = "=1.0.0"
+                sed -i "s/version = \"=[0-9.]*\"/version = \"=$NEW_VERSION\"/g" "$crate_dir/Cargo.toml"
+                
+                # 2. Format: flowrs-core = { path = "../flowrs-core", version = "=1.0.0" }
+                sed -i "s/flowrs-[a-z]* = { path = \"..\/flowrs-[a-z]*\", version = \"=[0-9.]*\"/&\"/;s/flowrs-\([a-z]*\) = { path = \"..\/flowrs-\([a-z]*\)\", version = \"=[0-9.]*\"/flowrs-\1 = { path = \"..\/flowrs-\1\", version = \"=$NEW_VERSION\"/g" "$crate_dir/Cargo.toml"
+                
+                # 3. Format: flowrs-core = { path = "../flowrs-core", version = "1.0.0" }
+                sed -i "s/flowrs-[a-z]* = { path = \"..\/flowrs-[a-z]*\", version = \"[0-9.]*\"/&\"/;s/flowrs-\([a-z]*\) = { path = \"..\/flowrs-\([a-z]*\)\", version = \"[0-9.]*\"/flowrs-\1 = { path = \"..\/flowrs-\1\", version = \"$NEW_VERSION\"/g" "$crate_dir/Cargo.toml"
+                
+                # Direct check and update for flowrs-timer
+                if [ "$crate_dir" = "crates/flowrs-timer" ]; then
+                  echo "Special handling for flowrs-timer Cargo.toml"
+                  cat "$crate_dir/Cargo.toml" | grep -n "flowrs-core"
+                  # Direct replacement with new version
+                  sed -i "s/flowrs-core = { path = \"..\/flowrs-core\", version = \"[^\"]*\"/flowrs-core = { path = \"..\/flowrs-core\", version = \"$NEW_VERSION\"/g" "$crate_dir/Cargo.toml"
+                fi
+                
+                # Add each updated file to git
+                git add "$crate_dir/Cargo.toml"
+              fi
             done
+            
+            # More robust approach for flowrs-timer specifically
+            if [ -f "crates/flowrs-timer/Cargo.toml" ]; then
+              echo "Explicitly updating flowrs-timer's dependencies..."
+              # Backup the original file
+              cp crates/flowrs-timer/Cargo.toml crates/flowrs-timer/Cargo.toml.bak
+              
+              # Use awk for more precise replacement
+              awk -v new_ver="$NEW_VERSION" '
+              /flowrs-core = \{ path = "\.\.\/flowrs-core"/ {
+                gsub(/version = "[^"]+"/, "version = \"" new_ver "\"")
+              }
+              { print }
+              ' crates/flowrs-timer/Cargo.toml.bak > crates/flowrs-timer/Cargo.toml
+              
+              # Remove backup
+              rm crates/flowrs-timer/Cargo.toml.bak
+              
+              # Add to git
+              git add crates/flowrs-timer/Cargo.toml
+            fi
+            
+            # Add all Cargo.toml files to ensure nothing is missed
+            git add "crates/*/Cargo.toml"
             
             # Commit the changes to the explicit version requirements
             git add Cargo.toml
