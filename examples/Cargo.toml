@@ -9,20 +9,21 @@ flowrs-core = { path = "../crates/flowrs-core" }
 flowrs-transform = { path = "../crates/flowrs-transform" }
 flowrs-event = { path = "../crates/flowrs-event" }
 flowrs-timer = { path = "../crates/flowrs-timer" }
+flowrs-longrunning = { path = "../crates/flowrs-longrunning" }
 flowrs-async = { path = "../crates/flowrs-async" }
 
 anyhow = "1.0"
 async-trait = "0.1"
-chrono = "0.4"
+chrono = { version = "0.4.33", features = ["serde"] }
 futures = "0.3"
 rand = "0.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
-tokio = { version = "1.24", features = ["full"] }
-tracing = "0.1"
-tracing-subscriber = "0.3"
-uuid = { version = "1.3", features = ["v4", "serde"] }
+tokio = { version = "1.35.1", features = ["full"] }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+uuid = { version = "1.7.0", features = ["v4", "serde"] }
 
 [[example]]
 name = "lifecycle_node"
@@ -47,3 +48,7 @@ path = "examples/event_driven_workflow.rs"
 [[example]]
 name = "timer_node"
 path = "examples/timer_node.rs"
+
+[[example]]
+name = "longrunning_node"
+path = "examples/longrunning_node.rs"

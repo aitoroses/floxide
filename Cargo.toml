@@ -4,6 +4,7 @@ members = [
     "crates/flowrs-transform",
     "crates/flowrs-event",
     "crates/flowrs-timer",
+    "crates/flowrs-longrunning",
     "examples",
     "benches",
 ]

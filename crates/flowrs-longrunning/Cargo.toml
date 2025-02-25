@@ -1,0 +1,23 @@
+[package]
+name = "flowrs-longrunning"
+version = "0.1.0"
+edition = "2021"
+description = "Support for long-running processes with checkpoints in the Flowrs framework"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/aitoroses/Pocket-Flow-Framework"
+authors = ["The Flowrs Authors"]
+
+[dependencies]
+flowrs-core = { path = "../flowrs-core", version = "0.1.0" }
+async-trait = "0.1.77"
+chrono = "0.4.33"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1.40"
+uuid = { version = "1.7.0", features = ["v4", "serde"] }
+tokio = { version = "1.35.1", features = ["sync", "time", "rt", "macros"] }
+thiserror = "1.0.56"
+
+[dev-dependencies]
+tokio = { version = "1.35.1", features = ["full"] }
+tracing-subscriber = "0.3.18"
