@@ -10,13 +10,13 @@ Accepted
 
 ## Context
 
-As we begin the process of rewriting the TypeScript Pocket Flow Framework into Rust, we need a consistent way to document architectural decisions. Architectural Decision Records (ADRs) provide a mechanism to document important architectural decisions, their context, and their consequences.
+As we begin the development of the Rust Flow Framework, we need a consistent way to document architectural decisions. Architectural Decision Records (ADRs) provide a mechanism to document important architectural decisions, their context, and their consequences.
 
 This project is starting with no existing ADRs, so we need to establish a process and format for creating and maintaining them. This ADR documents how we will create, format, and manage ADRs throughout the project lifecycle.
 
 ## Decision
 
-We will use Architectural Decision Records (ADRs) to document all significant architectural decisions in the Pocket Flow Framework Rust rewrite. The following guidelines will be followed:
+We will use Architectural Decision Records (ADRs) to document all significant architectural decisions in the Rust Flow Framework. The following guidelines will be followed:
 
 ### ADR Creation and Process
 

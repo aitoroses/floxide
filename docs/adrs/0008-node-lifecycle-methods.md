@@ -10,13 +10,13 @@ Accepted
 
 ## Context
 
-The TypeScript implementation of the Pocket Flow Framework uses a three-phase lifecycle for nodes:
+The Flow Framework uses a three-phase lifecycle for nodes:
 
 1. `prep`: Preparation phase for setup and validation
 2. `execCore`: Core execution with potential retry mechanisms
 3. `post`: Post-processing phase that determines routing
 
-This pattern provides clear separation of concerns and allows for specialized behaviors in each phase. We need to adapt this pattern to Rust while maintaining the benefits and following Rust idioms.
+This pattern provides clear separation of concerns and allows for specialized behaviors in each phase. We need to implement this pattern in Rust while following Rust idioms.
 
 ## Decision
 
@@ -136,7 +136,7 @@ where
 2. **Compatibility**: Works with existing Node interface through the adapter
 3. **Type Safety**: Phase outputs are properly typed
 4. **Flexibility**: Different nodes can define their own prep/exec types
-5. **Consistency**: Maintains the same lifecycle as the TypeScript implementation
+5. **Consistency**: Maintains a clear and structured lifecycle approach for workflow nodes
 
 ### Disadvantages
 

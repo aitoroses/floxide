@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-The flowrs framework needs batch processing capabilities to efficiently handle parallel execution of workflows on collections of items. The original TypeScript implementation provides a `BatchFlow` class, but the Rust implementation requires a different approach that leverages Rust's ownership model and concurrency features.
+The flowrs framework needs batch processing capabilities to efficiently handle parallel execution of workflows on collections of items. We need to design a batch processing system that leverages Rust's ownership model and concurrency features.
 
 We need to design a batch processing system that:
 
