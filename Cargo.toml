@@ -6,7 +6,6 @@ members = [
     "crates/flowrs-timer",
     "crates/flowrs-longrunning",
     "crates/flowrs-reactive",
-    "examples",
     "benches",
 ]
 resolver = "2"
@@ -37,6 +36,74 @@ chrono = { version = "0.4.34", features = ["serde"] }
 rand = "0.8.5"
 tracing-subscriber = "0.3.18"
 criterion = "0.5.1"
+tokio-stream = "0.1.17"
+
+# Create a library target at the root to make examples work
+[package]
+name = "flowrs"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+description.workspace = true
+
+[dependencies]
+flowrs-core = { path = "crates/flowrs-core" }
+flowrs-transform = { path = "crates/flowrs-transform" }
+flowrs-event = { path = "crates/flowrs-event" }
+flowrs-timer = { path = "crates/flowrs-timer" }
+flowrs-longrunning = { path = "crates/flowrs-longrunning" }
+flowrs-reactive = { path = "crates/flowrs-reactive" }
+tokio.workspace = true
+async-trait.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+futures.workspace = true
+rand.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio-stream.workspace = true
+
+# Example configurations
+[[example]]
+name = "lifecycle_node"
+path = "examples/lifecycle_node.rs"
+
+[[example]]
+name = "transform_node"
+path = "examples/transform_node.rs"
+
+[[example]]
+name = "transform_node_example"
+path = "examples/transform_node_example.rs"
+
+[[example]]
+name = "order_processing"
+path = "examples/order_processing.rs"
+
+[[example]]
+name = "batch_processing"
+path = "examples/batch_processing.rs"
+
+[[example]]
+name = "event_driven_workflow"
+path = "examples/event_driven_workflow.rs"
+
+[[example]]
+name = "reactive_node"
+path = "examples/reactive_node.rs"
+
+[[example]]
+name = "timer_node"
+path = "examples/timer_node.rs"
+
+[[example]]
+name = "longrunning_node"
+path = "examples/longrunning_node.rs"
 
 [profile.dev]
 opt-level = 0

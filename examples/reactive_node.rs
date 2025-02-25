@@ -25,7 +25,9 @@ fn io_err_to_flowrs(err: std::io::Error) -> FlowrsError {
 
 #[derive(Debug, Clone)]
 struct FileWatchContext {
-    file_path: String,
+    // Using underscore prefix to indicate intentionally unused field
+    // but kept for documentation purposes
+    _file_path: String,
     change_count: usize,
     latest_size: u64,
     changes: HashMap<String, Vec<FileChange>>,
@@ -34,7 +36,7 @@ struct FileWatchContext {
 impl FileWatchContext {
     fn new(file_path: impl Into<String>) -> Self {
         Self {
-            file_path: file_path.into(),
+            _file_path: file_path.into(),
             change_count: 0,
             latest_size: 0,
             changes: HashMap::new(),

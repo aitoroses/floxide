@@ -54,12 +54,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55cc3b69f167a1ef2e161439aa98aed94e6028e5f9a59be9a6ffb47aef1651f9"
 
 [[package]]
-name = "anyhow"
-version = "1.0.96"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b964d184e89d9b6b67dd2715bc8e74cf3107fb2b529990c90cf517326150bf4"
-
-[[package]]
 name = "async-trait"
 version = "0.1.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -285,15 +279,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7914353092ddf589ad78f25c5c1c21b7f80b0ff8621e7c814c3485b5306da9d"
 
 [[package]]
-name = "flowrs-async"
+name = "flowrs"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
+ "flowrs-core",
+ "flowrs-event",
+ "flowrs-longrunning",
+ "flowrs-reactive",
+ "flowrs-timer",
  "flowrs-transform",
  "futures",
- "thiserror",
+ "rand",
+ "serde",
+ "serde_json",
  "tokio",
+ "tokio-stream",
  "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 
@@ -330,32 +334,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "uuid",
-]
-
-[[package]]
-name = "flowrs-examples"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "flowrs-async",
- "flowrs-core",
- "flowrs-event",
- "flowrs-longrunning",
- "flowrs-reactive",
- "flowrs-timer",
- "flowrs-transform",
- "futures",
- "rand",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tracing",
- "tracing-subscriber",
  "uuid",
 ]
 

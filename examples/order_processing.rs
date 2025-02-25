@@ -11,7 +11,7 @@ enum OrderAction {
     Default,
     Next,
     Error,
-    CancelOrder,
+    _CancelOrder,
     Success,
     Failure,
 }
@@ -28,7 +28,7 @@ impl ActionType for OrderAction {
             Self::Default => "default",
             Self::Next => "next",
             Self::Error => "error",
-            Self::CancelOrder => "cancel_order",
+            Self::_CancelOrder => "cancel_order",
             Self::Success => "success",
             Self::Failure => "failure",
         }

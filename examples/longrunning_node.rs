@@ -2,10 +2,9 @@
 //! can be suspended and resumed.
 
 use chrono::{DateTime, Utc};
-use flowrs_core::{DefaultAction, FlowrsError, Node};
+use flowrs_core::{DefaultAction, FlowrsError};
 use flowrs_longrunning::{
-    InMemoryStateStore, LongRunningActionExt, LongRunningNode, LongRunningOutcome,
-    SimpleLongRunningNode, StateStore,
+    InMemoryStateStore, LongRunningOutcome, SimpleLongRunningNode, StateStore,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -13,19 +12,19 @@ use tracing::{info, Level};
 
 #[derive(Debug, Clone)]
 struct ProcessContext {
-    total_steps: u32,
+    _total_steps: u32,
     completed_steps: u32,
-    process_id: String,
-    results: Vec<String>,
+    _process_id: String,
+    _results: Vec<String>,
 }
 
 impl ProcessContext {
     fn new(total_steps: u32, process_id: impl Into<String>) -> Self {
         Self {
-            total_steps,
+            _total_steps: total_steps,
             completed_steps: 0,
-            process_id: process_id.into(),
-            results: Vec::new(),
+            _process_id: process_id.into(),
+            _results: Vec::new(),
         }
     }
 
@@ -33,12 +32,12 @@ impl ProcessContext {
         self.completed_steps += 1;
     }
 
-    fn add_result(&mut self, result: impl Into<String>) {
-        self.results.push(result.into());
+    fn _add_result(&mut self, result: impl Into<String>) {
+        self._results.push(result.into());
     }
 
-    fn is_complete(&self) -> bool {
-        self.completed_steps >= self.total_steps
+    fn _is_complete(&self) -> bool {
+        self.completed_steps >= self._total_steps
     }
 }
 
