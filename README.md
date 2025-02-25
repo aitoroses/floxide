@@ -21,6 +21,30 @@ Flowrs transforms complex workflow orchestration into a delightful experience. B
 - **🔍 Observability**: Comprehensive tracing and monitoring capabilities
 - **🧪 Testable**: Design your workflows for easy testing and verification
 
+## 📐 Architectural Decisions
+
+This project follows documented architectural decisions recorded in ADRs (Architectural Decision Records). Each ADR captures the context, decision, and consequences of significant architectural choices. The development is guided by an LLM with rules defined in the `.cursorrules` file.
+
+Key architectural decisions include:
+
+- [**Core Framework Abstractions**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0003-core-framework-abstractions.md) - Defining the fundamental abstractions like Node, Action, and Workflow with a trait-based approach for type safety and flexibility.
+
+- [**Project Structure and Crate Organization**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0002-project-structure-and-crate-organization.md) - Organizing the framework as a Cargo workspace with multiple specialized crates for modularity and separation of concerns.
+
+- [**Async Runtime Selection**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0004-async-runtime-selection.md) - Choosing Tokio as the primary async runtime for its comprehensive feature set and wide adoption.
+
+- [**Node Lifecycle Methods**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0008-node-lifecycle-methods.md) - Implementing a three-phase lifecycle (prep/exec/post) for workflow nodes to provide clear separation of concerns.
+
+- [**Batch Processing Implementation**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0007-batch-processing-implementation.md) - Designing a batch processing system that efficiently handles parallel execution with configurable concurrency limits.
+
+- [**Event-Driven Workflow Pattern**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0009-event-driven-workflow-pattern.md) - Extending the framework with event-driven capabilities for handling asynchronous events.
+
+- [**Reactive Node Implementation**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0017-reactive-node-implementation.md) - Creating nodes that can respond to changes in external data sources using a stream-based approach.
+
+- [**Timer Node Implementation**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0021-timer-node-implementation.md) - Supporting time-based scheduling for workflow execution with various scheduling patterns.
+
+- [**Long-Running Node Implementation**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0022-longrunning-node-implementation.md) - Enabling workflows to process work incrementally with state persistence between executions.
+
 ## 🚀 Quick Start
 
 Add Flowrs to your project:
