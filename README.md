@@ -51,13 +51,13 @@ Add Flowrs to your project:
 
 ```toml
 [dependencies]
-flowrs-core = "0.1.0"
+flowrs = { version = "1.0.0", features = ["transform", "event"] }
 ```
 
 Create your first workflow:
 
 ```rust
-use flowrs_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction, FlowrsError};
+use flowrs::{lifecycle_node, LifecycleNode, Workflow, DefaultAction, FlowrsError};
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -110,6 +110,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+```
+
+## 📦 Feature Flags
+
+Flowrs uses feature flags to allow you to include only the functionality you need:
+
+| Feature | Description | Dependencies |
+|---------|-------------|-------------|
+| `core` | Core abstractions and functionality (default) | None |
+| `transform` | Transform node implementations | `core` |
+| `event` | Event-driven workflow functionality | `core` |
+| `timer` | Time-based workflow functionality | `core` |
+| `longrunning` | Long-running process functionality | `core` |
+| `reactive` | Reactive workflow functionality | `core` |
+| `full` | All features | All of the above |
+
+Example of using specific features:
+
+```toml
+# Only include core and transform functionality
+flowrs = { version = "1.0.0", features = ["transform"] }
+
+# Include event-driven and timer functionality
+flowrs = { version = "1.0.0", features = ["event", "timer"] }
+
+# Include all functionality
+flowrs = { version = "1.0.0", features = ["full"] }
 ```
 
 ## 🧩 Workflow Pattern Examples

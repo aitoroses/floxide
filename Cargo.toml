@@ -49,13 +49,19 @@ repository.workspace = true
 readme.workspace = true
 description.workspace = true
 
+# Define features
+[features]
+default = ["core"]
+core = ["flowrs-core"]
+transform = ["core", "flowrs-transform"]
+event = ["core", "flowrs-event"]
+timer = ["core", "flowrs-timer"]
+longrunning = ["core", "flowrs-longrunning"]
+reactive = ["core", "flowrs-reactive"]
+full = ["transform", "event", "timer", "longrunning", "reactive"]
+
 [dependencies]
-flowrs-core = { path = "crates/flowrs-core" }
-flowrs-transform = { path = "crates/flowrs-transform" }
-flowrs-event = { path = "crates/flowrs-event" }
-flowrs-timer = { path = "crates/flowrs-timer" }
-flowrs-longrunning = { path = "crates/flowrs-longrunning" }
-flowrs-reactive = { path = "crates/flowrs-reactive" }
+# Core dependencies (always included)
 tokio.workspace = true
 async-trait.workspace = true
 tracing.workspace = true
@@ -68,42 +74,59 @@ serde.workspace = true
 serde_json.workspace = true
 tokio-stream.workspace = true
 
+# Feature-gated dependencies
+flowrs-core = { path = "crates/flowrs-core", version = "1.0.0", optional = true }
+flowrs-transform = { path = "crates/flowrs-transform", version = "1.0.0", optional = true }
+flowrs-event = { path = "crates/flowrs-event", version = "1.0.0", optional = true }
+flowrs-timer = { path = "crates/flowrs-timer", version = "1.0.0", optional = true }
+flowrs-longrunning = { path = "crates/flowrs-longrunning", version = "1.0.0", optional = true }
+flowrs-reactive = { path = "crates/flowrs-reactive", version = "1.0.0", optional = true }
+
 # Example configurations
 [[example]]
 name = "lifecycle_node"
 path = "examples/lifecycle_node.rs"
+required-features = ["core"]
 
 [[example]]
 name = "transform_node"
 path = "examples/transform_node.rs"
+required-features = ["transform"]
 
 [[example]]
 name = "transform_node_example"
 path = "examples/transform_node_example.rs"
+required-features = ["transform"]
 
 [[example]]
 name = "order_processing"
 path = "examples/order_processing.rs"
+required-features = ["core"]
 
 [[example]]
 name = "batch_processing"
 path = "examples/batch_processing.rs"
+required-features = ["core"]
 
 [[example]]
 name = "event_driven_workflow"
 path = "examples/event_driven_workflow.rs"
+required-features = ["event"]
 
 [[example]]
 name = "reactive_node"
 path = "examples/reactive_node.rs"
+required-features = ["reactive"]
 
 [[example]]
 name = "timer_node"
 path = "examples/timer_node.rs"
+required-features = ["timer"]
 
 [[example]]
 name = "longrunning_node"
 path = "examples/longrunning_node.rs"
+required-features = ["longrunning"]
 
 [profile.dev]
 opt-level = 0

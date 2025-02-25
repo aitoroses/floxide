@@ -45,10 +45,10 @@ jobs:
             exit 1
           fi
 
-      - name: Run tests
+      - name: Run tests with all features
         run: cargo test --all-features
 
-      # Publish crates in dependency order
+      # Publish subcrates first (needed for workspace dependencies)
       - name: Publish flowrs-core
         working-directory: ./crates/flowrs-core
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
@@ -91,6 +91,7 @@ jobs:
       - name: Wait for crates.io indexing
         run: sleep 15
 
+      # Publish the main crate with all features
       - name: Publish flowrs (root)
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 

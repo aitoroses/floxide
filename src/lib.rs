@@ -1,28 +1,71 @@
 //! # Flowrs - A directed graph workflow system in Rust
 //!
-//! This crate re-exports the core components of the Flowrs workflow system.
-//! It serves as the entry point for using Flowrs in your applications.
+//! This crate provides a flexible, type-safe framework for building directed graph workflows.
+//! It allows you to create complex processing pipelines with clear transitions between steps.
+//!
+//! ## Features
+//!
+//! The crate is organized into feature-gated modules:
+//!
+//! - `core` (default): Core abstractions and functionality
+//! - `transform`: Transform node implementations for data transformation pipelines
+//! - `event`: Event-driven workflow functionality
+//! - `timer`: Time-based workflow functionality
+//! - `longrunning`: Long-running process functionality
+//! - `reactive`: Reactive workflow functionality
+//! - `full`: Enables all features
+//!
+//! ## Usage
+//!
+//! Add the crate to your dependencies with the features you need:
+//!
+//! ```toml
+//! [dependencies]
+//! flowrs = { version = "1.0.0", features = ["transform", "event"] }
+//! ```
 
-// Re-export core components
+// Re-export core components (enabled by default with the "core" feature)
+#[cfg(feature = "core")]
 pub use flowrs_core::*;
 
 // Re-export transform functionality
+#[cfg(feature = "transform")]
 pub use flowrs_transform::*;
 
 // Re-export event functionality
+#[cfg(feature = "event")]
 pub use flowrs_event::*;
 
 // Re-export timer functionality
+#[cfg(feature = "timer")]
 pub use flowrs_timer::*;
 
 // Re-export longrunning functionality
+#[cfg(feature = "longrunning")]
 pub use flowrs_longrunning::*;
 
 // Re-export reactive functionality
+#[cfg(feature = "reactive")]
 pub use flowrs_reactive::*;
 
-// Init function for the framework
+/// Initialize the framework with default settings.
+///
+/// This sets up tracing for better logging and performs any necessary
+/// initialization for the enabled features.
 pub fn init() {
     // Initialize tracing for better logs
     tracing_subscriber::fmt::init();
+
+    // Additional initialization based on enabled features
+    #[cfg(feature = "core")]
+    {
+        // Core-specific initialization if needed
+    }
+
+    #[cfg(feature = "event")]
+    {
+        // Event-specific initialization if needed
+    }
+
+    // Other feature-specific initialization can be added here
 }
