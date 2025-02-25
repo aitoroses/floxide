@@ -30,7 +30,7 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
 1. **Core Runtime Usage**:
 
    ```rust
-   // In flowrs-async crate
+   // In flowrs-transform crate
    pub fn run_flow<S, F>(flow: F, shared_state: &mut S) -> Result<(), FlowrsError>
    where
        F: BaseNode<S>,
@@ -125,7 +125,7 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
    ```
 
 5. **Abstraction Layer**:
-   - We will create a runtime abstraction layer in the `flowrs-async` crate
+   - We will create a runtime abstraction layer in the `flowrs-transform` crate
    - This will allow for potential future runtime switching
    - The public API will remain stable even if the underlying runtime changes
 
@@ -134,7 +134,7 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
 We will use feature flags to allow custom runtime configuration:
 
 ```toml
-# In flowrs-async/Cargo.toml
+# In flowrs-transform/Cargo.toml
 [features]
 default = ["tokio-full"]
 tokio-full = ["tokio/full"]

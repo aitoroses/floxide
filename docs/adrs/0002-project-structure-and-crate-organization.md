@@ -29,7 +29,7 @@ flowrs/
 │   ├── flowrs-core/   # Core traits and structures
 │   │   ├── Cargo.toml
 │   │   └── src/
-│   ├── flowrs-async/  # Async runtime integration
+│   ├── flowrs-transform/  # Transform node implementations
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   ├── flowrs-derive/ # Optional proc macros for code generation
@@ -40,7 +40,7 @@ flowrs/
 │       └── src/
 ├── examples/          # Example implementations
 │   ├── Cargo.toml
-│   └── src/
+│   └── examples/      # Standard example files
 ├── benches/           # Performance benchmarks
 │   ├── Cargo.toml
 │   └── src/
@@ -57,11 +57,12 @@ flowrs/
    - Provides the directed graph structure and core execution model
    - Has minimal dependencies
 
-2. **flowrs-async**:
+2. **flowrs-transform**:
 
-   - Implements the async runtime integration
+   - Implements transformation node patterns
+   - Provides the `TransformNode` trait for data transformation
    - Depends on Tokio for the async runtime
-   - Provides async utilities specific to the framework
+   - Provides utilities for creating transformation workflows
 
 3. **flowrs-derive** (optional):
 

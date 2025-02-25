@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 flowrs-core = { path = "../crates/flowrs-core" }
+flowrs-transform = { path = "../crates/flowrs-transform" }
 tokio = { version = "1.36.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
@@ -12,3 +13,16 @@ rand = "0.8.5"
 chrono = "0.4.34"
 uuid = { version = "1.7.0", features = ["v4"] }
 async-trait = "0.1.77"
+thiserror = "1.0.56"
+
+[[example]]
+name = "transform_node"
+path = "examples/transform_node.rs"
+
+[[example]]
+name = "lifecycle_node"
+path = "examples/lifecycle_node.rs"
+
+[[example]]
+name = "order_processing"
+path = "examples/order_processing.rs"

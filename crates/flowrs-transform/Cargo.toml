@@ -1,14 +1,14 @@
 [package]
-name = "flowrs-async"
+name = "flowrs-transform"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "DEPRECATED - Renamed to flowrs-transform. This is a compatibility layer that will be removed in a future version."
+description = "Transform node abstractions for the flowrs framework"
 
 [dependencies]
-flowrs-transform = { path = "../flowrs-transform" }
+flowrs-core = { path = "../flowrs-core" }
 tokio = { workspace = true, features = ["full"] }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
@@ -17,6 +17,6 @@ uuid = { workspace = true }
 futures = { workspace = true }
 
 [features]
-default = ["flowrs-transform/default"]
-tokio-full = ["flowrs-transform/tokio-full"]
-tokio-minimal = ["flowrs-transform/tokio-minimal"]
+default = ["tokio-full"]
+tokio-full = ["tokio/full"]
+tokio-minimal = ["tokio/rt", "tokio/sync"]

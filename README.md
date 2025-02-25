@@ -28,45 +28,131 @@ Add the following to your `Cargo.toml`:
 ```toml
 [dependencies]
 flowrs-core = "0.1.0"
-flowrs-async = "0.1.0"
 ```
 
 ## Quick Start
 
 ```rust
-use flowrs_core::{Node, Workflow};
-use flowrs_async::AsyncNode;
+use flowrs_core::{lifecycle_node, LifecycleNode, Workflow, ActionType, FlowrsError, DefaultAction};
+use async_trait::async_trait;
 use std::sync::Arc;
 
-// Define your node
-struct MyNode;
+// Define a custom action type (or use DefaultAction)
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum MyAction {
+    Next,
+    Complete,
+    Error,
+}
 
-#[async_trait::async_trait]
-impl AsyncNode for MyNode {
-    type Input = String;
-    type Output = String;
-    type Error = anyhow::Error;
-
-    async fn prep(&self, input: Self::Input) -> Result<Self::Input, Self::Error> {
-        Ok(input)
-    }
-
-    async fn exec(&self, input: Self::Input) -> Result<Self::Output, Self::Error> {
-        Ok(format!("Processed: {}", input))
-    }
-
-    async fn post(&self, output: Self::Output) -> Result<Self::Output, Self::Error> {
-        Ok(output)
+impl Default for MyAction {
+    fn default() -> Self {
+        Self::Next
     }
 }
 
-// Create a workflow
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let node = Arc::new(MyNode);
-    let workflow = Workflow::new(node);
+impl ActionType for MyAction {
+    fn name(&self) -> &str {
+        match self {
+            Self::Next => "next",
+            Self::Complete => "complete",
+            Self::Error => "error",
+        }
+    }
+}
 
-    let result = workflow.execute("Hello, world!".to_string()).await?;
-    println!("{}", result); // Prints: Processed: Hello, world!
+// Define your context type
+#[derive(Debug, Clone)]
+struct MyContext {
+    input: String,
+    result: Option<String>,
+}
+
+// Define your node using the LifecycleNode trait
+struct MyNode {
+    id: String,
+}
+
+impl MyNode {
+    fn new() -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+        }
+    }
+}
+
+#[async_trait]
+impl LifecycleNode<MyContext, MyAction> for MyNode {
+    type PrepOutput = String;
+    type ExecOutput = String;
+
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+
+    async fn prep(&self, ctx: &mut MyContext) -> Result<Self::PrepOutput, FlowrsError> {
+        // Preparation phase - validate input, setup resources
+        println!("Preparing to process: {}", ctx.input);
+        Ok(ctx.input.clone())
+    }
+
+    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+        // Execution phase - perform the main work
+        println!("Processing: {}", prep_result);
+        Ok(format!("Processed: {}", prep_result))
+    }
+
+    async fn post(
+        &self,
+        _prep_result: Self::PrepOutput,
+        exec_result: Self::ExecOutput,
+        ctx: &mut MyContext,
+    ) -> Result<MyAction, FlowrsError> {
+        // Post-processing phase - update context, determine next action
+        ctx.result = Some(exec_result);
+        println!("Completed processing");
+        Ok(MyAction::Complete)
+    }
+}
+
+// Alternatively, use the convenience function for simple cases
+fn create_simple_node() -> impl LifecycleNode<MyContext, MyAction, PrepOutput = String, ExecOutput = String> {
+    lifecycle_node(
+        None, // Auto-generate ID
+        |ctx: &mut MyContext| async move {
+            // Prep phase
+            Ok(ctx.input.clone())
+        },
+        |input: String| async move {
+            // Exec phase
+            Ok(format!("Simple processing: {}", input))
+        },
+        |_prep_result, exec_result, ctx: &mut MyContext| async move {
+            // Post phase
+            ctx.result = Some(exec_result);
+            Ok(MyAction::Complete)
+        },
+    )
+}
+
+// Create a workflow
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create a context
+    let mut context = MyContext {
+        input: "Hello, world!".to_string(),
+        result: None,
+    };
+
+    // Create a node and workflow
+    let node = Arc::new(MyNode::new());
+    let mut workflow = Workflow::new(node);
+
+    // Execute the workflow
+    workflow.execute(&mut context).await?;
+
+    // Print the result
+    println!("Result: {:?}", context.result);
 
     Ok(())
 }
