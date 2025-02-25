@@ -44,15 +44,50 @@ jobs:
       - name: Run tests
         run: cargo test --all-features
 
+      # Publish crates in dependency order
       - name: Publish flowrs-core
         working-directory: ./crates/flowrs-core
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
-      - name: Wait for crates.io to index
-        run: sleep 30
+      - name: Wait for crates.io indexing
+        run: sleep 15
 
-      - name: Publish flowrs-async
-        working-directory: ./crates/flowrs-async
+      - name: Publish flowrs-transform
+        working-directory: ./crates/flowrs-transform
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Wait for crates.io indexing
+        run: sleep 15
+
+      - name: Publish flowrs-event
+        working-directory: ./crates/flowrs-event
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Wait for crates.io indexing
+        run: sleep 15
+
+      - name: Publish flowrs-timer
+        working-directory: ./crates/flowrs-timer
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Wait for crates.io indexing
+        run: sleep 15
+
+      - name: Publish flowrs-longrunning
+        working-directory: ./crates/flowrs-longrunning
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Wait for crates.io indexing
+        run: sleep 15
+
+      - name: Publish flowrs-reactive
+        working-directory: ./crates/flowrs-reactive
+        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Wait for crates.io indexing
+        run: sleep 15
+
+      - name: Publish flowrs (root)
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Create GitHub Release

@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-longrunning"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Support for long-running processes with checkpoints in the Flowrs framework"
 license = "MIT OR Apache-2.0"
@@ -8,7 +8,7 @@ repository = "https://github.com/aitoroses/Pocket-Flow-Framework"
 authors = ["The Flowrs Authors"]
 
 [dependencies]
-flowrs-core = { path = "../flowrs-core", version = "0.1.0" }
+flowrs-core = { path = "../flowrs-core", version = "=0.1.1" }
 async-trait = "0.1.77"
 chrono = "0.4.33"
 serde = { version = "1.0", features = ["derive"] }
