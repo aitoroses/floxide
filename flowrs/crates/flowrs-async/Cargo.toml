@@ -1,0 +1,20 @@
+[package]
+name = "flowrs-async"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Async runtime integration for the flowrs framework"
+
+[dependencies]
+flowrs-core = { path = "../flowrs-core" }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[features]
+default = ["tokio-full"]
+tokio-full = ["tokio/full"]
+tokio-minimal = ["tokio/rt", "tokio/sync"]

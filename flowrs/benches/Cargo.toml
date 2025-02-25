@@ -1,0 +1,19 @@
+[package]
+name = "flowrs-benches"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Benchmarks for the flowrs framework"
+publish = false
+
+[dependencies]
+flowrs-core = { path = "../crates/flowrs-core" }
+flowrs-async = { path = "../crates/flowrs-async" }
+tokio = { workspace = true }
+criterion = { version = "0.5.1", features = ["async_tokio"] }
+
+[[bench]]
+name = "workflow_execution"
+harness = false
