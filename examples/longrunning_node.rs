@@ -2,8 +2,8 @@
 //! can be suspended and resumed.
 
 use chrono::{DateTime, Utc};
-use flowrs_core::{DefaultAction, FlowrsError};
-use flowrs_longrunning::{
+use floxide_core::{DefaultAction, FloxideError};
+use floxide_longrunning::{
     InMemoryStateStore, LongRunningOutcome, SimpleLongRunningNode, StateStore,
 };
 use serde::{Deserialize, Serialize};
@@ -98,7 +98,7 @@ impl FileProcessingContext {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     // Initialize logging
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
@@ -112,7 +112,7 @@ async fn main() -> Result<(), FlowrsError> {
     Ok(())
 }
 
-async fn run_basic_longrunning_example() -> Result<(), FlowrsError> {
+async fn run_basic_longrunning_example() -> Result<(), FloxideError> {
     // Create an in-memory state store
     let state_store = InMemoryStateStore::new();
 
@@ -192,7 +192,7 @@ async fn run_basic_longrunning_example() -> Result<(), FlowrsError> {
     Ok(())
 }
 
-async fn run_multi_step_process_example() -> Result<(), FlowrsError> {
+async fn run_multi_step_process_example() -> Result<(), FloxideError> {
     // Create an in-memory state store
     let state_store = InMemoryStateStore::new();
 
@@ -306,11 +306,11 @@ trait StateStoreExt: StateStore {
         &self,
         node: &N,
         ctx: &mut C,
-    ) -> Result<LongRunningOutcome<O, N::State>, FlowrsError>
+    ) -> Result<LongRunningOutcome<O, N::State>, FloxideError>
     where
-        N: flowrs_longrunning::LongRunningNode<C, A, Output = O>,
+        N: floxide_longrunning::LongRunningNode<C, A, Output = O>,
         C: Send + Sync + 'static,
-        A: flowrs_core::ActionType + Send + Sync + 'static + std::fmt::Debug;
+        A: floxide_core::ActionType + Send + Sync + 'static + std::fmt::Debug;
 }
 
 impl<S: StateStore> StateStoreExt for S {
@@ -318,11 +318,11 @@ impl<S: StateStore> StateStoreExt for S {
         &self,
         node: &N,
         ctx: &mut C,
-    ) -> Result<LongRunningOutcome<O, N::State>, FlowrsError>
+    ) -> Result<LongRunningOutcome<O, N::State>, FloxideError>
     where
-        N: flowrs_longrunning::LongRunningNode<C, A, Output = O>,
+        N: floxide_longrunning::LongRunningNode<C, A, Output = O>,
         C: Send + Sync + 'static,
-        A: flowrs_core::ActionType + Send + Sync + 'static + std::fmt::Debug,
+        A: floxide_core::ActionType + Send + Sync + 'static + std::fmt::Debug,
     {
         // Get node's state if it exists
         let node_id = node.id();

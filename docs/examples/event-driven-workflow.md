@@ -1,6 +1,6 @@
 # Event-Driven Workflow Example
 
-This document provides a complete example of using event-driven workflow capabilities in the Flowrs framework.
+This document provides a complete example of using event-driven workflow capabilities in the Floxide framework.
 
 ## Overview
 
@@ -12,9 +12,9 @@ Before running this example, ensure you have the following dependencies in your 
 
 ```toml
 [dependencies]
-flowrs-core = "0.1.0"
-flowrs-transform = "0.1.0"
-flowrs-event = "0.1.0"
+floxide-core = "0.1.0"
+floxide-transform = "0.1.0"
+floxide-event = "0.1.0"
 tokio = { version = "1.0", features = ["full"] }
 chrono = { version = "0.4", features = ["serde"] }
 ```
@@ -26,8 +26,8 @@ chrono = { version = "0.4", features = ["serde"] }
 First, define the event types for your event-driven workflow:
 
 ```rust
-use flowrs_core::prelude::*;
-use flowrs_event::prelude::*;
+use floxide_core::prelude::*;
+use floxide_event::prelude::*;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 
@@ -86,11 +86,11 @@ impl EventDrivenNode<SensorEvent> for SensorMonitorNode {
         self.id
     }
 
-    async fn wait_for_event(&self) -> Result<SensorEvent, FlowrsError> {
+    async fn wait_for_event(&self) -> Result<SensorEvent, FloxideError> {
         self.event_source.next_event().await
     }
 
-    async fn process_event(&self, event: SensorEvent) -> Result<EventAction<SensorEvent>, FlowrsError> {
+    async fn process_event(&self, event: SensorEvent) -> Result<EventAction<SensorEvent>, FloxideError> {
         println!("Processing sensor event: id={}, value={}", event.id, event.value);
 
         // Route based on the sensor value
@@ -123,13 +123,13 @@ impl EventDrivenNode<SensorEvent> for AlertHandlerNode {
         self.id
     }
 
-    async fn wait_for_event(&self) -> Result<SensorEvent, FlowrsError> {
+    async fn wait_for_event(&self) -> Result<SensorEvent, FloxideError> {
         // This node doesn't wait for events directly, it receives them from the workflow
         // In a real implementation, you might want to add a timeout here
-        Err(FlowrsError::EventSourceClosed)
+        Err(FloxideError::EventSourceClosed)
     }
 
-    async fn process_event(&self, event: SensorEvent) -> Result<EventAction<SensorEvent>, FlowrsError> {
+    async fn process_event(&self, event: SensorEvent) -> Result<EventAction<SensorEvent>, FloxideError> {
         println!("ALERT: High sensor value detected: id={}, value={}", event.id, event.value);
 
         // Send an alert notification (in a real system)
@@ -159,12 +159,12 @@ impl EventDrivenNode<SensorEvent> for StandardHandlerNode {
         self.id
     }
 
-    async fn wait_for_event(&self) -> Result<SensorEvent, FlowrsError> {
+    async fn wait_for_event(&self) -> Result<SensorEvent, FloxideError> {
         // This node doesn't wait for events directly, it receives them from the workflow
-        Err(FlowrsError::EventSourceClosed)
+        Err(FloxideError::EventSourceClosed)
     }
 
-    async fn process_event(&self, event: SensorEvent) -> Result<EventAction<SensorEvent>, FlowrsError> {
+    async fn process_event(&self, event: SensorEvent) -> Result<EventAction<SensorEvent>, FloxideError> {
         println!("Standard processing for sensor: id={}, value={}", event.id, event.value);
 
         // Process the event (in a real system)
@@ -194,12 +194,12 @@ impl EventDrivenNode<SensorEvent> for LoggingNode {
         self.id
     }
 
-    async fn wait_for_event(&self) -> Result<SensorEvent, FlowrsError> {
+    async fn wait_for_event(&self) -> Result<SensorEvent, FloxideError> {
         // This node doesn't wait for events directly, it receives them from the workflow
-        Err(FlowrsError::EventSourceClosed)
+        Err(FloxideError::EventSourceClosed)
     }
 
-    async fn process_event(&self, event: SensorEvent) -> Result<EventAction<SensorEvent>, FlowrsError> {
+    async fn process_event(&self, event: SensorEvent) -> Result<EventAction<SensorEvent>, FloxideError> {
         println!("Logging event: id={}, value={}, timestamp={}",
                  event.id, event.value, event.timestamp);
 
@@ -249,7 +249,7 @@ Finally, run the workflow and send events to it:
 
 ```rust
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     // Create and configure the workflow (as shown above)
     // ...
 
@@ -333,12 +333,12 @@ where
     E: Event + Send + 'static,
     for<'de> E: serde::Deserialize<'de>,
 {
-    async fn next_event(&self) -> Result<E, FlowrsError> {
+    async fn next_event(&self) -> Result<E, FloxideError> {
         // Wait for and parse the next WebSocket message
         // ...
     }
 
-    async fn has_more_events(&self) -> Result<bool, FlowrsError> {
+    async fn has_more_events(&self) -> Result<bool, FloxideError> {
         // Check if the WebSocket connection is still open
         // ...
     }
@@ -382,6 +382,6 @@ let filtered_node = FilteredSensorNode::new("temp_monitor", shared_source, tempe
 
 ## Conclusion
 
-This example demonstrates how to use event-driven workflows in the Flowrs framework to build reactive systems. By leveraging the `EventDrivenNode`, `EventSource`, and `EventDrivenWorkflow` abstractions, you can create powerful and flexible event processing pipelines.
+This example demonstrates how to use event-driven workflows in the Floxide framework to build reactive systems. By leveraging the `EventDrivenNode`, `EventSource`, and `EventDrivenWorkflow` abstractions, you can create powerful and flexible event processing pipelines.
 
 For more information on event-driven workflows, refer to the [Event-Driven Workflow Pattern](../architecture/event-driven-workflow-pattern.md) documentation.

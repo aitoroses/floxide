@@ -1,8 +1,8 @@
 use async_trait::async_trait;
-use flowrs_core::{
-    lifecycle::LifecycleNodeAdapter, DefaultAction, FlowrsError, Node, NodeOutcome, Workflow,
+use floxide_core::{
+    lifecycle::LifecycleNodeAdapter, DefaultAction, FloxideError, Node, NodeOutcome, Workflow,
 };
-use flowrs_transform::{create_transform_node, to_lifecycle_node, TransformContext, TransformNode};
+use floxide_transform::{create_transform_node, to_lifecycle_node, TransformContext, TransformNode};
 use std::{error::Error, fmt};
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -19,10 +19,10 @@ impl fmt::Display for TextProcessingError {
 
 impl Error for TextProcessingError {}
 
-// Make our custom error convertible to FlowrsError
-impl From<TextProcessingError> for FlowrsError {
+// Make our custom error convertible to FloxideError
+impl From<TextProcessingError> for FloxideError {
     fn from(err: TextProcessingError) -> Self {
-        FlowrsError::node_execution("transform_node", &err.0)
+        FloxideError::node_execution("transform_node", &err.0)
     }
 }
 
@@ -180,7 +180,7 @@ impl Node<TransformContext<String>, DefaultAction> for GreetingPrinter {
     async fn process(
         &self,
         ctx: &mut TransformContext<String>,
-    ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FloxideError> {
         // Print a nicely formatted message
         println!("\n=== Final Message ===");
         println!("{}", ctx.input);
@@ -220,7 +220,7 @@ where
     async fn process(
         &self,
         ctx: &mut TransformContext<T>,
-    ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FloxideError> {
         // Just capture the input value and return Success
         Ok(NodeOutcome::Success(ctx.input.clone()))
     }
@@ -313,7 +313,7 @@ async fn run_text_analysis_example() -> Result<(), Box<dyn Error>> {
         async fn process(
             &self,
             ctx: &mut TransformContext<String>,
-        ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+        ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FloxideError> {
             // Since we can't directly access the TextStats result, we'll create a dummy
             // This is only for the example. In a real workflow, you would have access
             // to the TextStats from a previous node or from the workflow context
@@ -383,11 +383,11 @@ async fn run_closure_transform_example() -> Result<(), Box<dyn Error>> {
         }
 
         #[async_trait]
-        impl<L, C, A> flowrs_core::LifecycleNode<C, A> for CustomIdLifecycleNode<L, C, A>
+        impl<L, C, A> floxide_core::LifecycleNode<C, A> for CustomIdLifecycleNode<L, C, A>
         where
-            L: flowrs_core::LifecycleNode<C, A> + Send + Sync,
+            L: floxide_core::LifecycleNode<C, A> + Send + Sync,
             C: Send + Sync + 'static,
-            A: flowrs_core::ActionType + Send + Sync + 'static,
+            A: floxide_core::ActionType + Send + Sync + 'static,
             L::PrepOutput: Clone + Send + Sync + 'static,
             L::ExecOutput: Clone + Send + Sync + 'static,
         {
@@ -398,14 +398,14 @@ async fn run_closure_transform_example() -> Result<(), Box<dyn Error>> {
                 self.custom_id.clone()
             }
 
-            async fn prep(&self, ctx: &mut C) -> Result<Self::PrepOutput, FlowrsError> {
+            async fn prep(&self, ctx: &mut C) -> Result<Self::PrepOutput, FloxideError> {
                 self.inner.prep(ctx).await
             }
 
             async fn exec(
                 &self,
                 prep_result: Self::PrepOutput,
-            ) -> Result<Self::ExecOutput, FlowrsError> {
+            ) -> Result<Self::ExecOutput, FloxideError> {
                 self.inner.exec(prep_result).await
             }
 
@@ -414,7 +414,7 @@ async fn run_closure_transform_example() -> Result<(), Box<dyn Error>> {
                 prep_result: Self::PrepOutput,
                 exec_result: Self::ExecOutput,
                 ctx: &mut C,
-            ) -> Result<A, FlowrsError> {
+            ) -> Result<A, FloxideError> {
                 self.inner.post(prep_result, exec_result, ctx).await
             }
         }

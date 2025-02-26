@@ -1,15 +1,15 @@
 # Nodes
 
-Nodes are the fundamental building blocks of workflows in Flowrs. Each node represents a discrete unit of work that can be executed as part of a workflow. This page explains the different types of nodes and how to create and use them.
+Nodes are the fundamental building blocks of workflows in Floxide. Each node represents a discrete unit of work that can be executed as part of a workflow. This page explains the different types of nodes and how to create and use them.
 
 ## The Node Trait
 
-At the core of Flowrs is the `Node` trait, which defines the interface for executing a node:
+At the core of Floxide is the `Node` trait, which defines the interface for executing a node:
 
 ```rust
 #[async_trait]
 pub trait Node<C, A> {
-    async fn execute(&self, context: &mut C) -> Result<A, FlowrsError>;
+    async fn execute(&self, context: &mut C) -> Result<A, FloxideError>;
 }
 ```
 
@@ -22,7 +22,7 @@ This simple interface allows for a wide variety of node implementations, from si
 
 ## LifecycleNode
 
-The most common type of node in Flowrs is the `LifecycleNode`, which follows a three-phase lifecycle:
+The most common type of node in Floxide is the `LifecycleNode`, which follows a three-phase lifecycle:
 
 1. **Preparation (Prep)**: Extract data from the context
 2. **Execution (Exec)**: Process the data
@@ -36,14 +36,14 @@ pub trait LifecycleNode<C, A>: Send + Sync {
     type PrepOutput: Send;
     type ExecOutput: Send;
 
-    async fn prep(&self, context: &mut C) -> Result<Self::PrepOutput, FlowrsError>;
-    async fn exec(&self, prep_output: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError>;
+    async fn prep(&self, context: &mut C) -> Result<Self::PrepOutput, FloxideError>;
+    async fn exec(&self, prep_output: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError>;
     async fn post(
         &self,
         prep_output: Self::PrepOutput,
         exec_output: Self::ExecOutput,
         context: &mut C,
-    ) -> Result<A, FlowrsError>;
+    ) -> Result<A, FloxideError>;
 }
 ```
 
@@ -56,7 +56,7 @@ This trait allows for a clear separation of concerns between the different phase
 The easiest way to create a `LifecycleNode` is using the `lifecycle_node` function:
 
 ```rust
-use flowrs_core::{lifecycle_node, LifecycleNode, DefaultAction};
+use floxide_core::{lifecycle_node, LifecycleNode, DefaultAction};
 
 // Define your context type
 #[derive(Debug, Clone)]
@@ -103,11 +103,11 @@ impl LifecycleNode<MyContext, DefaultAction> for CounterNode {
     type PrepOutput = usize;
     type ExecOutput = usize;
 
-    async fn prep(&self, _context: &mut MyContext) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(&self, _context: &mut MyContext) -> Result<Self::PrepOutput, FloxideError> {
         Ok(self.counter.load(Ordering::Relaxed))
     }
 
-    async fn exec(&self, current: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+    async fn exec(&self, current: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         let new_value = current + 1;
         self.counter.store(new_value, Ordering::Relaxed);
         Ok(new_value)
@@ -118,7 +118,7 @@ impl LifecycleNode<MyContext, DefaultAction> for CounterNode {
         _prep: Self::PrepOutput,
         exec: Self::ExecOutput,
         context: &mut MyContext,
-    ) -> Result<DefaultAction, FlowrsError> {
+    ) -> Result<DefaultAction, FloxideError> {
         context.result = Some(format!("Count: {}", exec));
         Ok(DefaultAction::Next)
     }
@@ -132,7 +132,7 @@ impl LifecycleNode<MyContext, DefaultAction> for CounterNode {
 Transform nodes are specialized for data transformation operations:
 
 ```rust
-use flowrs_transform::{transform_node, TransformNode};
+use floxide_transform::{transform_node, TransformNode};
 
 fn create_transform_node() -> impl TransformNode<String, String> {
     transform_node(|input: String| async move {
@@ -146,7 +146,7 @@ fn create_transform_node() -> impl TransformNode<String, String> {
 Batch nodes process collections of items concurrently:
 
 ```rust
-use flowrs_batch::{batch_node, BatchNode};
+use floxide_batch::{batch_node, BatchNode};
 
 fn create_batch_node() -> impl BatchNode<Vec<String>, Vec<String>> {
     batch_node(
@@ -163,7 +163,7 @@ fn create_batch_node() -> impl BatchNode<Vec<String>, Vec<String>> {
 Event nodes handle asynchronous events:
 
 ```rust
-use flowrs_event::{event_node, EventNode};
+use floxide_event::{event_node, EventNode};
 
 fn create_event_node() -> impl EventNode<MyContext, DefaultAction> {
     event_node(
@@ -190,11 +190,11 @@ fn create_robust_node() -> impl LifecycleNode<MyContext, DefaultAction> {
         Some("robust_processor"),
         |ctx: &mut MyContext| async move {
             ctx.input.parse::<i32>()
-                .map_err(|e| FlowrsError::new(format!("Invalid input: {}", e)))
+                .map_err(|e| FloxideError::new(format!("Invalid input: {}", e)))
         },
         |num: i32| async move {
             if num < 0 {
-                Err(FlowrsError::new("Negative numbers not allowed"))
+                Err(FloxideError::new("Negative numbers not allowed"))
             } else {
                 Ok(num * 2)
             }
@@ -233,7 +233,7 @@ impl LifecycleNode<MyContext, DefaultAction> for ResourceNode {
         _prep: Self::PrepOutput,
         exec: Self::ExecOutput,
         context: &mut MyContext,
-    ) -> Result<DefaultAction, FlowrsError> {
+    ) -> Result<DefaultAction, FloxideError> {
         // Clean up resources
         self.connection.lock().await.cleanup();
         Ok(DefaultAction::Next)
@@ -355,7 +355,7 @@ fn create_retry_node() -> impl LifecycleNode<MyContext, DefaultAction> {
                 Ok(result) => Ok(result),
                 Err(e) if input.1 < 3 => {
                     tokio::time::sleep(Duration::from_secs(1)).await;
-                    Err(FlowrsError::new("Retry"))
+                    Err(FloxideError::new("Retry"))
                 }
                 Err(e) => Err(e),
             }
@@ -379,14 +379,14 @@ Now that you understand nodes, you can:
 
 ## Specialized Node Types
 
-Flowrs provides several specialized node types for common workflow patterns:
+Floxide provides several specialized node types for common workflow patterns:
 
 ### TransformNode
 
 A `TransformNode` is a simplified node that transforms an input to an output without the need for the full lifecycle. It's useful for data transformation steps in a workflow.
 
 ```rust
-use flowrs_transform::{transform_node, TransformNode};
+use floxide_transform::{transform_node, TransformNode};
 
 fn create_transform_node() -> impl TransformNode<String, String> {
     transform_node(|input: String| async move {
@@ -400,7 +400,7 @@ fn create_transform_node() -> impl TransformNode<String, String> {
 A `BatchNode` processes a collection of items in parallel, with configurable concurrency limits.
 
 ```rust
-use flowrs_batch::{batch_node, BatchNode};
+use floxide_batch::{batch_node, BatchNode};
 
 fn create_batch_node() -> impl BatchNode<Vec<String>, Vec<String>> {
     batch_node(
@@ -417,7 +417,7 @@ fn create_batch_node() -> impl BatchNode<Vec<String>, Vec<String>> {
 An `EventNode` responds to external events, allowing for event-driven workflows.
 
 ```rust
-use flowrs_event::{event_node, EventNode};
+use floxide_event::{event_node, EventNode};
 
 fn create_event_node() -> impl EventNode<String, String> {
     event_node(
@@ -433,7 +433,7 @@ fn create_event_node() -> impl EventNode<String, String> {
 A `TimerNode` executes based on time schedules, supporting one-time, interval, and calendar-based scheduling.
 
 ```rust
-use flowrs_timer::{timer_node, TimerNode, TimerContext};
+use floxide_timer::{timer_node, TimerNode, TimerContext};
 use std::time::Duration;
 
 fn create_timer_node() -> impl TimerNode<(), String> {
@@ -451,7 +451,7 @@ fn create_timer_node() -> impl TimerNode<(), String> {
 A `ReactiveNode` reacts to changes in external data sources, such as files, databases, or streams.
 
 ```rust
-use flowrs_reactive::{reactive_node, ReactiveNode, ReactiveContext};
+use floxide_reactive::{reactive_node, ReactiveNode, ReactiveContext};
 
 fn create_reactive_node() -> impl ReactiveNode<String, String> {
     reactive_node(
@@ -467,7 +467,7 @@ fn create_reactive_node() -> impl ReactiveNode<String, String> {
 A `LongRunningNode` is designed for processes that can be suspended and resumed, with state persistence between executions.
 
 ```rust
-use flowrs_longrunning::{longrunning_node, LongRunningNode, LongRunningContext};
+use floxide_longrunning::{longrunning_node, LongRunningNode, LongRunningContext};
 
 fn create_longrunning_node() -> impl LongRunningNode<String, String> {
     longrunning_node(

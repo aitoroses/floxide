@@ -1,6 +1,6 @@
 use chrono::{Duration as ChronoDuration, Timelike, Utc, Weekday};
-use flowrs_core::DefaultAction;
-use flowrs_timer::{Schedule, SimpleTimer, TimerActionExt, TimerNode, TimerWorkflow};
+use floxide_core::DefaultAction;
+use floxide_timer::{Schedule, SimpleTimer, TimerActionExt, TimerNode, TimerWorkflow};
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info, Level};

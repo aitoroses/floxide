@@ -1,14 +1,14 @@
 # Node Lifecycle Methods
 
-This document describes the node lifecycle methods in the Flowrs framework.
+This document describes the node lifecycle methods in the Floxide framework.
 
 ## Overview
 
-The Flowrs framework implements a three-phase lifecycle for nodes, providing a clear separation of concerns and enabling specialized behaviors at each stage of node execution. This approach enhances maintainability, testability, and flexibility in workflow design.
+The Floxide framework implements a three-phase lifecycle for nodes, providing a clear separation of concerns and enabling specialized behaviors at each stage of node execution. This approach enhances maintainability, testability, and flexibility in workflow design.
 
 ## Lifecycle Phases
 
-Each node in the Flowrs framework goes through three distinct phases during execution:
+Each node in the Floxide framework goes through three distinct phases during execution:
 
 1. **Preparation (`prep`)**: Setup and validation phase
 2. **Execution (`exec`)**: Core execution with potential retry mechanisms
@@ -37,13 +37,13 @@ where
     fn id(&self) -> NodeId;
 
     /// Preparation phase - perform setup and validation
-    async fn prep(&self, ctx: &mut Context) -> Result<Self::PrepOutput, FlowrsError>;
+    async fn prep(&self, ctx: &mut Context) -> Result<Self::PrepOutput, FloxideError>;
 
     /// Execution phase - perform the main work
-    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError>;
+    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError>;
 
     /// Post-processing phase - determine routing
-    async fn post(&self, exec_result: Self::ExecOutput) -> Result<Action, FlowrsError>;
+    async fn post(&self, exec_result: Self::ExecOutput) -> Result<Action, FloxideError>;
 }
 ```
 
@@ -61,10 +61,10 @@ The preparation phase is responsible for:
 Example implementation:
 
 ```rust
-async fn prep(&self, ctx: &mut MyContext) -> Result<PrepData, FlowrsError> {
+async fn prep(&self, ctx: &mut MyContext) -> Result<PrepData, FloxideError> {
     // Validate input
     if ctx.input.is_empty() {
-        return Err(FlowrsError::ValidationFailed("Input cannot be empty".to_string()));
+        return Err(FloxideError::ValidationFailed("Input cannot be empty".to_string()));
     }
 
     // Prepare data for execution
@@ -89,7 +89,7 @@ The execution phase is responsible for:
 Example implementation:
 
 ```rust
-async fn exec(&self, prep_result: PrepData) -> Result<ExecData, FlowrsError> {
+async fn exec(&self, prep_result: PrepData) -> Result<ExecData, FloxideError> {
     // Perform main work
     let result = process_data(&prep_result.input)?;
 
@@ -115,7 +115,7 @@ The post-processing phase is responsible for:
 Example implementation:
 
 ```rust
-async fn post(&self, exec_result: ExecData) -> Result<Action, FlowrsError> {
+async fn post(&self, exec_result: ExecData) -> Result<Action, FloxideError> {
     // Determine routing based on execution result
     let action = if exec_result.result > 100 {
         Action::Route("high_value_path")
@@ -144,7 +144,7 @@ where
     type Context = C;
     type Action = A;
 
-    async fn run(&self, ctx: &mut Self::Context) -> Result<Self::Action, FlowrsError> {
+    async fn run(&self, ctx: &mut Self::Context) -> Result<Self::Action, FloxideError> {
         let prep_result = self.prep(ctx).await?;
         let exec_result = self.exec(prep_result).await?;
         let action = self.post(exec_result).await?;
@@ -175,6 +175,6 @@ When implementing nodes with the lifecycle pattern:
 
 ## Conclusion
 
-The node lifecycle methods in the Flowrs framework provide a powerful pattern for implementing workflow nodes with clear separation of concerns. By following this pattern, developers can create maintainable, testable, and flexible workflow components.
+The node lifecycle methods in the Floxide framework provide a powerful pattern for implementing workflow nodes with clear separation of concerns. By following this pattern, developers can create maintainable, testable, and flexible workflow components.
 
 For more detailed information on the node lifecycle methods, refer to the [Node Lifecycle Methods ADR](../adrs/0008-node-lifecycle-methods.md).

@@ -1,11 +1,12 @@
 # Architectural Decision Records (ADRs)
 
-This directory contains the Architectural Decision Records (ADRs) for the flowrs framework. ADRs document significant architectural decisions, their context, and their consequences.
+This directory contains the Architectural Decision Records (ADRs) for the floxide framework. ADRs document significant architectural decisions, their context, and their consequences.
 
 ## Index of ADRs
 
 | ADR                                                        | Title                                           | Status   | Date       | Summary                                                                             |
 | ---------------------------------------------------------- | ----------------------------------------------- | -------- | ---------- | ----------------------------------------------------------------------------------- |
+| [ADR-0032](0032-project-rebranding-to-floxide.md)          | Project Rebranding to Floxide                  | Accepted | 2025-02-26 | Documents the rebranding from floxide to floxide and its implications                |
 | [ADR-0007](0007-batch-processing-implementation.md)        | Batch Processing Implementation                 | Accepted | 2024-02-25 | Defines the approach for parallel batch processing using Tokio tasks and semaphores |
 | [ADR-0008](0008-node-lifecycle-methods.md)                 | Node Lifecycle Methods                          | Accepted | 2024-02-25 | Defines the three-phase lifecycle (prep/exec/post) for nodes and adapter patterns   |
 | [ADR-0009](0009-cloneable-traits-for-batch-contexts.md)    | Cloneable Types for Batch Processing            | Accepted | 2024-02-25 | Requires item types in batch processing to implement Clone                          |
@@ -48,7 +49,7 @@ Each ADR follows this structure:
 
 ## Overview
 
-These ADRs document the key architectural decisions made during the development of the flowrs framework. Each ADR provides context, the decision made, consequences, and alternatives considered.
+These ADRs document the key architectural decisions made during the development of the floxide framework. Each ADR provides context, the decision made, consequences, and alternatives considered.
 
 ## Index
 

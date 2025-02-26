@@ -1,16 +1,16 @@
 [package]
-name = "flowrs-benches"
+name = "floxide-benches"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Benchmarks for the flowrs framework"
+description = "Benchmarks for the floxide framework"
 publish = false
 
 [dependencies]
-flowrs-core = { path = "../crates/flowrs-core" }
-flowrs-transform = { path = "../crates/flowrs-transform" }
+floxide-core = { path = "../crates/floxide-core" }
+floxide-transform = { path = "../crates/floxide-transform" }
 tokio = { workspace = true }
 criterion = { version = "0.5.1", features = ["async_tokio"] }
 

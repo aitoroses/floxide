@@ -10,10 +10,10 @@ Accepted
 
 ## Context
 
-The flowrs framework is being extended with event-driven capabilities through the `flowrs-event` crate. This crate provides functionality for creating nodes that respond to external events and can be integrated into standard workflows. However, several issues have been identified in the current implementation:
+The floxide framework is being extended with event-driven capabilities through the `floxide-event` crate. This crate provides functionality for creating nodes that respond to external events and can be integrated into standard workflows. However, several issues have been identified in the current implementation:
 
 1. The `EventProcessor` struct has unused type parameters (`Context` and `Action`)
-2. The `FlowrsError` enum lacks methods needed by the event system (`node_not_found` and `timeout`)
+2. The `FloxideError` enum lacks methods needed by the event system (`node_not_found` and `timeout`)
 3. The `NodeOutcome::RouteToAction` variant is being used incorrectly with two arguments when it expects one
 4. Type inference issues in several places where trait bounds cannot be properly resolved
 5. Missing trait implementations, specifically `Default` for the `Action` type parameter
@@ -27,7 +27,7 @@ We will make the following changes to address the issues:
 
 1. **Fix `EventProcessor` type parameters**: Update the `EventProcessor` struct to either use the unused type parameters or remove them, using `PhantomData` where necessary.
 
-2. **Extend `FlowrsError` with required methods**: Add methods to the `FlowrsError` type in the core crate for `node_not_found` and `timeout` functionality.
+2. **Extend `FloxideError` with required methods**: Add methods to the `FloxideError` type in the core crate for `node_not_found` and `timeout` functionality.
 
 3. **Fix `NodeOutcome::RouteToAction` usage**: Update the event crate to correctly use this variant with a single argument instead of two.
 
@@ -43,7 +43,7 @@ We will make the following changes to address the issues:
 
 The implementation involved the following key changes:
 
-1. Added `node_not_found`, `timeout`, and `is_timeout` methods to `FlowrsError` in the core crate.
+1. Added `node_not_found`, `timeout`, and `is_timeout` methods to `FloxideError` in the core crate.
 
 2. Fixed `EventProcessor` by adding `PhantomData` for unused type parameters and adding proper trait bounds.
 

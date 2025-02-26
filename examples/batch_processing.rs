@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use flowrs_core::{
-    batch::BatchContext, error::FlowrsError, DefaultAction, Node, NodeId, NodeOutcome,
+use floxide_core::{
+    batch::BatchContext, error::FloxideError, DefaultAction, Node, NodeId, NodeOutcome,
 };
 use rand::Rng;
 use std::collections::HashMap;
@@ -39,7 +39,7 @@ impl Image {
         }
     }
 
-    async fn _resize(&self, new_width: u32, new_height: u32) -> Result<Image, FlowrsError> {
+    async fn _resize(&self, new_width: u32, new_height: u32) -> Result<Image, FloxideError> {
         // Simulate the time it takes to resize an image
         sleep(Duration::from_millis(self.processing_time_ms)).await;
 
@@ -55,7 +55,7 @@ impl Image {
         Ok(resized)
     }
 
-    async fn _convert_format(&self, new_format: &str) -> Result<Image, FlowrsError> {
+    async fn _convert_format(&self, new_format: &str) -> Result<Image, FloxideError> {
         // Simulate the time it takes to convert an image
         sleep(Duration::from_millis(self.processing_time_ms / 2)).await;
 
@@ -104,11 +104,11 @@ impl ImageBatchContext {
 }
 
 impl BatchContext<Image> for ImageBatchContext {
-    fn get_batch_items(&self) -> Result<Vec<Image>, FlowrsError> {
+    fn get_batch_items(&self) -> Result<Vec<Image>, FloxideError> {
         Ok(self.images.clone())
     }
 
-    fn create_item_context(&self, item: Image) -> Result<Self, FlowrsError> {
+    fn create_item_context(&self, item: Image) -> Result<Self, FloxideError> {
         // Create a new context for a single item
         let mut ctx = self.clone();
         ctx.images = Vec::new();
@@ -118,8 +118,8 @@ impl BatchContext<Image> for ImageBatchContext {
 
     fn update_with_results(
         &mut self,
-        results: &[Result<Image, FlowrsError>],
-    ) -> Result<(), FlowrsError> {
+        results: &[Result<Image, FloxideError>],
+    ) -> Result<(), FloxideError> {
         // Update statistics
         self.processed_count = results.iter().filter(|r| r.is_ok()).count();
         self.failed_count = results.iter().filter(|r| r.is_err()).count();
@@ -157,7 +157,7 @@ impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor {
     async fn process(
         &self,
         ctx: &mut ImageBatchContext,
-    ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FloxideError> {
         // Get the image from the context
         match ctx.current_image.as_ref() {
             Some(image) => {
@@ -165,7 +165,7 @@ impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor {
                 let mut rng = rand::thread_rng();
                 if rng.gen_bool(0.15) {
                     // 15% chance of failure
-                    return Err(FlowrsError::node_execution(
+                    return Err(FloxideError::node_execution(
                         self.id(),
                         "Random failure during image processing",
                     ));
@@ -193,7 +193,7 @@ impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor {
 
                 Ok(NodeOutcome::Success(processed))
             }
-            None => Err(FlowrsError::node_execution(
+            None => Err(FloxideError::node_execution(
                 self.id(),
                 "No image found in context",
             )),
@@ -202,7 +202,7 @@ impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor {
 }
 
 // Process a single image using the SimpleImageProcessor
-async fn process_image(image: Image) -> Result<Image, FlowrsError> {
+async fn process_image(image: Image) -> Result<Image, FloxideError> {
     // Create a context with just this image
     let mut ctx = ImageBatchContext {
         images: Vec::new(),
@@ -217,7 +217,7 @@ async fn process_image(image: Image) -> Result<Image, FlowrsError> {
     let processor = SimpleImageProcessor::new("image_processor");
     match processor.process(&mut ctx).await {
         Ok(NodeOutcome::Success(image)) => Ok(image),
-        Ok(_) => Err(FlowrsError::node_execution(
+        Ok(_) => Err(FloxideError::node_execution(
             processor.id(),
             "Unexpected outcome from processor",
         )),
@@ -226,7 +226,7 @@ async fn process_image(image: Image) -> Result<Image, FlowrsError> {
 }
 
 // Process images in parallel with a given parallelism limit
-async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Image, FlowrsError>> {
+async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Image, FloxideError>> {
     use futures::stream::{self, StreamExt};
     use tokio::sync::Semaphore;
 

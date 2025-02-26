@@ -1,5 +1,5 @@
-//! # Flowrs Benchmarks
+//! # Floxide Benchmarks
 //!
-//! Performance benchmarks for the flowrs framework.
+//! Performance benchmarks for the floxide framework.
 
 // Empty for now, benchmarks are defined in separate files

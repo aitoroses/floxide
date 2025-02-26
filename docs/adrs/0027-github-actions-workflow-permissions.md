@@ -15,8 +15,8 @@ Our project uses GitHub Actions for various automation tasks, including CI/CD, d
 We encountered an issue with our version bump workflow where the GitHub Actions bot was denied permission to push changes to the repository:
 
 ```
-error: unable to push to remote, out = , err = remote: Permission to aitoroses/flowrs.git denied to github-actions[bot].
-fatal: unable to access 'https://github.com/aitoroses/flowrs/': The requested URL returned error: 403
+error: unable to push to remote, out = , err = remote: Permission to aitoroses/floxide.git denied to github-actions[bot].
+fatal: unable to access 'https://github.com/aitoroses/floxide/': The requested URL returned error: 403
 ```
 
 This indicates that the workflow does not have the necessary permissions to push changes to the repository.

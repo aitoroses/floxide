@@ -8,12 +8,12 @@ Accepted
 
 When publishing Rust crates to crates.io, all dependencies must have explicit version specifications, even if they are path dependencies within a workspace. This is a requirement of the crates.io publishing process.
 
-In our workspace structure, we have a root `flowrs` crate that depends on several subcrates (`flowrs-core`, `flowrs-transform`, etc.). These dependencies were initially specified only with `path` attributes, which works fine for local development but causes errors during the publishing process.
+In our workspace structure, we have a root `floxide` crate that depends on several subcrates (`floxide-core`, `floxide-transform`, etc.). These dependencies were initially specified only with `path` attributes, which works fine for local development but causes errors during the publishing process.
 
 The error encountered was:
 ```
 error: all dependencies must have a version specified when publishing.
-dependency `flowrs-core` does not specify a version
+dependency `floxide-core` does not specify a version
 Note: The published dependency will use the version from crates.io,
 the `path` specification will be removed from the dependency declaration.
 ```
@@ -22,10 +22,10 @@ Additionally, we need to ensure that when the workspace version changes, we don'
 
 We also encountered an issue during version bumping where some subcrates had hardcoded versions instead of using workspace inheritance, causing errors like:
 ```
-error: failed to select a version for the requirement `flowrs-event = "^1.0.2"`
+error: failed to select a version for the requirement `floxide-event = "^1.0.2"`
 candidate versions found which didn't match: 1.0.0
-location searched: /home/runner/work/flowrs/flowrs/crates/flowrs-event
-required by package `flowrs v1.0.3 (/home/runner/work/flowrs/flowrs)`
+location searched: /home/runner/work/floxide/floxide/crates/floxide-event
+required by package `floxide v1.0.3 (/home/runner/work/floxide/floxide)`
 ```
 
 ## Decision
@@ -38,7 +38,7 @@ We will implement a two-part solution to address these versioning issues:
 
 The dependency specifications in the root crate will follow this pattern:
 ```toml
-flowrs-core = { path = "./crates/flowrs-core", version = "1.0.2", optional = true }
+floxide-core = { path = "./crates/floxide-core", version = "1.0.2", optional = true }
 ```
 
 To reduce maintenance burden, we will create two scripts:
@@ -77,19 +77,19 @@ The implementation involves:
 1. Updating the root `Cargo.toml` file to include version specifications for all internal dependencies:
 
 ```toml
-flowrs-core = { path = "./crates/flowrs-core", version = "1.0.2", optional = true }
-flowrs-transform = { path = "./crates/flowrs-transform", version = "1.0.2", optional = true }
-flowrs-event = { path = "./crates/flowrs-event", version = "1.0.2", optional = true }
-flowrs-timer = { path = "./crates/flowrs-timer", version = "1.0.2", optional = true }
-flowrs-longrunning = { path = "./crates/flowrs-longrunning", version = "1.0.2", optional = true }
-flowrs-reactive = { path = "./crates/flowrs-reactive", version = "1.0.2", optional = true }
+floxide-core = { path = "./crates/floxide-core", version = "1.0.2", optional = true }
+floxide-transform = { path = "./crates/floxide-transform", version = "1.0.2", optional = true }
+floxide-event = { path = "./crates/floxide-event", version = "1.0.2", optional = true }
+floxide-timer = { path = "./crates/floxide-timer", version = "1.0.2", optional = true }
+floxide-longrunning = { path = "./crates/floxide-longrunning", version = "1.0.2", optional = true }
+floxide-reactive = { path = "./crates/floxide-reactive", version = "1.0.2", optional = true }
 ```
 
 2. Ensuring all subcrates use workspace inheritance for their versions:
 
 ```toml
 [package]
-name = "flowrs-event"
+name = "floxide-event"
 version.workspace = true
 edition.workspace = true
 # ...
@@ -107,7 +107,7 @@ WORKSPACE_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
 echo "Updating dependency versions to match workspace version: $WORKSPACE_VERSION"
 
 # Update all internal dependency versions in the root Cargo.toml
-sed -i.bak -E "s/(flowrs-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*path[[:space:]]*=[[:space:]]*\"[^\"]+\",[[:space:]]*version[[:space:]]*=[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
+sed -i.bak -E "s/(floxide-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*path[[:space:]]*=[[:space:]]*\"[^\"]+\",[[:space:]]*version[[:space:]]*=[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
 
 # Remove backup file
 rm Cargo.toml.bak
@@ -116,7 +116,7 @@ echo "Dependency versions updated successfully!"
 
 # Verify the changes
 echo "Verifying changes..."
-grep -n "flowrs-" Cargo.toml | grep "version"
+grep -n "floxide-" Cargo.toml | grep "version"
 
 echo "Done!"
 ```
@@ -131,12 +131,12 @@ echo "Updating subcrates to use workspace inheritance for versions..."
 
 # List of subcrates to check and update
 SUBCRATES=(
-  "flowrs-core"
-  "flowrs-transform"
-  "flowrs-event"
-  "flowrs-timer"
-  "flowrs-longrunning"
-  "flowrs-reactive"
+  "floxide-core"
+  "floxide-transform"
+  "floxide-event"
+  "floxide-timer"
+  "floxide-longrunning"
+  "floxide-reactive"
 )
 
 for subcrate in "${SUBCRATES[@]}"; do
@@ -167,13 +167,13 @@ echo "Done updating subcrates!"
 ```
 
 5. Maintaining a specific publishing order in our release workflow:
-   - First publish `flowrs-core`
-   - Then publish `flowrs-transform`
-   - Then publish `flowrs-event`
-   - Then publish `flowrs-timer`
-   - Then publish `flowrs-longrunning`
-   - Then publish `flowrs-reactive`
-   - Finally publish the root `flowrs` crate
+   - First publish `floxide-core`
+   - Then publish `floxide-transform`
+   - Then publish `floxide-event`
+   - Then publish `floxide-timer`
+   - Then publish `floxide-longrunning`
+   - Then publish `floxide-reactive`
+   - Finally publish the root `floxide` crate
 
 6. Integrating both update scripts into our release process to ensure versions are always in sync.
 
@@ -200,8 +200,8 @@ When specifying versions for internal dependencies in the root crate, it's impor
 
 ```toml
 # Inconsistent version formats
-flowrs-core = { path = "./crates/flowrs-core", version = "1.0.2", optional = true }  # No equals sign
-flowrs-event = { path = "./crates/flowrs-event", version = "=1.0.3", optional = true }  # With equals sign
+floxide-core = { path = "./crates/floxide-core", version = "1.0.2", optional = true }  # No equals sign
+floxide-event = { path = "./crates/floxide-event", version = "=1.0.3", optional = true }  # With equals sign
 ```
 
 The `update_dependency_versions.sh` script has been enhanced to handle both formats:
@@ -216,7 +216,7 @@ When publishing to crates.io, all dependencies must have explicit version specif
 
 ```
 error: all dependencies must have a version specified when publishing.
-dependency `flowrs-core` does not specify a version
+dependency `floxide-core` does not specify a version
 ```
 
 This reinforces the importance of:

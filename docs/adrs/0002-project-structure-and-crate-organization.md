@@ -10,32 +10,32 @@ Accepted
 
 ## Context
 
-As we begin development of the flowrs framework, we need to determine how to structure the codebase. The way we organize our project will impact testability, maintainability, and the ability to evolve the codebase over time. It will also influence how consumers of our library will interact with it.
+As we begin development of the floxide framework, we need to determine how to structure the codebase. The way we organize our project will impact testability, maintainability, and the ability to evolve the codebase over time. It will also influence how consumers of our library will interact with it.
 
 Rust provides specific patterns and organization concepts such as crates, workspaces, and modules that we need to consider for optimal organization.
 
 ## Decision
 
-We will organize the flowrs framework as a Cargo workspace with multiple crates to provide modularity and separation of concerns.
+We will organize the floxide framework as a Cargo workspace with multiple crates to provide modularity and separation of concerns.
 
 ### Workspace Structure
 
 The project will be structured as follows:
 
 ```
-flowrs/
+floxide/
 ├── Cargo.toml         # Workspace manifest
 ├── crates/
-│   ├── flowrs-core/   # Core traits and structures
+│   ├── floxide-core/   # Core traits and structures
 │   │   ├── Cargo.toml
 │   │   └── src/
-│   ├── flowrs-transform/  # Transform node implementations
+│   ├── floxide-transform/  # Transform node implementations
 │   │   ├── Cargo.toml
 │   │   └── src/
-│   ├── flowrs-derive/ # Optional proc macros for code generation
+│   ├── floxide-derive/ # Optional proc macros for code generation
 │   │   ├── Cargo.toml
 │   │   └── src/
-│   └── flowrs-test/   # Test utilities and fixtures
+│   └── floxide-test/   # Test utilities and fixtures
 │       ├── Cargo.toml
 │       └── src/
 ├── examples/          # Example implementations
@@ -50,27 +50,27 @@ flowrs/
 
 ### Core Crates
 
-1. **flowrs-core**:
+1. **floxide-core**:
 
    - Contains the fundamental traits and structures for the framework
    - Includes `BaseNode`, `Flow`, and `BatchFlow` implementations
    - Provides the directed graph structure and core execution model
    - Has minimal dependencies
 
-2. **flowrs-transform**:
+2. **floxide-transform**:
 
    - Implements transformation node patterns
    - Provides the `TransformNode` trait for data transformation
    - Depends on Tokio for the async runtime
    - Provides utilities for creating transformation workflows
 
-3. **flowrs-derive** (optional):
+3. **floxide-derive** (optional):
 
    - Provides procedural macros for code generation
    - Simplifies common patterns through macros
    - Makes the API more ergonomic
 
-4. **flowrs-test**:
+4. **floxide-test**:
    - Contains testing utilities and fixtures
    - Provides mock implementations of framework components
    - Simplifies writing tests for consumers of the framework

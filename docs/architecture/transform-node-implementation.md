@@ -1,10 +1,10 @@
 # Transform Node Implementation
 
-This document describes the implementation details of transform nodes in the Flowrs framework.
+This document describes the implementation details of transform nodes in the Floxide framework.
 
 ## Overview
 
-Transform nodes in Flowrs provide a functional approach to data transformation with explicit input and output types, proper error handling, and a three-phase lifecycle.
+Transform nodes in Floxide provide a functional approach to data transformation with explicit input and output types, proper error handling, and a three-phase lifecycle.
 
 ## Core Components
 

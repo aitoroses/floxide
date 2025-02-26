@@ -38,8 +38,8 @@
 // - ADR-0020: Event-Driven Workflow Routing Guidelines
 
 use async_trait::async_trait;
-use flowrs_core::{ActionType, FlowrsError, Node, NodeId, NodeOutcome, Workflow};
-use flowrs_event::{
+use floxide_core::{ActionType, FloxideError, Node, NodeId, NodeOutcome, Workflow};
+use floxide_event::{
     ChannelEventSource, EventActionExt, EventDrivenNode, EventDrivenWorkflow,
     NestedEventDrivenWorkflow,
 };
@@ -208,9 +208,9 @@ impl EventDrivenNode<TemperatureEvent, MonitoringContext, TempAction> for Temper
     /// In the event-driven workflow pattern, only proper event sources should be
     /// used to generate events. Processor nodes like this one should only be used
     /// to process events received from an event source.
-    async fn wait_for_event(&mut self) -> Result<TemperatureEvent, FlowrsError> {
+    async fn wait_for_event(&mut self) -> Result<TemperatureEvent, FloxideError> {
         // This is just a processor node, not an event source
-        Err(FlowrsError::Other(
+        Err(FloxideError::Other(
             "TemperatureClassifier is not an event source".to_string(),
         ))
     }
@@ -226,7 +226,7 @@ impl EventDrivenNode<TemperatureEvent, MonitoringContext, TempAction> for Temper
         &self,
         event: TemperatureEvent,
         ctx: &mut MonitoringContext,
-    ) -> Result<TempAction, FlowrsError> {
+    ) -> Result<TempAction, FloxideError> {
         info!(
             sensor_id = %event.sensor_id,
             temperature = %event.temperature,
@@ -294,7 +294,7 @@ impl Node<MonitoringContext, TempAction> for NormalTempHandler {
     async fn process(
         &self,
         ctx: &mut MonitoringContext,
-    ) -> Result<NodeOutcome<Self::Output, TempAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, TempAction>, FloxideError> {
         info!("Processing normal temperature range");
 
         // For normal temperatures, we just log that everything is fine
@@ -332,7 +332,7 @@ impl Node<MonitoringContext, TempAction> for HighTempHandler {
     async fn process(
         &self,
         ctx: &mut MonitoringContext,
-    ) -> Result<NodeOutcome<Self::Output, TempAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, TempAction>, FloxideError> {
         warn!("Processing high temperature alert");
 
         // Simulate activating cooling systems
@@ -374,7 +374,7 @@ impl Node<MonitoringContext, TempAction> for LowTempHandler {
     async fn process(
         &self,
         ctx: &mut MonitoringContext,
-    ) -> Result<NodeOutcome<Self::Output, TempAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, TempAction>, FloxideError> {
         warn!("Processing low temperature alert");
 
         // Simulate activating heating systems
@@ -416,7 +416,7 @@ impl Node<MonitoringContext, TempAction> for CriticalTempHandler {
     async fn process(
         &self,
         ctx: &mut MonitoringContext,
-    ) -> Result<NodeOutcome<Self::Output, TempAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, TempAction>, FloxideError> {
         warn!("Processing CRITICAL temperature alert");
 
         // Simulate emergency shutdown procedures

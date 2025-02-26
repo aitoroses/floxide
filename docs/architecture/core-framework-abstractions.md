@@ -1,10 +1,10 @@
 # Core Framework Abstractions
 
-This document describes the core abstractions that form the foundation of the Flowrs framework.
+This document describes the core abstractions that form the foundation of the Floxide framework.
 
 ## Overview
 
-The Flowrs framework is designed as a directed graph workflow system built on several key abstractions:
+The Floxide framework is designed as a directed graph workflow system built on several key abstractions:
 
 1. **Node Interface**: The core building block for workflow steps
 2. **Action Types**: Type-safe transitions between nodes
@@ -16,7 +16,7 @@ These abstractions work together to create a flexible, type-safe, and composable
 
 ## Node Interface
 
-The Node trait is the fundamental building block of the Flowrs framework. It defines the lifecycle methods that all nodes must implement:
+The Node trait is the fundamental building block of the Floxide framework. It defines the lifecycle methods that all nodes must implement:
 
 ```rust
 pub trait Node: Send + Sync + 'static {
@@ -46,7 +46,7 @@ The Node trait follows a three-phase lifecycle:
 
 ## Action Types
 
-Actions define the transitions between nodes in a workflow. The Flowrs framework uses a trait-based approach for actions that allows for type-safe, domain-specific action types:
+Actions define the transitions between nodes in a workflow. The Floxide framework uses a trait-based approach for actions that allows for type-safe, domain-specific action types:
 
 ```rust
 /// Trait for types that can be used as actions in workflow transitions
@@ -126,6 +126,6 @@ The batch processing capability allows for parallel execution of workflow steps 
 
 ## Conclusion
 
-These core abstractions provide the foundation for the Flowrs framework. By leveraging Rust's type system and ownership model, they enable the creation of robust, type-safe, and composable workflow applications.
+These core abstractions provide the foundation for the Floxide framework. By leveraging Rust's type system and ownership model, they enable the creation of robust, type-safe, and composable workflow applications.
 
 For more detailed information on these abstractions, refer to the [Core Framework Abstractions ADR](../adrs/0003-core-framework-abstractions.md).

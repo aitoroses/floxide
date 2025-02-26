@@ -85,7 +85,7 @@ The event-driven workflow follows this pattern:
 
 ## Implementation Approach
 
-We have implemented this pattern in the `flowrs-event` crate, which provides:
+We have implemented this pattern in the `floxide-event` crate, which provides:
 
 1. The core traits and interfaces for event-driven nodes
 2. Basic event source implementations (channel-based)

@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-As the Flowrs framework matures, we need a reliable and automated way to deploy our documentation to GitHub Pages. This includes both API documentation generated from Rustdoc and conceptual documentation created with MkDocs. We need to determine the best approach for deploying this documentation, considering:
+As the Floxide framework matures, we need a reliable and automated way to deploy our documentation to GitHub Pages. This includes both API documentation generated from Rustdoc and conceptual documentation created with MkDocs. We need to determine the best approach for deploying this documentation, considering:
 
 1. Automation through GitHub Actions
 2. Permissions and security considerations

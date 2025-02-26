@@ -1,10 +1,10 @@
 # Workflows
 
-Workflows in Flowrs orchestrate the execution of nodes. A workflow is a directed graph of nodes, where the edges represent transitions between nodes. This page explains how to create, configure, and execute workflows.
+Workflows in Floxide orchestrate the execution of nodes. A workflow is a directed graph of nodes, where the edges represent transitions between nodes. This page explains how to create, configure, and execute workflows.
 
 ## The Workflow Struct
 
-The core of workflow orchestration in Flowrs is the `Workflow` struct. This struct manages the execution flow between nodes, handles errors and retries, and provides observability and monitoring.
+The core of workflow orchestration in Floxide is the `Workflow` struct. This struct manages the execution flow between nodes, handles errors and retries, and provides observability and monitoring.
 
 ```rust
 pub struct Workflow<C, A> {
@@ -24,7 +24,7 @@ Where:
 The simplest way to create a workflow is to use the `new` method, which takes a single node:
 
 ```rust
-use flowrs_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction};
+use floxide_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction};
 use std::sync::Arc;
 
 // Create a node
@@ -83,7 +83,7 @@ To execute a workflow, use the `execute` method, which takes a mutable reference
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a context
     let mut context = MessageContext {
-        input: "Hello, Flowrs!".to_string(),
+        input: "Hello, Floxide!".to_string(),
         result: None,
     };
 
@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ### Error Handling
 
-Flowrs provides several ways to handle errors in workflows:
+Floxide provides several ways to handle errors in workflows:
 
 #### Try-Catch Pattern
 
@@ -152,10 +152,10 @@ let mut workflow = Workflow::new(operation_node)
 
 ### Parallel Execution
 
-For parallel execution, you can use the `BatchNode` from the `flowrs-batch` crate:
+For parallel execution, you can use the `BatchNode` from the `floxide-batch` crate:
 
 ```rust
-use flowrs_batch::{batch_node, BatchNode, BatchContext};
+use floxide_batch::{batch_node, BatchNode, BatchContext};
 
 // Create a batch node that processes items in parallel
 let batch_node = Arc::new(batch_node(
@@ -171,10 +171,10 @@ let mut workflow = Workflow::new(batch_node);
 
 ### Event-Driven Workflows
 
-For event-driven workflows, you can use the `EventNode` from the `flowrs-event` crate:
+For event-driven workflows, you can use the `EventNode` from the `floxide-event` crate:
 
 ```rust
-use flowrs_event::{event_node, EventNode, EventContext};
+use floxide_event::{event_node, EventNode, EventContext};
 
 // Create an event node that responds to events
 let event_node = Arc::new(event_node(
@@ -204,7 +204,7 @@ let mut main_workflow = Workflow::new(main_workflow_node)
 
 ## Workflow Persistence
 
-Flowrs supports workflow persistence through serialization and deserialization:
+Floxide supports workflow persistence through serialization and deserialization:
 
 ```rust
 use serde::{Serialize, Deserialize};

@@ -1,10 +1,10 @@
 # Batch Processing Implementation
 
-This document describes the batch processing implementation in the Flowrs framework.
+This document describes the batch processing implementation in the Floxide framework.
 
 ## Overview
 
-Batch processing in the Flowrs framework enables efficient parallel execution of workflows on collections of items. This capability is essential for handling large datasets and maximizing throughput in workflow applications.
+Batch processing in the Floxide framework enables efficient parallel execution of workflows on collections of items. This capability is essential for handling large datasets and maximizing throughput in workflow applications.
 
 ## Core Concepts
 
@@ -22,13 +22,13 @@ The `BatchContext` trait defines how contexts that support batch operations shou
 /// Trait for contexts that support batch processing
 pub trait BatchContext<T> {
     /// Get the items to process in batch
-    fn get_batch_items(&self) -> Result<Vec<T>, FlowrsError>;
+    fn get_batch_items(&self) -> Result<Vec<T>, FloxideError>;
 
     /// Create a context for a single item
-    fn create_item_context(&self, item: T) -> Result<Self, FlowrsError> where Self: Sized;
+    fn create_item_context(&self, item: T) -> Result<Self, FloxideError> where Self: Sized;
 
     /// Update the main context with results from item processing
-    fn update_with_results(&mut self, results: Vec<Result<T, FlowrsError>>) -> Result<(), FlowrsError>;
+    fn update_with_results(&mut self, results: Vec<Result<T, FloxideError>>) -> Result<(), FloxideError>;
 }
 ```
 
@@ -38,7 +38,7 @@ A concrete implementation of `BatchContext` typically wraps a standard context a
 pub struct SimpleBatchContext<S, T> {
     inner_context: Context<S>,
     items: Vec<T>,
-    results: Vec<Result<T, FlowrsError>>,
+    results: Vec<Result<T, FloxideError>>,
 }
 
 impl<S, T> BatchContext<T> for SimpleBatchContext<S, T>
@@ -46,11 +46,11 @@ where
     S: Clone + Send + 'static,
     T: Clone + Send + 'static,
 {
-    fn get_batch_items(&self) -> Result<Vec<T>, FlowrsError> {
+    fn get_batch_items(&self) -> Result<Vec<T>, FloxideError> {
         Ok(self.items.clone())
     }
 
-    fn create_item_context(&self, item: T) -> Result<Self, FlowrsError> {
+    fn create_item_context(&self, item: T) -> Result<Self, FloxideError> {
         Ok(SimpleBatchContext {
             inner_context: Context::new(self.inner_context.state().clone()),
             items: vec![item],
@@ -58,7 +58,7 @@ where
         })
     }
 
-    fn update_with_results(&mut self, results: Vec<Result<T, FlowrsError>>) -> Result<(), FlowrsError> {
+    fn update_with_results(&mut self, results: Vec<Result<T, FloxideError>>) -> Result<(), FloxideError> {
         self.results = results;
         Ok(())
     }
@@ -72,7 +72,7 @@ The `BatchNode` trait extends the standard `Node` trait with batch processing ca
 ```rust
 pub trait BatchNode<T>: Node {
     /// Process a batch of items concurrently
-    fn process_batch(&self, ctx: &mut Self::Context, concurrency: usize) -> Result<(), FlowrsError>
+    fn process_batch(&self, ctx: &mut Self::Context, concurrency: usize) -> Result<(), FloxideError>
     where
         Self::Context: BatchContext<T>,
     {
@@ -105,9 +105,9 @@ impl BatchProcessor {
         Self { concurrency_limit }
     }
 
-    pub fn process_items<T, F>(&self, items: Vec<T>, processor: F) -> Result<Vec<Result<T, FlowrsError>>, FlowrsError>
+    pub fn process_items<T, F>(&self, items: Vec<T>, processor: F) -> Result<Vec<Result<T, FloxideError>>, FloxideError>
     where
-        F: Fn(T) -> Result<T, FlowrsError> + Send + Sync + 'static,
+        F: Fn(T) -> Result<T, FloxideError> + Send + Sync + 'static,
         T: Send + 'static,
     {
         let semaphore = Arc::new(Semaphore::new(self.concurrency_limit));
@@ -130,7 +130,7 @@ impl BatchProcessor {
             .into_iter()
             .map(|handle| match handle.join() {
                 Ok(result) => result,
-                Err(_) => Err(FlowrsError::ThreadPanicked),
+                Err(_) => Err(FloxideError::ThreadPanicked),
             })
             .collect();
 
@@ -165,7 +165,7 @@ where
         }
     }
 
-    pub fn execute<C>(&self, mut context: C) -> Result<C, FlowrsError>
+    pub fn execute<C>(&self, mut context: C) -> Result<C, FloxideError>
     where
         C: BatchContext<T>,
     {
@@ -224,6 +224,6 @@ let result = batch_flow.execute(context);
 
 ## Conclusion
 
-The batch processing implementation in the Flowrs framework provides a powerful and flexible approach to parallel execution of workflows. By leveraging Rust's concurrency features and the framework's core abstractions, it enables efficient processing of large datasets while maintaining type safety and proper error handling.
+The batch processing implementation in the Floxide framework provides a powerful and flexible approach to parallel execution of workflows. By leveraging Rust's concurrency features and the framework's core abstractions, it enables efficient processing of large datasets while maintaining type safety and proper error handling.
 
 For more detailed information on the batch processing implementation, refer to the [Batch Processing Implementation ADR](../adrs/0007-batch-processing-implementation.md).

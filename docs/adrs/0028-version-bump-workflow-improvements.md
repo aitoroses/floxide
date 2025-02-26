@@ -10,7 +10,7 @@ Proposed
 
 ## Context
 
-The Flowrs framework uses GitHub Actions for CI/CD, including a workflow for version bumping that automates the process of updating version numbers across the workspace. This workflow uses `cargo-workspaces` to coordinate version changes and creates Git tags for releases.
+The Floxide framework uses GitHub Actions for CI/CD, including a workflow for version bumping that automates the process of updating version numbers across the workspace. This workflow uses `cargo-workspaces` to coordinate version changes and creates Git tags for releases.
 
 We've encountered several issues with the version bump workflow:
 
@@ -24,12 +24,12 @@ Error: Process completed with exit code 128
 This occurs because:
 - The workflow attempts to create a tag that already exists in the repository
 - The current implementation doesn't check for existing tags before attempting to create them
-- The workflow creates both individual package tags (e.g., `flowrs-core@1.0.0`) and a global version tag (e.g., `v1.0.0`)
+- The workflow creates both individual package tags (e.g., `floxide-core@1.0.0`) and a global version tag (e.g., `v1.0.0`)
 
 2. **Dependency Version Mismatch**: When trying to update only some crates in the workspace, we encounter errors like:
 
 ```
-error: failed to select a version for the requirement `flowrs-core = "=1.0.0"`
+error: failed to select a version for the requirement `floxide-core = "=1.0.0"`
 candidate versions found which didn't match: 1.0.1
 ```
 
@@ -38,10 +38,10 @@ This happens because:
 - Crates have exact version dependencies on each other (using `=` in version requirements)
 - This creates inconsistent dependency requirements that cannot be satisfied
 
-3. **Explicit Version Requirements Not Updated**: The main `flowrs` crate at the root has explicit version requirements for its dependencies:
+3. **Explicit Version Requirements Not Updated**: The main `floxide` crate at the root has explicit version requirements for its dependencies:
 
 ```toml
-flowrs-core = { path = "crates/flowrs-core", version = "1.0.0", optional = true }
+floxide-core = { path = "crates/floxide-core", version = "1.0.0", optional = true }
 ```
 
 When the workspace version is updated, these explicit version requirements are not automatically updated by `cargo-workspaces`, causing dependency resolution errors.
@@ -119,8 +119,8 @@ And we'll add a step to update explicit version requirements:
 ```yaml
 # Also update the explicit version requirements in the main Cargo.toml
 # This is needed because cargo-workspaces doesn't update these
-sed -i "s/flowrs-core = { path = \"crates\/flowrs-core\", version = \"[0-9.]*\"/flowrs-core = { path = \"crates\/flowrs-core\", version = \"$NEW_VERSION\"/g" Cargo.toml
-sed -i "s/flowrs-transform = { path = \"crates\/flowrs-transform\", version = \"[0-9.]*\"/flowrs-transform = { path = \"crates\/flowrs-transform\", version = \"$NEW_VERSION\"/g" Cargo.toml
+sed -i "s/floxide-core = { path = \"crates\/floxide-core\", version = \"[0-9.]*\"/floxide-core = { path = \"crates\/floxide-core\", version = \"$NEW_VERSION\"/g" Cargo.toml
+sed -i "s/floxide-transform = { path = \"crates\/floxide-transform\", version = \"[0-9.]*\"/floxide-transform = { path = \"crates\/floxide-transform\", version = \"$NEW_VERSION\"/g" Cargo.toml
 # ... (similar lines for other crates)
 
 # Commit the changes to the explicit version requirements

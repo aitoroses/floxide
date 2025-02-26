@@ -1,10 +1,10 @@
-# 🚀 Flowrs: The Power of Workflows in Rust
+# 🚀 Floxide: The Power of Workflows in Rust
 
 > A type-safe, composable directed graph workflow system written in Rust.
 
 ## 💫 Overview
 
-Flowrs transforms complex workflow orchestration into a delightful experience. Built with Rust's powerful type system at its core, Flowrs provides a flexible, performant, and type-safe way to create sophisticated workflow graphs with crystal-clear transitions between steps.
+Floxide transforms complex workflow orchestration into a delightful experience. Built with Rust's powerful type system at its core, Floxide provides a flexible, performant, and type-safe way to create sophisticated workflow graphs with crystal-clear transitions between steps.
 
 ## ✨ Key Features
 
@@ -30,17 +30,17 @@ Key architectural decisions include:
 
 ## 🚀 Quick Start
 
-Add Flowrs to your project:
+Add Floxide to your project:
 
 ```toml
 [dependencies]
-flowrs-core = "0.1.0"
+floxide-core = "0.1.0"
 ```
 
 Create your first workflow:
 
 ```rust
-use flowrs_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction, FlowrsError};
+use floxide_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction, FloxideError};
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -77,7 +77,7 @@ fn create_processor_node() -> impl LifecycleNode<MessageContext, DefaultAction> 
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a context
     let mut context = MessageContext {
-        input: "Hello, Flowrs!".to_string(),
+        input: "Hello, Floxide!".to_string(),
         result: None,
     };
 
@@ -97,7 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 🧩 Workflow Pattern Examples
 
-Flowrs supports a wide variety of workflow patterns through its modular crate system. Each pattern is designed to solve specific workflow challenges:
+Floxide supports a wide variety of workflow patterns through its modular crate system. Each pattern is designed to solve specific workflow challenges:
 
 ### 🔄 Simple Chain (Linear Workflow)
 
@@ -153,8 +153,8 @@ graph TD
 Explore our extensive documentation:
 
 - [Getting Started](getting-started/installation.md) - Installation and quick start guides
-- [Core Concepts](core-concepts/overview.md) - Learn about the fundamental concepts of Flowrs
+- [Core Concepts](core-concepts/overview.md) - Learn about the fundamental concepts of Floxide
 - [Guides](guides/event_driven_architecture.md) - In-depth guides for specific use cases
 - [Examples](examples/basic-workflow.md) - Example workflows to help you get started
 - [Architecture](architecture/adr-process.md) - Architectural Decision Records (ADRs)
-- [API Reference](api/flowrs-core.md) - Detailed API documentation
+- [API Reference](api/floxide-core.md) - Detailed API documentation

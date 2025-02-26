@@ -1,6 +1,6 @@
 # Long-Running Node Example
 
-This example demonstrates how to use long-running nodes in the Flowrs framework for handling operations that take significant time to complete.
+This example demonstrates how to use long-running nodes in the Floxide framework for handling operations that take significant time to complete.
 
 ## Overview
 
@@ -15,8 +15,8 @@ Long-running nodes are useful for:
 Let's create a long-running node that processes a large dataset:
 
 ```rust
-use flowrs_core::{lifecycle_node, LifecycleNode, DefaultAction};
-use flowrs_longrunning::{LongRunningNode, Progress, LongRunningStatus};
+use floxide_core::{lifecycle_node, LifecycleNode, DefaultAction};
+use floxide_longrunning::{LongRunningNode, Progress, LongRunningStatus};
 
 // Define our context
 #[derive(Debug, Clone)]
@@ -32,14 +32,14 @@ struct DataProcessor {
 }
 
 impl LongRunningNode<ProcessingContext, DefaultAction> for DataProcessor {
-    async fn start(&self, context: &mut ProcessingContext) -> Result<(), FlowrsError> {
+    async fn start(&self, context: &mut ProcessingContext) -> Result<(), FloxideError> {
         // Initialize processing
         context.processed_items = 0;
         context.results.clear();
         Ok(())
     }
 
-    async fn check_status(&self, context: &mut ProcessingContext) -> Result<LongRunningStatus, FlowrsError> {
+    async fn check_status(&self, context: &mut ProcessingContext) -> Result<LongRunningStatus, FloxideError> {
         if context.processed_items >= context.input_size {
             Ok(LongRunningStatus::Complete)
         } else {
@@ -61,7 +61,7 @@ impl LongRunningNode<ProcessingContext, DefaultAction> for DataProcessor {
         }
     }
 
-    async fn cleanup(&self, context: &mut ProcessingContext) -> Result<DefaultAction, FlowrsError> {
+    async fn cleanup(&self, context: &mut ProcessingContext) -> Result<DefaultAction, FloxideError> {
         println!("Processing complete: {} items processed", context.processed_items);
         Ok(DefaultAction::Next)
     }
@@ -111,7 +111,7 @@ struct ProgressMonitor<N> {
 }
 
 impl<N: LongRunningNode<C, A>, C, A> LongRunningNode<C, A> for ProgressMonitor<N> {
-    async fn check_status(&self, context: &mut C) -> Result<LongRunningStatus, FlowrsError> {
+    async fn check_status(&self, context: &mut C) -> Result<LongRunningStatus, FloxideError> {
         let status = self.inner.check_status(context).await?;
         if let LongRunningStatus::Running(progress) = &status {
             println!("Progress: {:.1}% - {}", progress.percent, progress.message);
@@ -128,10 +128,10 @@ impl<N: LongRunningNode<C, A>, C, A> LongRunningNode<C, A> for ProgressMonitor<N
 ```rust
 // Add cancellation support to a long-running node
 impl LongRunningNode<ProcessingContext, DefaultAction> for DataProcessor {
-    async fn check_status(&self, context: &mut ProcessingContext) -> Result<LongRunningStatus, FlowrsError> {
+    async fn check_status(&self, context: &mut ProcessingContext) -> Result<LongRunningStatus, FloxideError> {
         if context.should_cancel {
             return Ok(LongRunningStatus::Failed(
-                FlowrsError::new("Processing cancelled")
+                FloxideError::new("Processing cancelled")
             ));
         }
         // ... normal processing ...
@@ -144,7 +144,7 @@ impl LongRunningNode<ProcessingContext, DefaultAction> for DataProcessor {
 ```rust
 // Implement proper resource cleanup
 impl LongRunningNode<ProcessingContext, DefaultAction> for DataProcessor {
-    async fn cleanup(&self, context: &mut ProcessingContext) -> Result<DefaultAction, FlowrsError> {
+    async fn cleanup(&self, context: &mut ProcessingContext) -> Result<DefaultAction, FloxideError> {
         // Clean up any temporary files
         if let Err(e) = cleanup_temp_files().await {
             eprintln!("Warning: cleanup failed: {}", e);

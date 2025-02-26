@@ -1,10 +1,10 @@
 # Async Runtime Selection
 
-This document describes the async runtime selection for the Flowrs framework.
+This document describes the async runtime selection for the Floxide framework.
 
 ## Overview
 
-The Flowrs framework is designed around asynchronous operations to efficiently handle workflow execution. In Rust, async operations require an explicit runtime to execute futures. This document explains the choice of async runtime and how it's used in the framework.
+The Floxide framework is designed around asynchronous operations to efficiently handle workflow execution. In Rust, async operations require an explicit runtime to execute futures. This document explains the choice of async runtime and how it's used in the framework.
 
 ## Async Runtime Options
 
@@ -17,7 +17,7 @@ There are several viable async runtimes available in the Rust ecosystem, each wi
 
 ## Selected Runtime: Tokio
 
-The Flowrs framework uses **Tokio** as its primary async runtime, with the full feature set enabled. Tokio was selected for several reasons:
+The Floxide framework uses **Tokio** as its primary async runtime, with the full feature set enabled. Tokio was selected for several reasons:
 
 1. **Maturity and Stability**: Tokio is a mature, production-ready runtime with a stable API.
 2. **Performance**: Tokio offers excellent performance characteristics for the types of workloads the framework handles.
@@ -32,8 +32,8 @@ The Flowrs framework uses **Tokio** as its primary async runtime, with the full 
 The framework uses Tokio's runtime to execute async workflows:
 
 ```rust
-// In flowrs-transform crate
-pub fn run_flow<S, F>(flow: F, shared_state: &mut S) -> Result<(), FlowrsError>
+// In floxide-transform crate
+pub fn run_flow<S, F>(flow: F, shared_state: &mut S) -> Result<(), FloxideError>
 where
     F: BaseNode<S>,
 {
@@ -110,7 +110,7 @@ pub struct RuntimeConfig {
 }
 
 impl RuntimeConfig {
-    pub fn build_runtime(&self) -> Result<Runtime, FlowrsError> {
+    pub fn build_runtime(&self) -> Result<Runtime, FloxideError> {
         let mut builder = tokio::runtime::Builder::new_multi_thread();
 
         if let Some(threads) = self.worker_threads {
@@ -127,14 +127,14 @@ impl RuntimeConfig {
 
         builder.enable_all()
             .build()
-            .map_err(|e| FlowrsError::RuntimeCreationFailed(e.to_string()))
+            .map_err(|e| FloxideError::RuntimeCreationFailed(e.to_string()))
     }
 }
 ```
 
 ## Best Practices
 
-When working with async code in the Flowrs framework, consider these best practices:
+When working with async code in the Floxide framework, consider these best practices:
 
 1. **Avoid Blocking Operations**: Don't perform blocking operations directly in async functions. Use `tokio::task::spawn_blocking` for CPU-intensive or blocking operations.
 2. **Proper Error Handling**: Use the `?` operator or explicit error handling in async functions.
@@ -144,6 +144,6 @@ When working with async code in the Flowrs framework, consider these best practi
 
 ## Conclusion
 
-The selection of Tokio as the async runtime for the Flowrs framework provides a solid foundation for building efficient, concurrent workflow applications. By leveraging Tokio's features and the `async_trait` crate, the framework offers a powerful and flexible approach to asynchronous workflow execution.
+The selection of Tokio as the async runtime for the Floxide framework provides a solid foundation for building efficient, concurrent workflow applications. By leveraging Tokio's features and the `async_trait` crate, the framework offers a powerful and flexible approach to asynchronous workflow execution.
 
 For more detailed information on the async runtime selection, refer to the [Async Runtime Selection ADR](../adrs/0004-async-runtime-selection.md).

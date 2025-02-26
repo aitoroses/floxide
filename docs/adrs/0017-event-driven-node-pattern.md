@@ -10,7 +10,7 @@ Proposed
 
 ## Context
 
-The Flowrs framework currently supports synchronous workflow execution where each node processes input and produces output through a direct call chain. While this model works well for deterministic, sequential workflows, it lacks support for:
+The Floxide framework currently supports synchronous workflow execution where each node processes input and produces output through a direct call chain. While this model works well for deterministic, sequential workflows, it lacks support for:
 
 1. Workflows that need to wait for external events without blocking system resources
 2. Long-running workflows that respond to events as they arrive
@@ -28,7 +28,7 @@ Additionally, since the framework operates within a single process, we need an e
 
 ## Decision
 
-We will implement the `EventDrivenNode` trait to enable event-driven workflows within the Flowrs framework. This trait will be designed to:
+We will implement the `EventDrivenNode` trait to enable event-driven workflows within the Floxide framework. This trait will be designed to:
 
 1. Allow nodes to wait for events without blocking threads
 2. Process events as they arrive
@@ -46,14 +46,14 @@ where
     Action: ActionType + Send + Sync + 'static,
 {
     /// Wait for an external event to occur
-    async fn wait_for_event(&self) -> Result<Event, FlowrsError>;
+    async fn wait_for_event(&self) -> Result<Event, FloxideError>;
 
     /// Process the received event and update context
     async fn process_event(
         &self,
         event: Event,
         ctx: &mut Context
-    ) -> Result<Action, FlowrsError>;
+    ) -> Result<Action, FloxideError>;
 
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;
@@ -93,8 +93,8 @@ where
     Context: Send + Sync + 'static,
     Action: ActionType + Send + Sync + 'static,
 {
-    async fn wait_for_event(&self) -> Result<Event, FlowrsError> {
-        self.receiver.recv().await.ok_or_else(|| FlowrsError::event_source(
+    async fn wait_for_event(&self) -> Result<Event, FloxideError> {
+        self.receiver.recv().await.ok_or_else(|| FloxideError::event_source(
             self.id(),
             "Event channel closed"
         ))
@@ -104,7 +104,7 @@ where
         &self,
         event: Event,
         _ctx: &mut Context
-    ) -> Result<Action, FlowrsError> {
+    ) -> Result<Action, FloxideError> {
         // Default implementation just forwards the event
         // Users should implement their own event processors
         Ok(Action::default())
@@ -164,12 +164,12 @@ where
         self.routes.insert((from_id.clone(), action.clone()), to_id.clone());
     }
 
-    pub async fn execute(&self, ctx: &mut Context) -> Result<(), FlowrsError> {
+    pub async fn execute(&self, ctx: &mut Context) -> Result<(), FloxideError> {
         let mut current_node_id = self.initial_node.clone();
 
         loop {
             let node = self.nodes.get(&current_node_id).ok_or_else(|| {
-                FlowrsError::node_not_found(current_node_id.clone())
+                FloxideError::node_not_found(current_node_id.clone())
             })?;
 
             // Wait for an event
@@ -198,11 +198,11 @@ where
         &self,
         ctx: &mut Context,
         timeout: Duration
-    ) -> Result<(), FlowrsError> {
+    ) -> Result<(), FloxideError> {
         tokio::select! {
             result = self.execute(ctx) => result,
             _ = tokio::time::sleep(timeout) => {
-                Err(FlowrsError::timeout("Event-driven workflow execution timed out"))
+                Err(FloxideError::timeout("Event-driven workflow execution timed out"))
             }
         }
     }
@@ -238,7 +238,7 @@ where
         self.id.clone()
     }
 
-    async fn process(&self, ctx: &mut C) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
+    async fn process(&self, ctx: &mut C) -> Result<NodeOutcome<Self::Output, A>, FloxideError> {
         // Wait for one event with timeout
         tokio::select! {
             result = self.node.wait_for_event() => {
@@ -287,7 +287,7 @@ where
         self.id.clone()
     }
 
-    async fn process(&self, ctx: &mut C) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
+    async fn process(&self, ctx: &mut C) -> Result<NodeOutcome<Self::Output, A>, FloxideError> {
         // Execute the workflow, optionally with a timeout
         let result = if let Some(timeout) = self.timeout {
             self.workflow.execute_with_timeout(ctx, timeout).await
@@ -357,7 +357,7 @@ Instead of event-driven nodes, we considered adding event handling at the workfl
 
 ## Implementation Notes
 
-- The `EventDrivenNode` trait will be implemented in the new `flowrs-event` crate
+- The `EventDrivenNode` trait will be implemented in the new `floxide-event` crate
 - Channel-based event sources will use Tokio's MPSC channels for efficiency
 - Event-driven workflows will be cancelable and support graceful shutdown
 - Type parameters on event-driven nodes allow for custom event types per workflow

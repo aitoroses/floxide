@@ -1,16 +1,16 @@
 # Actions
 
-Actions in Flowrs determine the flow of execution in a workflow. After a node completes its execution, it returns an action that indicates what should happen next. This page explains the different types of actions and how to use them to control workflow execution.
+Actions in Floxide determine the flow of execution in a workflow. After a node completes its execution, it returns an action that indicates what should happen next. This page explains the different types of actions and how to use them to control workflow execution.
 
 ## The Action Concept
 
 Actions are the mechanism by which nodes communicate their execution results and control the flow of a workflow. When a node completes its execution, it returns an action that the workflow uses to determine the next step.
 
-In Flowrs, actions are typically represented as enum variants, allowing for a clear and type-safe way to express different execution paths.
+In Floxide, actions are typically represented as enum variants, allowing for a clear and type-safe way to express different execution paths.
 
 ## Default Actions
 
-Flowrs provides a `DefaultAction` enum that covers the most common workflow control patterns:
+Floxide provides a `DefaultAction` enum that covers the most common workflow control patterns:
 
 ```rust
 pub enum DefaultAction {
@@ -25,7 +25,7 @@ pub enum DefaultAction {
 Here's how to use the default actions:
 
 ```rust
-use flowrs_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction};
+use floxide_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction};
 
 fn create_processor_node() -> impl LifecycleNode<MessageContext, DefaultAction> {
     lifecycle_node(

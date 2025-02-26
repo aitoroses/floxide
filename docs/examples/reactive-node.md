@@ -1,6 +1,6 @@
 # Reactive Node Example
 
-This example demonstrates how to use reactive nodes in the Flowrs framework for building event-driven, reactive workflows.
+This example demonstrates how to use reactive nodes in the Floxide framework for building event-driven, reactive workflows.
 
 ## Overview
 
@@ -15,8 +15,8 @@ Reactive nodes enable:
 Let's create a reactive workflow that processes a stream of temperature readings:
 
 ```rust
-use flowrs_core::{ActionType, DefaultAction, FlowrsError, NodeId};
-use flowrs_reactive::{CustomReactiveNode, ReactiveNode};
+use floxide_core::{ActionType, DefaultAction, FloxideError, NodeId};
+use floxide_reactive::{CustomReactiveNode, ReactiveNode};
 use futures::stream::{self, Stream};
 use std::time::{Duration, Instant};
 use tokio::time;
@@ -94,7 +94,7 @@ fn create_temperature_monitor() -> impl ReactiveNode<Temperature, MonitoringCont
 
 // Example usage
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     let mut ctx = MonitoringContext {
         temperatures: Vec::new(),
         alerts: Vec::new(),
@@ -131,7 +131,7 @@ Here's how to run the reactive nodes:
 
 ```rust
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     // Create the reactive stream
     let (temperature_stream, temperature_sender) = ReactiveStream::new();
 
@@ -185,7 +185,7 @@ fn create_throttled_monitor() -> impl ReactiveNode<Temperature, Alert> {
 fn create_robust_monitor() -> impl ReactiveNode<Temperature, Alert> {
     reactive_node(|temp: Temperature| async move {
         if temp.celsius < -273.15 {
-            return Err(FlowrsError::new("Invalid temperature"));
+            return Err(FloxideError::new("Invalid temperature"));
         }
         // ... normal processing ...
     })

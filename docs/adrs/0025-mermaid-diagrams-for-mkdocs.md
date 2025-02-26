@@ -10,7 +10,7 @@ Proposed
 
 ## Context
 
-Flowrs is a directed graph workflow system, and visualizing these workflows is essential for documentation and understanding. Mermaid is a JavaScript-based diagramming tool that allows creating diagrams using Markdown-like syntax, making it ideal for our documentation needs.
+Floxide is a directed graph workflow system, and visualizing these workflows is essential for documentation and understanding. Mermaid is a JavaScript-based diagramming tool that allows creating diagrams using Markdown-like syntax, making it ideal for our documentation needs.
 
 While our MkDocs configuration already includes some Mermaid support, we need to ensure it's properly configured and working correctly across all documentation pages. This includes:
 
@@ -53,7 +53,7 @@ We will enhance our MkDocs configuration to fully support Mermaid diagrams by:
 
 2. Create a GitHub workflow for building and deploying the MkDocs site
 
-3. Update the existing Mermaid diagrams guide with additional examples specific to Flowrs
+3. Update the existing Mermaid diagrams guide with additional examples specific to Floxide
 
 ## Alternatives Considered
 

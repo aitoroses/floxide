@@ -26,7 +26,7 @@ Long-running nodes are particularly useful for:
 
 ## Decision
 
-We will implement a new crate `flowrs-longrunning` that provides the `LongRunningNode` trait and related implementations as described in ADR-0016. The implementation will follow these design decisions:
+We will implement a new crate `floxide-longrunning` that provides the `LongRunningNode` trait and related implementations as described in ADR-0016. The implementation will follow these design decisions:
 
 ### 1. Core `LongRunningOutcome` Enum
 
@@ -65,7 +65,7 @@ where
         &self,
         state: Option<Self::State>,
         ctx: &mut Context,
-    ) -> Result<LongRunningOutcome<Self::Output, Self::State>, FlowrsError>;
+    ) -> Result<LongRunningOutcome<Self::Output, Self::State>, FloxideError>;
 
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;

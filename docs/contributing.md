@@ -1,6 +1,6 @@
-# Contributing to Flowrs
+# Contributing to Floxide
 
-Thank you for your interest in contributing to the Flowrs framework! This document provides guidelines and instructions for contributing to the project.
+Thank you for your interest in contributing to the Floxide framework! This document provides guidelines and instructions for contributing to the project.
 
 ## Code of Conduct
 
@@ -8,13 +8,13 @@ Please be respectful and considerate of others when contributing to the project.
 
 ## Getting Started
 
-1. **Fork the Repository**: Start by forking the [Flowrs repository](https://github.com/aitoroses/flowrs) on GitHub.
+1. **Fork the Repository**: Start by forking the [Floxide repository](https://github.com/aitoroses/floxide) on GitHub.
 
 2. **Clone Your Fork**: Clone your fork to your local machine:
 
    ```bash
-   git clone https://github.com/your-username/flowrs.git
-   cd flowrs
+   git clone https://github.com/your-username/floxide.git
+   cd floxide
    ```
 
 3. **Set Up Development Environment**: Make sure you have Rust and Cargo installed. We recommend using [rustup](https://rustup.rs/) for managing your Rust installation.
@@ -62,7 +62,7 @@ Before implementing any significant architectural changes, you must create or up
    git push origin feature/your-feature-name
    ```
 
-3. **Create a Pull Request**: Go to the [Flowrs repository](https://github.com/aitoroses/flowrs) and create a pull request from your branch.
+3. **Create a Pull Request**: Go to the [Floxide repository](https://github.com/aitoroses/floxide) and create a pull request from your branch.
 
 4. **Code Review**: Wait for code review and address any feedback.
 
@@ -76,7 +76,7 @@ Before implementing any significant architectural changes, you must create or up
 
 ## Reporting Issues
 
-If you find a bug or have a feature request, please create an issue on the [GitHub issue tracker](https://github.com/aitoroses/flowrs/issues).
+If you find a bug or have a feature request, please create an issue on the [GitHub issue tracker](https://github.com/aitoroses/floxide/issues).
 
 When reporting a bug, please include:
 
@@ -95,4 +95,4 @@ Join our community to discuss the project, ask questions, and get help:
 
 ## License
 
-By contributing to Flowrs, you agree that your contributions will be licensed under the project's license.
+By contributing to Floxide, you agree that your contributions will be licensed under the project's license.

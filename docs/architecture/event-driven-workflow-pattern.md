@@ -1,10 +1,10 @@
 # Event-Driven Workflow Pattern
 
-This document describes the event-driven workflow pattern in the Flowrs framework.
+This document describes the event-driven workflow pattern in the Floxide framework.
 
 ## Overview
 
-The event-driven workflow pattern extends the Flowrs framework to support asynchronous, event-based processing. This pattern is essential for building reactive systems that respond to external events in real-time.
+The event-driven workflow pattern extends the Floxide framework to support asynchronous, event-based processing. This pattern is essential for building reactive systems that respond to external events in real-time.
 
 ## Core Concepts
 
@@ -29,10 +29,10 @@ where
     fn id(&self) -> NodeId;
 
     /// Wait for an event to arrive
-    async fn wait_for_event(&self) -> Result<E, FlowrsError>;
+    async fn wait_for_event(&self) -> Result<E, FloxideError>;
 
     /// Process an event and return an action
-    async fn process_event(&self, event: E) -> Result<EventAction, FlowrsError>;
+    async fn process_event(&self, event: E) -> Result<EventAction, FloxideError>;
 }
 ```
 
@@ -51,11 +51,11 @@ impl EventDrivenNode<SensorEvent> for SensorMonitorNode {
         self.id
     }
 
-    async fn wait_for_event(&self) -> Result<SensorEvent, FlowrsError> {
+    async fn wait_for_event(&self) -> Result<SensorEvent, FloxideError> {
         self.event_source.next_event().await
     }
 
-    async fn process_event(&self, event: SensorEvent) -> Result<EventAction, FlowrsError> {
+    async fn process_event(&self, event: SensorEvent) -> Result<EventAction, FloxideError> {
         if event.value > self.threshold {
             Ok(EventAction::Route("high_value_handler", event))
         } else {
@@ -76,10 +76,10 @@ where
     E: Event + Send + 'static,
 {
     /// Get the next event from the source
-    async fn next_event(&self) -> Result<E, FlowrsError>;
+    async fn next_event(&self) -> Result<E, FloxideError>;
 
     /// Check if the source has more events
-    async fn has_more_events(&self) -> Result<bool, FlowrsError>;
+    async fn has_more_events(&self) -> Result<bool, FloxideError>;
 }
 ```
 
@@ -117,12 +117,12 @@ impl<E> EventSource<E> for ChannelEventSource<E>
 where
     E: Event + Send + 'static,
 {
-    async fn next_event(&self) -> Result<E, FlowrsError> {
+    async fn next_event(&self) -> Result<E, FloxideError> {
         let mut receiver = self.receiver.lock().await;
-        receiver.recv().await.ok_or(FlowrsError::EventSourceClosed)
+        receiver.recv().await.ok_or(FloxideError::EventSourceClosed)
     }
 
-    async fn has_more_events(&self) -> Result<bool, FlowrsError> {
+    async fn has_more_events(&self) -> Result<bool, FloxideError> {
         let receiver = self.receiver.lock().await;
         Ok(!receiver.is_closed())
     }
@@ -175,12 +175,12 @@ where
         self.timeout = Some(timeout);
     }
 
-    pub async fn run(&self) -> Result<(), FlowrsError> {
+    pub async fn run(&self) -> Result<(), FloxideError> {
         let mut current_node_id = self.initial_node;
 
         loop {
             let node = self.nodes.get(&current_node_id)
-                .ok_or_else(|| FlowrsError::NodeNotFound(current_node_id))?;
+                .ok_or_else(|| FloxideError::NodeNotFound(current_node_id))?;
 
             let event = node.wait_for_event().await?;
             let action = node.process_event(event).await?;
@@ -190,7 +190,7 @@ where
                     if let Some(next_node_id) = self.routes.get(&route) {
                         current_node_id = *next_node_id;
                     } else {
-                        return Err(FlowrsError::RouteNotFound(route));
+                        return Err(FloxideError::RouteNotFound(route));
                     }
                 },
                 EventAction::Terminate => {
@@ -246,7 +246,7 @@ where
 {
     type Context = EventContext<E>;
 
-    async fn run(&self, ctx: &mut Self::Context) -> Result<NextAction, FlowrsError> {
+    async fn run(&self, ctx: &mut Self::Context) -> Result<NextAction, FloxideError> {
         let event = self.node.wait_for_event().await?;
         let action = self.node.process_event(event).await?;
 
@@ -282,7 +282,7 @@ where
 {
     type Context = Context<()>;
 
-    async fn run(&self, _ctx: &mut Self::Context) -> Result<NextAction, FlowrsError> {
+    async fn run(&self, _ctx: &mut Self::Context) -> Result<NextAction, FloxideError> {
         self.workflow.run().await?;
         Ok(NextAction::Continue)
     }
@@ -343,6 +343,6 @@ tx1.send(SensorEvent {
 
 ## Conclusion
 
-The event-driven workflow pattern in the Flowrs framework provides a powerful and flexible approach to building reactive systems. By leveraging Rust's async capabilities and the framework's core abstractions, it enables efficient processing of asynchronous events while maintaining type safety and proper error handling.
+The event-driven workflow pattern in the Floxide framework provides a powerful and flexible approach to building reactive systems. By leveraging Rust's async capabilities and the framework's core abstractions, it enables efficient processing of asynchronous events while maintaining type safety and proper error handling.
 
 For more detailed information on the event-driven workflow pattern, refer to the [Event-Driven Workflow Pattern ADR](../adrs/0009-event-driven-workflow-pattern.md).

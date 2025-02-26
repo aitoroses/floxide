@@ -1,4 +1,4 @@
-# Flowrs Version Bump and Release Process
+# Floxide Version Bump and Release Process
 
 ```mermaid
 flowchart TD
@@ -18,20 +18,20 @@ flowchart TD
     K --> L1[Run update_subcrate_versions.sh again]
     L1 --> L2[Run update_dependency_versions.sh again]
     
-    L2 --> M[Publish flowrs-core subcrate using CRATES_IO_TOKEN]
+    L2 --> M[Publish floxide-core subcrate using CRATES_IO_TOKEN]
     M --> N[Wait for crates.io indexing]
-    N --> O[Publish flowrs-transform subcrate using CRATES_IO_TOKEN]
+    N --> O[Publish floxide-transform subcrate using CRATES_IO_TOKEN]
     O --> P[Wait for crates.io indexing]
-    P --> Q[Publish flowrs-event subcrate using CRATES_IO_TOKEN]
+    P --> Q[Publish floxide-event subcrate using CRATES_IO_TOKEN]
     Q --> R[Wait for crates.io indexing]
-    R --> S[Publish flowrs-timer subcrate using CRATES_IO_TOKEN]
+    R --> S[Publish floxide-timer subcrate using CRATES_IO_TOKEN]
     S --> T[Wait for crates.io indexing]
-    T --> U[Publish flowrs-longrunning subcrate using CRATES_IO_TOKEN]
+    T --> U[Publish floxide-longrunning subcrate using CRATES_IO_TOKEN]
     U --> V[Wait for crates.io indexing]
-    V --> W[Publish flowrs-reactive subcrate using CRATES_IO_TOKEN]
+    V --> W[Publish floxide-reactive subcrate using CRATES_IO_TOKEN]
     W --> X[Wait for crates.io indexing]
     
-    X --> Y[Publish root flowrs crate using CRATES_IO_TOKEN]
+    X --> Y[Publish root floxide crate using CRATES_IO_TOKEN]
     Y --> Z[Create GitHub Release using GITHUB_TOKEN]
 ```
 
@@ -57,14 +57,14 @@ flowchart TD
 ### 3. Publication Phase (CI/CD)
 
 - **Publish subcrates in order**: The workflow publishes each subcrate in a specific order using the `CRATES_IO_TOKEN` for authentication:
-  1. `flowrs-core`
-  2. `flowrs-transform`
-  3. `flowrs-event`
-  4. `flowrs-timer`
-  5. `flowrs-longrunning`
-  6. `flowrs-reactive`
+  1. `floxide-core`
+  2. `floxide-transform`
+  3. `floxide-event`
+  4. `floxide-timer`
+  5. `floxide-longrunning`
+  6. `floxide-reactive`
 - **Wait for indexing**: After each subcrate is published, the workflow waits for crates.io to index it.
-- **Publish root crate**: Finally, the root `flowrs` crate is published, which depends on all the subcrates.
+- **Publish root crate**: Finally, the root `floxide` crate is published, which depends on all the subcrates.
 - **Create GitHub Release**: A GitHub Release is created with release notes using the `GITHUB_TOKEN` token.
 
 ### Key Points

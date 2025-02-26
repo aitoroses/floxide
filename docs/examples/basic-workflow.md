@@ -1,6 +1,6 @@
 # Basic Workflow Example
 
-This example demonstrates how to create a simple workflow using the Flowrs framework, showcasing proper node lifecycle management and error handling.
+This example demonstrates how to create a simple workflow using the Floxide framework, showcasing proper node lifecycle management and error handling.
 
 ## Overview
 
@@ -19,14 +19,14 @@ The example demonstrates:
 
 ## Prerequisites
 
-Before running this example, make sure you have the Flowrs framework installed. See the [Installation Guide](../getting-started/installation.md) for details.
+Before running this example, make sure you have the Floxide framework installed. See the [Installation Guide](../getting-started/installation.md) for details.
 
 ## Implementation
 
 First, let's define our context and error types:
 
 ```rust
-use flowrs_core::{lifecycle_node, LifecycleNode, DefaultAction, FlowrsError};
+use floxide_core::{lifecycle_node, LifecycleNode, DefaultAction, FloxideError};
 use thiserror::Error;
 
 #[derive(Debug, Clone)]
@@ -58,9 +58,9 @@ enum TextProcessingError {
     ProcessingError(String),
 }
 
-impl From<TextProcessingError> for FlowrsError {
+impl From<TextProcessingError> for FloxideError {
     fn from(e: TextProcessingError) -> Self {
-        FlowrsError::Other(e.to_string())
+        FloxideError::Other(e.to_string())
     }
 }
 ```
@@ -82,21 +82,21 @@ impl LifecycleNode<TextContext, DefaultAction> for ValidatorNode {
         NodeId::new("validator")
     }
 
-    async fn prep(&self, ctx: &mut TextContext) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(&self, ctx: &mut TextContext) -> Result<Self::PrepOutput, FloxideError> {
         if ctx.input.is_empty() {
             return Err(TextProcessingError::EmptyInput.into());
         }
         Ok(ctx.input.clone())
     }
 
-    async fn exec(&self, input: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+    async fn exec(&self, input: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         if input.len() > self.max_length {
             return Err(TextProcessingError::InputTooLong(self.max_length).into());
         }
         Ok(input)
     }
 
-    async fn post(&self, input: Self::ExecOutput) -> Result<DefaultAction, FlowrsError> {
+    async fn post(&self, input: Self::ExecOutput) -> Result<DefaultAction, FloxideError> {
         Ok(DefaultAction::Next)
     }
 }
@@ -115,11 +115,11 @@ impl LifecycleNode<TextContext, DefaultAction> for UppercaseNode {
         NodeId::new("uppercase")
     }
 
-    async fn prep(&self, ctx: &mut TextContext) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(&self, ctx: &mut TextContext) -> Result<Self::PrepOutput, FloxideError> {
         Ok(ctx.input.clone())
     }
 
-    async fn exec(&self, input: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+    async fn exec(&self, input: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         let mut attempts = 0;
         loop {
             match try_uppercase(&input) {
@@ -141,7 +141,7 @@ impl LifecycleNode<TextContext, DefaultAction> for UppercaseNode {
         }
     }
 
-    async fn post(&self, result: Self::ExecOutput) -> Result<DefaultAction, FlowrsError> {
+    async fn post(&self, result: Self::ExecOutput) -> Result<DefaultAction, FloxideError> {
         Ok(DefaultAction::Next)
     }
 }
@@ -158,17 +158,17 @@ impl LifecycleNode<TextContext, DefaultAction> for CounterNode {
         NodeId::new("counter")
     }
 
-    async fn prep(&self, ctx: &mut TextContext) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(&self, ctx: &mut TextContext) -> Result<Self::PrepOutput, FloxideError> {
         ctx.uppercase.clone().ok_or_else(|| 
             TextProcessingError::ProcessingError("No uppercase text available".to_string()).into()
         )
     }
 
-    async fn exec(&self, input: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+    async fn exec(&self, input: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         Ok(input.chars().count())
     }
 
-    async fn post(&self, count: Self::ExecOutput) -> Result<DefaultAction, FlowrsError> {
+    async fn post(&self, count: Self::ExecOutput) -> Result<DefaultAction, FloxideError> {
         Ok(DefaultAction::Next)
     }
 }
@@ -185,7 +185,7 @@ impl LifecycleNode<TextContext, DefaultAction> for SummaryNode {
         NodeId::new("summary")
     }
 
-    async fn prep(&self, ctx: &mut TextContext) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(&self, ctx: &mut TextContext) -> Result<Self::PrepOutput, FloxideError> {
         let text = ctx.uppercase.clone().ok_or_else(|| 
             TextProcessingError::ProcessingError("No uppercase text available".to_string())
         )?;
@@ -195,11 +195,11 @@ impl LifecycleNode<TextContext, DefaultAction> for SummaryNode {
         Ok((text, count))
     }
 
-    async fn exec(&self, (text, count): Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+    async fn exec(&self, (text, count): Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         Ok(format!("Processed text with {} characters: {}", count, text))
     }
 
-    async fn post(&self, summary: Self::ExecOutput) -> Result<DefaultAction, FlowrsError> {
+    async fn post(&self, summary: Self::ExecOutput) -> Result<DefaultAction, FloxideError> {
         Ok(DefaultAction::Complete)
     }
 }
@@ -219,15 +219,15 @@ fn try_uppercase(input: &str) -> Result<String, TextProcessingError> {
 Now let's create and run the workflow:
 
 ```rust
-use flowrs_core::Workflow;
+use floxide_core::Workflow;
 
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
 
     // Create context
-    let mut context = TextContext::new("Hello, Flowrs!");
+    let mut context = TextContext::new("Hello, Floxide!");
 
     // Create nodes
     let validator = ValidatorNode { max_length: 100 };

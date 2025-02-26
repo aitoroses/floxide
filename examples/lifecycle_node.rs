@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use flowrs_core::{
-    lifecycle::LifecycleNodeAdapter, DefaultAction, FlowrsError, LifecycleNode, NodeId, Workflow,
+use floxide_core::{
+    lifecycle::LifecycleNodeAdapter, DefaultAction, FloxideError, LifecycleNode, NodeId, Workflow,
 };
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -68,7 +68,7 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
         self.id.clone()
     }
 
-    async fn prep(&self, ctx: &mut TextProcessingContext) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(&self, ctx: &mut TextProcessingContext) -> Result<Self::PrepOutput, FloxideError> {
         info!("Preparing to analyze text: '{}'", ctx.input);
 
         // Validate the input
@@ -76,7 +76,7 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
 
         if !is_valid {
             ctx.add_note("Validation failed: Input text is empty");
-            return Err(FlowrsError::node_execution(
+            return Err(FloxideError::node_execution(
                 self.id(),
                 "Input text cannot be empty",
             ));
@@ -90,7 +90,7 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
         })
     }
 
-    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         info!("Executing text analysis");
 
         // Count words and characters
@@ -113,7 +113,7 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
         _prep_result: Self::PrepOutput,
         exec_result: Self::ExecOutput,
         ctx: &mut TextProcessingContext,
-    ) -> Result<DefaultAction, FlowrsError> {
+    ) -> Result<DefaultAction, FloxideError> {
         info!("Post-processing analysis results");
 
         // Update the context with the results
@@ -158,13 +158,13 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for UppercaseNode {
         self.id.clone()
     }
 
-    async fn prep(&self, ctx: &mut TextProcessingContext) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(&self, ctx: &mut TextProcessingContext) -> Result<Self::PrepOutput, FloxideError> {
         info!("Preparing to convert text to uppercase");
         ctx.add_note("Preparing uppercase conversion");
         Ok(ctx.input.clone())
     }
 
-    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         info!("Converting text to uppercase");
         let uppercase = prep_result.to_uppercase();
         Ok(uppercase)
@@ -175,7 +175,7 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for UppercaseNode {
         _prep_result: Self::PrepOutput,
         exec_result: Self::ExecOutput,
         ctx: &mut TextProcessingContext,
-    ) -> Result<DefaultAction, FlowrsError> {
+    ) -> Result<DefaultAction, FloxideError> {
         info!("Uppercase conversion complete");
         ctx.uppercase = Some(exec_result);
         ctx.add_note("Uppercase conversion complete");

@@ -43,15 +43,15 @@ where
     fn id(&self) -> NodeId;
 
     /// Preparation phase - perform setup and validation
-    async fn prep(&self, ctx: &mut Context) -> Result<Self::PrepOutput, FlowrsError>;
+    async fn prep(&self, ctx: &mut Context) -> Result<Self::PrepOutput, FloxideError>;
 
     /// Execution phase - perform the main work
-    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError>;
+    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError>;
 
     /// Post-execution phase - determine the next action and update context
     async fn post(&self, prep_result: Self::PrepOutput,
                  exec_result: Self::ExecOutput,
-                 ctx: &mut Context) -> Result<Action, FlowrsError>;
+                 ctx: &mut Context) -> Result<Action, FloxideError>;
 }
 ```
 
@@ -84,7 +84,7 @@ where
         self.inner.id()
     }
 
-    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, Action>, FlowrsError> {
+    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, Action>, FloxideError> {
         // Run the three-phase lifecycle
         debug!(node_id = %self.id(), "Starting prep phase");
         let prep_result = self.inner.prep(ctx).await?;
@@ -120,9 +120,9 @@ where
     PrepFn: Fn(&mut Context) -> PrepFut + Send + Sync + 'static,
     ExecFn: Fn(PrepOut) -> ExecFut + Send + Sync + 'static,
     PostFn: Fn(PrepOut, ExecOut, &mut Context) -> PostFut + Send + Sync + 'static,
-    PrepFut: Future<Output = Result<PrepOut, FlowrsError>> + Send + 'static,
-    ExecFut: Future<Output = Result<ExecOut, FlowrsError>> + Send + 'static,
-    PostFut: Future<Output = Result<Action, FlowrsError>> + Send + 'static,
+    PrepFut: Future<Output = Result<PrepOut, FloxideError>> + Send + 'static,
+    ExecFut: Future<Output = Result<ExecOut, FloxideError>> + Send + 'static,
+    PostFut: Future<Output = Result<Action, FloxideError>> + Send + 'static,
 {
     // Implementation details...
 }

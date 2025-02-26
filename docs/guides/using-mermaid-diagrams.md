@@ -1,6 +1,6 @@
 # Using Mermaid Diagrams
 
-This guide explains how to use Mermaid diagrams in the Flowrs documentation.
+This guide explains how to use Mermaid diagrams in the Floxide documentation.
 
 ## Overview
 
@@ -17,7 +17,7 @@ Here's an example of a transform node implementation in Rust:
 
 ```rust
 use async_trait::async_trait;
-use flowrs_core::error::FlowrsError;
+use floxide_core::error::FloxideError;
 
 #[derive(Debug)]
 pub struct TransformNode<T> {
@@ -27,7 +27,7 @@ pub struct TransformNode<T> {
 
 #[async_trait]
 impl<T: Send + Sync + 'static> Node<T, T> for TransformNode<T> {
-    async fn execute(&self, input: T) -> Result<T, FlowrsError> {
+    async fn execute(&self, input: T) -> Result<T, FloxideError> {
         // Apply the transformation function
         let output = (self.transform_fn)(input);
         Ok(output)
@@ -51,7 +51,7 @@ graph LR
 
 ## Node Types
 
-Here's a diagram showing different node types in Flowrs:
+Here's a diagram showing different node types in Floxide:
 
 ```mermaid
 graph TD

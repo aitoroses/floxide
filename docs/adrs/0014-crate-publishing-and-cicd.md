@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-As the Flowrs framework matures, we need to establish a professional publishing workflow to make the crates available on crates.io. This includes setting up automated CI/CD pipelines through GitHub Actions to ensure quality, run tests, and automate the release process.
+As the Floxide framework matures, we need to establish a professional publishing workflow to make the crates available on crates.io. This includes setting up automated CI/CD pipelines through GitHub Actions to ensure quality, run tests, and automate the release process.
 
 We need to determine:
 

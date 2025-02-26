@@ -5,12 +5,12 @@ echo "Updating subcrates to use workspace inheritance for versions..."
 
 # List of subcrates to check and update
 SUBCRATES=(
-  "flowrs-core"
-  "flowrs-transform"
-  "flowrs-event"
-  "flowrs-timer"
-  "flowrs-longrunning"
-  "flowrs-reactive"
+  "floxide-core"
+  "floxide-transform"
+  "floxide-event"
+  "floxide-timer"
+  "floxide-longrunning"
+  "floxide-reactive"
 )
 
 for subcrate in "${SUBCRATES[@]}"; do

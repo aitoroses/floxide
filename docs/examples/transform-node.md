@@ -1,6 +1,6 @@
 # Transform Node Example
 
-This example demonstrates how to use transform nodes in the Flowrs framework for functional data transformations with explicit input and output types.
+This example demonstrates how to use transform nodes in the Floxide framework for functional data transformations with explicit input and output types.
 
 ## Overview
 
@@ -16,8 +16,8 @@ Let's create a data processing pipeline that validates, transforms, and enriches
 
 ```rust
 use async_trait::async_trait;
-use flowrs_core::{DefaultAction, FlowrsError};
-use flowrs_transform::{TransformNode, TransformContext, to_lifecycle_node};
+use floxide_core::{DefaultAction, FloxideError};
+use floxide_transform::{TransformNode, TransformContext, to_lifecycle_node};
 use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 
@@ -84,7 +84,7 @@ impl TransformNode<JsonValue, JsonValue, DataTransformError> for UserDataTransfo
 
 // Example usage
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     // Create input data
     let input_data = json!({
         "name": "John Doe",
@@ -131,7 +131,7 @@ let pipeline = to_lifecycle_node(
 The framework provides helper functions for simpler transformations:
 
 ```rust
-use flowrs_transform::transform_node;
+use floxide_transform::transform_node;
 
 // Create a simple transform node using closures
 let simple_transformer = transform_node(

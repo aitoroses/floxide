@@ -1,6 +1,6 @@
 # Timer Node Example
 
-This example demonstrates how to use timer nodes in the Flowrs framework for scheduling and periodic execution.
+This example demonstrates how to use timer nodes in the Floxide framework for scheduling and periodic execution.
 
 ## Overview
 
@@ -15,8 +15,8 @@ Timer nodes allow you to:
 First, let's create a simple timer-based workflow:
 
 ```rust
-use flowrs_core::{DefaultAction, FlowrsError, NodeId};
-use flowrs_timer::{Schedule, SimpleTimer, TimerNode, TimerWorkflow};
+use floxide_core::{DefaultAction, FloxideError, NodeId};
+use floxide_timer::{Schedule, SimpleTimer, TimerNode, TimerWorkflow};
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use std::sync::Arc;
 
@@ -82,7 +82,7 @@ fn create_backup_workflow() -> TimerWorkflow<BackupContext, DefaultAction> {
 
 // Example usage
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     let mut ctx = BackupContext {
         last_backup: None,
         backup_count: 0,

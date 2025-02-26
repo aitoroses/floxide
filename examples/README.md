@@ -142,7 +142,7 @@ When creating your own examples:
 
 ## Repository Information
 
-These examples are part of the Flowrs project hosted at [github.com/aitoroses/flowrs](https://github.com/aitoroses/flowrs).
+These examples are part of the Floxide project hosted at [github.com/aitoroses/floxide](https://github.com/aitoroses/floxide).
 
 ## References
 
@@ -150,4 +150,4 @@ For more information, refer to:
 
 - [Flow Framework Documentation](../README.md)
 - [Architectural Decision Records](../docs/adrs/)
-- [API Reference](https://docs.rs/flowrs-core)
+- [API Reference](https://docs.rs/floxide-core)

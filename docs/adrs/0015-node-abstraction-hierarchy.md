@@ -10,7 +10,7 @@ Proposed
 
 ## Context
 
-The Flowrs framework provides multiple node abstractions to support different programming models and use cases:
+The Floxide framework provides multiple node abstractions to support different programming models and use cases:
 
 1. The base `Node` trait with a single `process` method
 2. The `LifecycleNode` trait with the prep/exec/post lifecycle
@@ -46,7 +46,7 @@ where
     async fn process(
         &self,
         ctx: &mut Context,
-    ) -> Result<NodeOutcome<Self::Output, Action>, FlowrsError>;
+    ) -> Result<NodeOutcome<Self::Output, Action>, FloxideError>;
 }
 ```
 
@@ -75,10 +75,10 @@ where
     fn id(&self) -> NodeId;
 
     /// Preparation phase - perform setup and validation
-    async fn prep(&self, ctx: &mut Context) -> Result<Self::PrepOutput, FlowrsError>;
+    async fn prep(&self, ctx: &mut Context) -> Result<Self::PrepOutput, FloxideError>;
 
     /// Execution phase - perform the main work
-    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError>;
+    async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError>;
 
     /// Post-execution phase - determine the next action and update context
     async fn post(
@@ -86,7 +86,7 @@ where
         prep_result: Self::PrepOutput,
         exec_result: Self::ExecOutput,
         ctx: &mut Context,
-    ) -> Result<Action, FlowrsError>;
+    ) -> Result<Action, FloxideError>;
 }
 ```
 

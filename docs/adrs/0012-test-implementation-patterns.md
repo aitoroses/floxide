@@ -44,7 +44,7 @@ impl LifecycleNode<TestContext, DefaultAction> for TestLifecycleNode {
 
     fn id(&self) -> NodeId { self.id.clone() }
 
-    async fn prep(&self, ctx: &mut TestContext) -> Result<i32, FlowrsError> {
+    async fn prep(&self, ctx: &mut TestContext) -> Result<i32, FloxideError> {
         // Test-specific implementation...
         Ok(42)
     }
@@ -114,7 +114,7 @@ We considered changing the `lifecycle_node` function to accept boxed closures:
 ```rust
 pub fn lifecycle_node<Context, Action, PrepOut, ExecOut>(
     id: Option<String>,
-    prep_fn: Box<dyn Fn(&mut Context) -> BoxFuture<'_, Result<PrepOut, FlowrsError>> + Send + Sync>,
+    prep_fn: Box<dyn Fn(&mut Context) -> BoxFuture<'_, Result<PrepOut, FloxideError>> + Send + Sync>,
     // ...
 )
 ```

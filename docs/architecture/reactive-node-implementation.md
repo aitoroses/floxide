@@ -1,10 +1,10 @@
 # Reactive Node Implementation
 
-This document describes the implementation details of reactive nodes in the Flowrs framework.
+This document describes the implementation details of reactive nodes in the Floxide framework.
 
 ## Overview
 
-Reactive nodes in Flowrs provide stream-based processing capabilities with proper backpressure handling and error management.
+Reactive nodes in Floxide provide stream-based processing capabilities with proper backpressure handling and error management.
 
 ## Core Components
 
@@ -20,8 +20,8 @@ where
     Context: Send + Sync + 'static,
     Action: ActionType + Send + Sync + 'static + Debug,
 {
-    async fn watch(&self) -> Result<Box<dyn Stream<Item = Change> + Send + Unpin>, FlowrsError>;
-    async fn react_to_change(&self, change: Change, ctx: &mut Context) -> Result<Action, FlowrsError>;
+    async fn watch(&self) -> Result<Box<dyn Stream<Item = Change> + Send + Unpin>, FloxideError>;
+    async fn react_to_change(&self, change: Change, ctx: &mut Context) -> Result<Action, FloxideError>;
     fn id(&self) -> NodeId;
 }
 ```

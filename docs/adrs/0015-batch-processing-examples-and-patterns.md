@@ -31,12 +31,12 @@ A proper implementation of `BatchContext` should:
 ```rust
 impl BatchContext<Image> for ImageBatchContext {
     // Return the complete batch of items
-    fn get_batch_items(&self) -> Result<Vec<Image>, FlowrsError> {
+    fn get_batch_items(&self) -> Result<Vec<Image>, FloxideError> {
         Ok(self.images.clone())
     }
 
     // Create a context for a single item (called for each batch item)
-    fn create_item_context(&self, item: Image) -> Result<Self, FlowrsError> {
+    fn create_item_context(&self, item: Image) -> Result<Self, FloxideError> {
         let mut ctx = self.clone();
         ctx.images = Vec::new();
         ctx.current_image = Some(item);
@@ -46,8 +46,8 @@ impl BatchContext<Image> for ImageBatchContext {
     // Update main context with results after processing
     fn update_with_results(
         &mut self,
-        results: &[Result<Image, FlowrsError>],
-    ) -> Result<(), FlowrsError> {
+        results: &[Result<Image, FloxideError>],
+    ) -> Result<(), FloxideError> {
         // Update statistics
         self.processed_count = results.iter().filter(|r| r.is_ok()).count();
         self.failed_count = results.iter().filter(|r| r.is_err()).count();
@@ -91,7 +91,7 @@ For simpler cases, we can use Tokio's tasks directly without the full BatchFlow 
 async fn process_batch(
     images: Vec<Image>,
     parallelism: usize
-) -> Vec<Result<Image, FlowrsError>> {
+) -> Vec<Result<Image, FloxideError>> {
     use tokio::sync::Semaphore;
     use futures::stream::{self, StreamExt};
 

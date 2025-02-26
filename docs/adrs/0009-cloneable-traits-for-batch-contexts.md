@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-In implementing batch processing for the flowrs framework, we've encountered an ownership challenge: individual items that are processed in parallel tasks need to be accessed in multiple places:
+In implementing batch processing for the floxide framework, we've encountered an ownership challenge: individual items that are processed in parallel tasks need to be accessed in multiple places:
 
 1. When creating an item-specific context
 2. When returning the original item as part of the result
@@ -36,18 +36,18 @@ where
     T: Clone + Send + Sync + 'static,
 {
     /// Get the items to process in batch
-    fn get_batch_items(&self) -> Result<Vec<T>, FlowrsError>;
+    fn get_batch_items(&self) -> Result<Vec<T>, FloxideError>;
 
     /// Create a context for a single item
-    fn create_item_context(&self, item: T) -> Result<Self, FlowrsError>
+    fn create_item_context(&self, item: T) -> Result<Self, FloxideError>
     where
         Self: Sized;
 
     /// Update the main context with results from item processing
     fn update_with_results(
         &mut self,
-        results: &Vec<Result<T, FlowrsError>>,
-    ) -> Result<(), FlowrsError>;
+        results: &Vec<Result<T, FloxideError>>,
+    ) -> Result<(), FloxideError>;
 }
 ```
 
@@ -73,7 +73,7 @@ for item in items {
         match ctx_clone.create_item_context(item_clone) {
             Ok(mut item_ctx) => match workflow.execute(&mut item_ctx).await {
                 Ok(_) => Ok(item),
-                Err(e) => Err(FlowrsError::batch_processing(
+                Err(e) => Err(FloxideError::batch_processing(
                     "Failed to process item",
                     Box::new(e),
                 )),

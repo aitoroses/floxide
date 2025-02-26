@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-The flowrs framework is designed around asynchronous operations to efficiently handle workflow execution. In Rust, async operations require an explicit runtime to execute futures.
+The floxide framework is designed around asynchronous operations to efficiently handle workflow execution. In Rust, async operations require an explicit runtime to execute futures.
 
 There are several viable async runtimes available in the Rust ecosystem, each with different trade-offs:
 
@@ -23,15 +23,15 @@ We need to select an appropriate async runtime that will support the framework's
 
 ## Decision
 
-We will use **Tokio** as the primary async runtime for the flowrs framework implementation, with full feature set enabled. Additionally, we will use the `async_trait` crate for trait methods that return futures.
+We will use **Tokio** as the primary async runtime for the floxide framework implementation, with full feature set enabled. Additionally, we will use the `async_trait` crate for trait methods that return futures.
 
 ### Implementation Details
 
 1. **Core Runtime Usage**:
 
    ```rust
-   // In flowrs-transform crate
-   pub fn run_flow<S, F>(flow: F, shared_state: &mut S) -> Result<(), FlowrsError>
+   // In floxide-transform crate
+   pub fn run_flow<S, F>(flow: F, shared_state: &mut S) -> Result<(), FloxideError>
    where
        F: BaseNode<S>,
    {
@@ -54,7 +54,7 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
    {
        type Output;
 
-       async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FlowrsError>;
+       async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FloxideError>;
    }
    ```
 
@@ -62,7 +62,7 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
 
    ```rust
    // In BatchFlow implementation
-   async fn exec_core(&self, prep_results: Vec<I>) -> Result<Vec<Result<(), FlowrsError>>, FlowrsError> {
+   async fn exec_core(&self, prep_results: Vec<I>) -> Result<Vec<Result<(), FloxideError>>, FloxideError> {
        let mut handles = Vec::with_capacity(prep_results.len());
 
        for item in prep_results {
@@ -79,7 +79,7 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
 
        let mut results = Vec::with_capacity(handles.len());
        for handle in handles {
-           results.push(handle.await.unwrap_or_else(|e| Err(FlowrsError::JoinError(e.to_string()))));
+           results.push(handle.await.unwrap_or_else(|e| Err(FloxideError::JoinError(e.to_string()))));
        }
 
        Ok(results)
@@ -89,23 +89,23 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
 4. **Configurable Runtime Options**:
 
    ```rust
-   pub struct FlowrsRuntimeConfig {
+   pub struct FloxideRuntimeConfig {
        worker_threads: Option<usize>,
        thread_name_prefix: String,
        thread_stack_size: Option<usize>,
    }
 
-   impl Default for FlowrsRuntimeConfig {
+   impl Default for FloxideRuntimeConfig {
        fn default() -> Self {
            Self {
                worker_threads: None, // Use Tokio default
-               thread_name_prefix: "flowrs-worker-".to_string(),
+               thread_name_prefix: "floxide-worker-".to_string(),
                thread_stack_size: None, // Use Tokio default
            }
        }
    }
 
-   pub fn create_runtime(config: FlowrsRuntimeConfig) -> Result<tokio::runtime::Runtime, FlowrsError> {
+   pub fn create_runtime(config: FloxideRuntimeConfig) -> Result<tokio::runtime::Runtime, FloxideError> {
        let mut rt_builder = tokio::runtime::Builder::new_multi_thread();
 
        if let Some(threads) = config.worker_threads {
@@ -120,12 +120,12 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
 
        rt_builder.enable_all()
            .build()
-           .map_err(|e| FlowrsError::RuntimeCreationError(e.to_string()))
+           .map_err(|e| FloxideError::RuntimeCreationError(e.to_string()))
    }
    ```
 
 5. **Abstraction Layer**:
-   - We will create a runtime abstraction layer in the `flowrs-transform` crate
+   - We will create a runtime abstraction layer in the `floxide-transform` crate
    - This will allow for potential future runtime switching
    - The public API will remain stable even if the underlying runtime changes
 
@@ -134,7 +134,7 @@ We will use **Tokio** as the primary async runtime for the flowrs framework impl
 We will use feature flags to allow custom runtime configuration:
 
 ```toml
-# In flowrs-transform/Cargo.toml
+# In floxide-transform/Cargo.toml
 [features]
 default = ["tokio-full"]
 tokio-full = ["tokio/full"]

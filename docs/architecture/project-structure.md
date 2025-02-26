@@ -1,21 +1,21 @@
 # Project Structure
 
-This document describes the overall structure of the Flowrs framework codebase.
+This document describes the overall structure of the Floxide framework codebase.
 
 ## Workspace Organization
 
-The Flowrs framework is organized as a Cargo workspace with multiple crates, each with a specific responsibility:
+The Floxide framework is organized as a Cargo workspace with multiple crates, each with a specific responsibility:
 
 ```
-flowrs/
+floxide/
 ├── Cargo.toml              # Workspace definition
-├── flowrs-core/            # Core abstractions and interfaces
-├── flowrs-transform/       # Functional transformation capabilities
-├── flowrs-event/           # Event-driven workflow support
-├── flowrs-timer/           # Timer and scheduling functionality
-├── flowrs-reactive/        # Reactive programming patterns
-├── flowrs-longrunning/     # Long-running task support
-├── flowrs-async/           # (Deprecated) Alias for flowrs-transform
+├── floxide-core/            # Core abstractions and interfaces
+├── floxide-transform/       # Functional transformation capabilities
+├── floxide-event/           # Event-driven workflow support
+├── floxide-timer/           # Timer and scheduling functionality
+├── floxide-reactive/        # Reactive programming patterns
+├── floxide-longrunning/     # Long-running task support
+├── floxide-async/           # (Deprecated) Alias for floxide-transform
 └── docs/                   # Documentation
     ├── adrs/              # Architectural Decision Records
     ├── api/               # API Documentation
@@ -25,9 +25,9 @@ flowrs/
 
 ## Crate Responsibilities
 
-### flowrs-core
+### floxide-core
 
-The `flowrs-core` crate provides the fundamental abstractions and interfaces for the framework:
+The `floxide-core` crate provides the fundamental abstractions and interfaces for the framework:
 
 - Node trait and lifecycle methods (prep, exec, post)
 - Context and state management
@@ -35,64 +35,64 @@ The `flowrs-core` crate provides the fundamental abstractions and interfaces for
 - Action types and transitions
 - Error handling with custom error types
 
-### flowrs-transform
+### floxide-transform
 
-The `flowrs-transform` crate (formerly `flowrs-async`) provides functional transformation capabilities:
+The `floxide-transform` crate (formerly `floxide-async`) provides functional transformation capabilities:
 
 - Explicit input/output type transformations
 - Custom error types per transformation
 - Three-phase transformation lifecycle
 - Functional composition patterns
 
-### flowrs-event
+### floxide-event
 
-The `flowrs-event` crate provides event-driven workflow support:
+The `floxide-event` crate provides event-driven workflow support:
 
 - Event emission and handling
 - Event-based routing
 - Event context management
 - Pub/sub patterns
 
-### flowrs-timer
+### floxide-timer
 
-The `flowrs-timer` crate provides timer and scheduling functionality:
+The `floxide-timer` crate provides timer and scheduling functionality:
 
 - Multiple schedule types (Once, Periodic, Cron)
 - Timer workflow composition
 - Timeout handling
 - Scheduled task orchestration
 
-### flowrs-reactive
+### floxide-reactive
 
-The `flowrs-reactive` crate provides reactive programming patterns:
+The `floxide-reactive` crate provides reactive programming patterns:
 
 - Stream-based processing
 - Backpressure handling
 - Change detection
 - Reactive node composition
 
-### flowrs-longrunning
+### floxide-longrunning
 
-The `flowrs-longrunning` crate provides support for long-running tasks:
+The `floxide-longrunning` crate provides support for long-running tasks:
 
 - Background processing
 - Progress tracking
 - Cancellation support
 - Resource cleanup
 
-### flowrs-async (Deprecated)
+### floxide-async (Deprecated)
 
-This crate is deprecated and exists only for backward compatibility. It re-exports everything from `flowrs-transform`. Users should migrate to `flowrs-transform`.
+This crate is deprecated and exists only for backward compatibility. It re-exports everything from `floxide-transform`. Users should migrate to `floxide-transform`.
 
 ## Documentation Structure
 
 ### API Documentation (`/docs/api/`)
 
 Detailed API documentation for each crate:
-- `flowrs-core.md` - Core abstractions and interfaces
-- `flowrs-reactive.md` - Reactive programming patterns
-- `flowrs-timer.md` - Timer and scheduling
-- `flowrs-transform.md` - Transformation patterns
+- `floxide-core.md` - Core abstractions and interfaces
+- `floxide-reactive.md` - Reactive programming patterns
+- `floxide-timer.md` - Timer and scheduling
+- `floxide-transform.md` - Transformation patterns
 
 ### Architecture Documentation (`/docs/architecture/`)
 
@@ -124,10 +124,10 @@ Architectural Decision Records documenting all significant decisions:
 
 The crates have the following dependency relationships:
 
-- All crates depend on `flowrs-core`
-- `flowrs-async` depends on `flowrs-transform`
+- All crates depend on `floxide-core`
+- `floxide-async` depends on `floxide-transform`
 - Dependencies are kept minimal to allow users to include only what they need
-- Each crate can be used independently (except `flowrs-async`)
+- Each crate can be used independently (except `floxide-async`)
 
 ## Testing Structure
 

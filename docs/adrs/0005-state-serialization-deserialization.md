@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-A workflow system often needs to persist its state, either for long-running processes, to support restart after failure, or to enable distributed execution. The flowrs framework needs a well-defined approach to serialize and deserialize workflow state, particularly:
+A workflow system often needs to persist its state, either for long-running processes, to support restart after failure, or to enable distributed execution. The floxide framework needs a well-defined approach to serialize and deserialize workflow state, particularly:
 
 1. The workflow configuration (nodes and connections)
 2. The execution state (current position, context data)
@@ -37,10 +37,10 @@ We'll define a trait that contexts must implement to be serializable:
 /// Trait for contexts that can be serialized and deserialized
 pub trait SerializableContext: Send + Sync + 'static {
     /// Serialize this context to bytes
-    fn serialize(&self) -> Result<Vec<u8>, FlowrsError>;
+    fn serialize(&self) -> Result<Vec<u8>, FloxideError>;
 
     /// Deserialize from bytes into a context
-    fn deserialize(bytes: &[u8]) -> Result<Self, FlowrsError>
+    fn deserialize(bytes: &[u8]) -> Result<Self, FloxideError>
     where
         Self: Sized;
 
@@ -66,14 +66,14 @@ The macro will implement `SerializableContext` using serde_json by default:
 
 ```rust
 impl SerializableContext for MyWorkflowContext {
-    fn serialize(&self) -> Result<Vec<u8>, FlowrsError> {
+    fn serialize(&self) -> Result<Vec<u8>, FloxideError> {
         serde_json::to_vec(self)
-            .map_err(|e| FlowrsError::SerializationError(e.to_string()))
+            .map_err(|e| FloxideError::SerializationError(e.to_string()))
     }
 
-    fn deserialize(bytes: &[u8]) -> Result<Self, FlowrsError> {
+    fn deserialize(bytes: &[u8]) -> Result<Self, FloxideError> {
         serde_json::from_slice(bytes)
-            .map_err(|e| FlowrsError::DeserializationError(e.to_string()))
+            .map_err(|e| FloxideError::DeserializationError(e.to_string()))
     }
 }
 ```
@@ -116,7 +116,7 @@ where
     A: ActionType,
 {
     /// Create a snapshot of the current workflow state
-    pub fn create_snapshot(&self, context: &C) -> Result<WorkflowSnapshot<C, A>, FlowrsError> {
+    pub fn create_snapshot(&self, context: &C) -> Result<WorkflowSnapshot<C, A>, FloxideError> {
         // Implementation...
     }
 
@@ -124,7 +124,7 @@ where
     pub async fn resume_from_snapshot(
         &self,
         snapshot: WorkflowSnapshot<C, A>
-    ) -> Result<(), FlowrsError> {
+    ) -> Result<(), FloxideError> {
         // Implementation...
     }
 
@@ -133,7 +133,7 @@ where
         &self,
         context: &C,
         storage: &impl SnapshotStorage,
-    ) -> Result<String, FlowrsError> {
+    ) -> Result<String, FloxideError> {
         let snapshot = self.create_snapshot(context)?;
         storage.store_snapshot(&snapshot).await
     }
@@ -143,7 +143,7 @@ where
         &self,
         snapshot_id: &str,
         storage: &impl SnapshotStorage,
-    ) -> Result<(), FlowrsError> {
+    ) -> Result<(), FloxideError> {
         let snapshot = storage.load_snapshot::<C, A>(snapshot_id).await?;
         self.resume_from_snapshot(snapshot).await
     }
@@ -161,7 +161,7 @@ pub trait SnapshotStorage: Send + Sync {
     async fn store_snapshot<C, A>(
         &self,
         snapshot: &WorkflowSnapshot<C, A>,
-    ) -> Result<String, FlowrsError>
+    ) -> Result<String, FloxideError>
     where
         C: SerializableContext,
         A: ActionType;
@@ -170,16 +170,16 @@ pub trait SnapshotStorage: Send + Sync {
     async fn load_snapshot<C, A>(
         &self,
         id: &str,
-    ) -> Result<WorkflowSnapshot<C, A>, FlowrsError>
+    ) -> Result<WorkflowSnapshot<C, A>, FloxideError>
     where
         C: SerializableContext,
         A: ActionType;
 
     /// List available snapshots
-    async fn list_snapshots(&self) -> Result<Vec<SnapshotMetadata>, FlowrsError>;
+    async fn list_snapshots(&self) -> Result<Vec<SnapshotMetadata>, FloxideError>;
 
     /// Delete a snapshot
-    async fn delete_snapshot(&self, id: &str) -> Result<(), FlowrsError>;
+    async fn delete_snapshot(&self, id: &str) -> Result<(), FloxideError>;
 }
 ```
 
@@ -249,12 +249,12 @@ where
     A: ActionType + Serialize + DeserializeOwned,
 {
     /// Serialize the workflow definition
-    pub fn serialize_definition(&self) -> Result<Vec<u8>, FlowrsError> {
+    pub fn serialize_definition(&self) -> Result<Vec<u8>, FloxideError> {
         // Implementation...
     }
 
     /// Create a workflow from a serialized definition
-    pub fn from_serialized_definition(data: &[u8]) -> Result<Self, FlowrsError> {
+    pub fn from_serialized_definition(data: &[u8]) -> Result<Self, FloxideError> {
         // Implementation...
     }
 }

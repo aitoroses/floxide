@@ -1,15 +1,15 @@
-# 🚀 Flowrs: The Power of Workflows in Rust
+# 🚀 Floxide: The Power of Workflows in Rust
 
-[![CI](https://github.com/aitoroses/flowrs/actions/workflows/ci.yml/badge.svg)](https://github.com/aitoroses/flowrs/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/flowrs-core.svg)](https://crates.io/crates/flowrs-core)
-[![Documentation](https://docs.rs/flowrs-core/badge.svg)](https://docs.rs/flowrs-core)
+[![CI](https://github.com/aitoroses/floxide/actions/workflows/ci.yml/badge.svg)](https://github.com/aitoroses/floxide/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/floxide-core.svg)](https://crates.io/crates/floxide-core)
+[![Documentation](https://docs.rs/floxide-core/badge.svg)](https://docs.rs/floxide-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > A type-safe, composable directed graph workflow system written in Rust.
 
 ## 💫 Overview
 
-Flowrs transforms complex workflow orchestration into a delightful experience. Built with Rust's powerful type system at its core, Flowrs provides a flexible, performant, and type-safe way to create sophisticated workflow graphs with crystal-clear transitions between steps.
+Floxide transforms complex workflow orchestration into a delightful experience. Built with Rust's powerful type system at its core, Floxide provides a flexible, performant, and type-safe way to create sophisticated workflow graphs with crystal-clear transitions between steps.
 
 ## ✨ Key Features
 
@@ -27,37 +27,37 @@ This project follows documented architectural decisions recorded in ADRs (Archit
 
 Key architectural decisions include:
 
-- [**Core Framework Abstractions**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0003-core-framework-abstractions.md) - Defining the fundamental abstractions like Node, Action, and Workflow with a trait-based approach for type safety and flexibility.
+- [**Core Framework Abstractions**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0003-core-framework-abstractions.md) - Defining the fundamental abstractions like Node, Action, and Workflow with a trait-based approach for type safety and flexibility.
 
-- [**Project Structure and Crate Organization**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0002-project-structure-and-crate-organization.md) - Organizing the framework as a Cargo workspace with multiple specialized crates for modularity and separation of concerns.
+- [**Project Structure and Crate Organization**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0002-project-structure-and-crate-organization.md) - Organizing the framework as a Cargo workspace with multiple specialized crates for modularity and separation of concerns.
 
-- [**Async Runtime Selection**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0004-async-runtime-selection.md) - Choosing Tokio as the primary async runtime for its comprehensive feature set and wide adoption.
+- [**Async Runtime Selection**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0004-async-runtime-selection.md) - Choosing Tokio as the primary async runtime for its comprehensive feature set and wide adoption.
 
-- [**Node Lifecycle Methods**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0008-node-lifecycle-methods.md) - Implementing a three-phase lifecycle (prep/exec/post) for workflow nodes to provide clear separation of concerns.
+- [**Node Lifecycle Methods**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0008-node-lifecycle-methods.md) - Implementing a three-phase lifecycle (prep/exec/post) for workflow nodes to provide clear separation of concerns.
 
-- [**Batch Processing Implementation**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0007-batch-processing-implementation.md) - Designing a batch processing system that efficiently handles parallel execution with configurable concurrency limits.
+- [**Batch Processing Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0007-batch-processing-implementation.md) - Designing a batch processing system that efficiently handles parallel execution with configurable concurrency limits.
 
-- [**Event-Driven Workflow Pattern**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0009-event-driven-workflow-pattern.md) - Extending the framework with event-driven capabilities for handling asynchronous events.
+- [**Event-Driven Workflow Pattern**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0009-event-driven-workflow-pattern.md) - Extending the framework with event-driven capabilities for handling asynchronous events.
 
-- [**Reactive Node Implementation**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0017-reactive-node-implementation.md) - Creating nodes that can respond to changes in external data sources using a stream-based approach.
+- [**Reactive Node Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0017-reactive-node-implementation.md) - Creating nodes that can respond to changes in external data sources using a stream-based approach.
 
-- [**Timer Node Implementation**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0021-timer-node-implementation.md) - Supporting time-based scheduling for workflow execution with various scheduling patterns.
+- [**Timer Node Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0021-timer-node-implementation.md) - Supporting time-based scheduling for workflow execution with various scheduling patterns.
 
-- [**Long-Running Node Implementation**](https://github.com/aitoroses/flowrs/tree/main/docs/adrs/0022-longrunning-node-implementation.md) - Enabling workflows to process work incrementally with state persistence between executions.
+- [**Long-Running Node Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0022-longrunning-node-implementation.md) - Enabling workflows to process work incrementally with state persistence between executions.
 
 ## 🚀 Quick Start
 
-Add Flowrs to your project:
+Add Floxide to your project:
 
 ```toml
 [dependencies]
-flowrs = { version = "1.0.0", features = ["transform", "event"] }
+floxide = { version = "1.0.0", features = ["transform", "event"] }
 ```
 
 Create your first workflow:
 
 ```rust
-use flowrs::{lifecycle_node, LifecycleNode, Workflow, DefaultAction, FlowrsError};
+use floxide::{lifecycle_node, LifecycleNode, Workflow, DefaultAction, FloxideError};
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -94,7 +94,7 @@ fn create_processor_node() -> impl LifecycleNode<MessageContext, DefaultAction> 
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a context
     let mut context = MessageContext {
-        input: "Hello, Flowrs!".to_string(),
+        input: "Hello, Floxide!".to_string(),
         result: None,
     };
 
@@ -114,7 +114,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 📦 Feature Flags
 
-Flowrs uses feature flags to allow you to include only the functionality you need:
+Floxide uses feature flags to allow you to include only the functionality you need:
 
 | Feature | Description | Dependencies |
 |---------|-------------|-------------|
@@ -130,18 +130,18 @@ Example of using specific features:
 
 ```toml
 # Only include core and transform functionality
-flowrs = { version = "1.0.0", features = ["transform"] }
+floxide = { version = "1.0.0", features = ["transform"] }
 
 # Include event-driven and timer functionality
-flowrs = { version = "1.0.0", features = ["event", "timer"] }
+floxide = { version = "1.0.0", features = ["event", "timer"] }
 
 # Include all functionality
-flowrs = { version = "1.0.0", features = ["full"] }
+floxide = { version = "1.0.0", features = ["full"] }
 ```
 
 ## 🧩 Workflow Pattern Examples
 
-Flowrs supports a wide variety of workflow patterns through its modular crate system. Each pattern is designed to solve specific workflow challenges:
+Floxide supports a wide variety of workflow patterns through its modular crate system. Each pattern is designed to solve specific workflow challenges:
 
 ### 🔄 Simple Chain (Linear Workflow)
 
@@ -155,7 +155,7 @@ graph LR
     style C fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
 ```
 
-**Example:** [lifecycle_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/lifecycle_node.rs)
+**Example:** [lifecycle_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/lifecycle_node.rs)
 
 ### 🌲 Conditional Branching
 
@@ -173,7 +173,7 @@ graph TD
     style D fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
 ```
 
-**Example:** [order_processing.rs](https://github.com/aitoroses/flowrs/tree/main/examples/order_processing.rs)
+**Example:** [order_processing.rs](https://github.com/aitoroses/floxide/tree/main/examples/order_processing.rs)
 
 ### 🔄 Transform Pipeline
 
@@ -189,7 +189,7 @@ graph LR
     style E fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
 ```
 
-**Example:** [transform_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/transform_node.rs)
+**Example:** [transform_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/transform_node.rs)
 
 ### 🔀 Parallel Batch Processing
 
@@ -212,7 +212,7 @@ graph TD
     style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
 ```
 
-**Example:** [batch_processing.rs](https://github.com/aitoroses/flowrs/tree/main/examples/batch_processing.rs)
+**Example:** [batch_processing.rs](https://github.com/aitoroses/floxide/tree/main/examples/batch_processing.rs)
 
 ### 📡 Event-Driven Flow
 
@@ -235,7 +235,7 @@ graph TD
     style F fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
 ```
 
-**Example:** [event_driven_workflow.rs](https://github.com/aitoroses/flowrs/tree/main/examples/event_driven_workflow.rs)
+**Example:** [event_driven_workflow.rs](https://github.com/aitoroses/floxide/tree/main/examples/event_driven_workflow.rs)
 
 ### ⏱️ Time-Based Workflows
 
@@ -251,7 +251,7 @@ graph TD
     style C fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
 ```
 
-**Example:** [timer_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/timer_node.rs)
+**Example:** [timer_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/timer_node.rs)
 
 ### 🔄 Reactive Workflows
 
@@ -269,7 +269,7 @@ graph TD
     style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
 ```
 
-**Example:** [reactive_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/reactive_node.rs)
+**Example:** [reactive_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/reactive_node.rs)
 
 ### ⏸️ Long-Running Processes
 
@@ -287,7 +287,7 @@ graph TD
     style D fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
 ```
 
-**Example:** [longrunning_node.rs](https://github.com/aitoroses/flowrs/tree/main/examples/longrunning_node.rs)
+**Example:** [longrunning_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/longrunning_node.rs)
 
 ### 🤖 Multi-Agent LLM System
 
@@ -365,15 +365,15 @@ fn create_router_agent() -> impl LifecycleNode<AgentContext, AgentAction> {
 
 Explore our extensive examples and documentation:
 
-- [Complete API Documentation](https://docs.rs/flowrs-core)
-- [Example Workflows](https://github.com/aitoroses/flowrs/tree/main/examples)
-- [Architectural Decision Records](https://github.com/aitoroses/flowrs/tree/main/docs/adrs)
+- [Complete API Documentation](https://docs.rs/floxide-core)
+- [Example Workflows](https://github.com/aitoroses/floxide/tree/main/examples)
+- [Architectural Decision Records](https://github.com/aitoroses/floxide/tree/main/docs/adrs)
 
 Try our examples directly:
 
 ```bash
-git clone https://github.com/aitoroses/flowrs.git
-cd flowrs
+git clone https://github.com/aitoroses/floxide.git
+cd floxide
 cargo run --example lifecycle_node
 ```
 
@@ -385,10 +385,10 @@ See our [Contributing Guidelines](CONTRIBUTING.md) for more details on how to ge
 
 ## 📄 License
 
-Flowrs is available under the MIT License - see the [LICENSE](LICENSE) file for details.
+Floxide is available under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
 - The Rust community for their excellent crates and support
-- Our amazing contributors who help make Flowrs better every day
+- Our amazing contributors who help make Floxide better every day
 <!-- Trigger rebuild: martes, 25 de febrero de 2025, 18:49:33 CET -->

@@ -10,7 +10,7 @@ Implemented
 
 ## Context
 
-Currently, the examples in the flowrs framework are organized as a separate crate in the workspace defined in the `examples/` directory with its own `Cargo.toml`. This approach has several drawbacks:
+Currently, the examples in the floxide framework are organized as a separate crate in the workspace defined in the `examples/` directory with its own `Cargo.toml`. This approach has several drawbacks:
 
 1. It adds unnecessary complexity to the project structure
 2. It requires maintaining a separate crate with its own dependencies
@@ -54,7 +54,7 @@ The implementation will involve:
 
 ## Repository Information
 
-This ADR applies to the Flowrs project hosted at [github.com/aitoroses/flowrs](https://github.com/aitoroses/flowrs).
+This ADR applies to the Floxide project hosted at [github.com/aitoroses/floxide](https://github.com/aitoroses/floxide).
 
 ## Related ADRs
 

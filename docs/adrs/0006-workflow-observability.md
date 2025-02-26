@@ -29,23 +29,23 @@ A comprehensive observability system is essential for:
 
 ## Decision
 
-We will implement an observability system for the flowrs framework with OpenTelemetry as the primary integration point, complemented by additional observability mechanisms.
+We will implement an observability system for the floxide framework with OpenTelemetry as the primary integration point, complemented by additional observability mechanisms.
 
 ### 1. OpenTelemetry as Primary Observability Solution
 
 OpenTelemetry will be the main framework for observability:
 
 ```rust
-/// Core OpenTelemetry integration for the flowrs framework
-pub struct FlowrsOtel {
+/// Core OpenTelemetry integration for the floxide framework
+pub struct FloxideOtel {
     tracer: opentelemetry::trace::Tracer,
     meter: opentelemetry::metrics::Meter,
     attributes: HashMap<String, String>,
 }
 
-impl FlowrsOtel {
+impl FloxideOtel {
     /// Create a new OpenTelemetry integration with the default configuration
-    pub fn new(service_name: &str) -> Result<Self, FlowrsError> {
+    pub fn new(service_name: &str) -> Result<Self, FloxideError> {
         // Set up OpenTelemetry with appropriate exporters
         let tracer_provider = opentelemetry_sdk::trace::TracerProvider::builder()
             .with_simple_processor(opentelemetry_sdk::trace::BatchSpanProcessor::new(
@@ -117,7 +117,7 @@ where
     WorkflowFailed {
         workflow_id: String,
         timestamp: DateTime<Utc>,
-        error: FlowrsError,
+        error: FloxideError,
         metadata: HashMap<String, String>,
     },
 
@@ -147,7 +147,7 @@ where
         node_id: NodeId,
         node_type: String,
         timestamp: DateTime<Utc>,
-        error: FlowrsError,
+        error: FloxideError,
         metadata: HashMap<String, String>,
     },
 
@@ -210,12 +210,12 @@ The primary observer implementation will use OpenTelemetry:
 ```rust
 /// Observer that emits events to OpenTelemetry
 pub struct OpenTelemetryObserver {
-    otel: FlowrsOtel,
+    otel: FloxideOtel,
 }
 
 impl OpenTelemetryObserver {
     /// Create a new OpenTelemetry observer
-    pub fn new(otel: FlowrsOtel) -> Self {
+    pub fn new(otel: FloxideOtel) -> Self {
         Self { otel }
     }
 }
@@ -226,7 +226,7 @@ where
     C: 'static,
     A: ActionType,
 {
-    async fn on_event(&self, event: WorkflowEvent<C, A>) -> Result<(), FlowrsError> {
+    async fn on_event(&self, event: WorkflowEvent<C, A>) -> Result<(), FloxideError> {
         match &event {
             WorkflowEvent::WorkflowStarted { workflow_id, metadata, .. } => {
                 let mut span = self.otel.tracer
@@ -289,8 +289,8 @@ where
     A: ActionType,
 {
     /// Add OpenTelemetry observability to this workflow
-    pub fn with_opentelemetry(mut self, service_name: &str) -> Result<Self, FlowrsError> {
-        let otel = FlowrsOtel::new(service_name)?;
+    pub fn with_opentelemetry(mut self, service_name: &str) -> Result<Self, FloxideError> {
+        let otel = FloxideOtel::new(service_name)?;
         self.observers.push(Box::new(OpenTelemetryObserver::new(otel)));
         Ok(self)
     }
@@ -316,9 +316,9 @@ where
     C: 'static,
     A: ActionType,
 {
-    async fn execute_with_tracing(&self, ctx: &mut C) -> Result<(), FlowrsError> {
+    async fn execute_with_tracing(&self, ctx: &mut C) -> Result<(), FloxideError> {
         // Create a workflow execution span
-        let tracer = opentelemetry::global::tracer("flowrs");
+        let tracer = opentelemetry::global::tracer("floxide");
         let workflow_span = tracer.start(format!("workflow:{}", self.id()));
         let cx = Context::current_with_span(workflow_span);
 
@@ -336,7 +336,7 @@ where
         let execution_time = start.elapsed().as_millis() as u64;
 
         // Record metrics
-        let meter = opentelemetry::global::meter("flowrs");
+        let meter = opentelemetry::global::meter("floxide");
         let workflow_duration = meter
             .f64_histogram("workflow.duration")
             .with_description("Workflow execution duration in milliseconds")
@@ -377,7 +377,7 @@ We'll leverage OpenTelemetry for visualization capabilities:
 pub async fn generate_workflow_visualization(
     workflow_id: &str,
     trace_exporter_endpoint: &str,
-) -> Result<String, FlowrsError> {
+) -> Result<String, FloxideError> {
     // Query OpenTelemetry backend for the trace data
     // and generate visualization
     // ...
@@ -410,11 +410,11 @@ where
 {
     type Output = N::Output;
 
-    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
+    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FloxideError> {
         let context_id = ctx.context_id();
         let attributes = ctx.otel_attributes();
 
-        let tracer = opentelemetry::global::tracer("flowrs");
+        let tracer = opentelemetry::global::tracer("floxide");
         let mut span_builder = tracer.span_builder(format!("node:{}", self.node_type));
 
         // Add attributes to the span
@@ -434,7 +434,7 @@ where
         let duration = start.elapsed();
 
         // Record node execution metrics
-        let meter = opentelemetry::global::meter("flowrs");
+        let meter = opentelemetry::global::meter("floxide");
         let node_duration = meter
             .f64_histogram("node.duration")
             .with_description("Node execution duration in milliseconds")

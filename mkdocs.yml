@@ -1,8 +1,8 @@
-site_name: Flowrs Documentation
-site_description: Documentation for the Flowrs framework - A type-safe, composable directed graph workflow system written in Rust
-site_author: Flowrs Team
-repo_url: https://github.com/aitoroses/flowrs
-repo_name: aitoroses/flowrs
+site_name: Floxide Documentation
+site_description: Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust
+site_author: Floxide Team
+repo_url: https://github.com/aitoroses/floxide
+repo_name: aitoroses/floxide
 edit_uri: edit/main/docs/
 
 theme:
@@ -86,13 +86,13 @@ nav:
     - Transform Node Implementation: architecture/transform-node-implementation.md
     - Batch Processing Implementation: architecture/batch-processing-implementation.md
   - API Reference:
-    - flowrs-core: api/flowrs-core.md
-    - flowrs-transform: api/flowrs-transform.md
-    - flowrs-event: api/flowrs-event.md
-    - flowrs-timer: api/flowrs-timer.md
-    - flowrs-reactive: api/flowrs-reactive.md
-    - flowrs-longrunning: api/flowrs-longrunning.md
-    - flowrs-batch: api/flowrs-batch.md
+    - floxide-core: api/floxide-core.md
+    - floxide-transform: api/floxide-transform.md
+    - floxide-event: api/floxide-event.md
+    - floxide-timer: api/floxide-timer.md
+    - floxide-reactive: api/floxide-reactive.md
+    - floxide-longrunning: api/floxide-longrunning.md
+    - floxide-batch: api/floxide-batch.md
   - ADRs:
     - Overview: adrs/README.md
     - Process and Format: adrs/0001-adr-process-and-format.md
@@ -116,7 +116,7 @@ nav:
     - Transform Node Extensions: adrs/0016-transform-node-and-async-extensions.md
     - Event-Driven Pattern: adrs/0017-event-driven-node-pattern.md
     - Reactive Implementation: adrs/0017-reactive-node-implementation.md
-    - Rename flowrs-async: adrs/0018-rename-flowrs-async-to-flowrs-transform.md
+    - Rename floxide-async: adrs/0018-rename-floxide-async-to-floxide-transform.md
     - Examples Structure: adrs/0019-examples-structure-standardization.md
     - Workflow Routing: adrs/0020-event-driven-workflow-routing-guidelines.md
     - Timer Implementation: adrs/0021-timer-node-implementation.md

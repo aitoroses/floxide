@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-The flowrs framework needs batch processing capabilities to efficiently handle parallel execution of workflows on collections of items. We need to design a batch processing system that leverages Rust's ownership model and concurrency features.
+The floxide framework needs batch processing capabilities to efficiently handle parallel execution of workflows on collections of items. We need to design a batch processing system that leverages Rust's ownership model and concurrency features.
 
 We need to design a batch processing system that:
 
@@ -36,13 +36,13 @@ The `BatchContext` trait will define how batch-supporting contexts should behave
 /// Trait for contexts that support batch processing
 pub trait BatchContext<T> {
     /// Get the items to process in batch
-    fn get_batch_items(&self) -> Result<Vec<T>, FlowrsError>;
+    fn get_batch_items(&self) -> Result<Vec<T>, FloxideError>;
 
     /// Create a context for a single item
-    fn create_item_context(&self, item: T) -> Result<Self, FlowrsError> where Self: Sized;
+    fn create_item_context(&self, item: T) -> Result<Self, FloxideError> where Self: Sized;
 
     /// Update the main context with results from item processing
-    fn update_with_results(&mut self, results: Vec<Result<T, FlowrsError>>) -> Result<(), FlowrsError>;
+    fn update_with_results(&mut self, results: Vec<Result<T, FloxideError>>) -> Result<(), FloxideError>;
 }
 ```
 

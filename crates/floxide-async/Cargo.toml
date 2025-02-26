@@ -1,0 +1,22 @@
+[package]
+name = "floxide-async"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "DEPRECATED - Renamed to floxide-transform. This is a compatibility layer that will be removed in a future version."
+
+[dependencies]
+floxide-transform = { path = "../floxide-transform" }
+tokio = { workspace = true, features = ["full"] }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+futures = { workspace = true }
+
+[features]
+default = ["floxide-transform/default"]
+tokio-full = ["floxide-transform/tokio-full"]
+tokio-minimal = ["floxide-transform/tokio-minimal"]

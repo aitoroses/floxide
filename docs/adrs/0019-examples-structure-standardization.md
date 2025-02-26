@@ -10,7 +10,7 @@ Implemented
 
 ## Context
 
-Previously, the examples in the flowrs framework were organized as binary applications in the `examples/src/bin/` directory. This structure required users to run examples using the `cargo run --bin example_name` command, which diverges from the standard Rust convention for example code.
+Previously, the examples in the floxide framework were organized as binary applications in the `examples/src/bin/` directory. This structure required users to run examples using the `cargo run --bin example_name` command, which diverges from the standard Rust convention for example code.
 
 Additionally, example filenames had a redundant `_example` suffix (e.g., `transform_node_example.rs`), which doesn't align with conventional Rust naming practices for examples.
 

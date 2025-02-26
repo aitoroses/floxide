@@ -10,7 +10,7 @@ Proposed
 
 ## Context
 
-The Flowrs framework currently has an `AsyncNode` abstraction that doesn't actually provide unique asynchronous capabilities beyond what's already available in other node types (`Node` and `LifecycleNode`). All node methods in the framework are already `async`, so the name "AsyncNode" is potentially misleading.
+The Floxide framework currently has an `AsyncNode` abstraction that doesn't actually provide unique asynchronous capabilities beyond what's already available in other node types (`Node` and `LifecycleNode`). All node methods in the framework are already `async`, so the name "AsyncNode" is potentially misleading.
 
 What our current `AsyncNode` actually provides is:
 
@@ -76,14 +76,14 @@ where
     Action: ActionType + Send + Sync + 'static,
 {
     /// Wait for an external event to occur
-    async fn wait_for_event(&self) -> Result<Event, FlowrsError>;
+    async fn wait_for_event(&self) -> Result<Event, FloxideError>;
 
     /// Process the received event and update context
     async fn process_event(
         &self,
         event: Event,
         ctx: &mut Context
-    ) -> Result<Action, FlowrsError>;
+    ) -> Result<Action, FloxideError>;
 
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;
@@ -118,7 +118,7 @@ where
     async fn execute_on_schedule(
         &self,
         ctx: &mut Context
-    ) -> Result<Action, FlowrsError>;
+    ) -> Result<Action, FloxideError>;
 
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;
@@ -156,7 +156,7 @@ where
         &self,
         state: Option<Self::State>,
         ctx: &mut Context
-    ) -> Result<LongRunningOutcome<Self::Output, Self::State>, FlowrsError>;
+    ) -> Result<LongRunningOutcome<Self::Output, Self::State>, FloxideError>;
 
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;
@@ -183,7 +183,7 @@ where
         &self,
         change: Change,
         ctx: &mut Context
-    ) -> Result<Action, FlowrsError>;
+    ) -> Result<Action, FloxideError>;
 
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;
@@ -232,7 +232,7 @@ We could create a single trait that covers all async extension patterns. This wo
 
 ## Implementation Notes
 
-- The async extensions will be implemented in a new `flowrs-async-ext` crate
+- The async extensions will be implemented in a new `floxide-async-ext` crate
 - Each async pattern will include adapter types to integrate with the core workflow engine
 - Examples will be provided for each pattern to demonstrate proper usage
 - Time-based execution will require a scheduler component

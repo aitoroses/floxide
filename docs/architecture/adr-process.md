@@ -1,6 +1,6 @@
 # ADR Process
 
-This document describes the Architectural Decision Records (ADRs) process used in the Flowrs framework.
+This document describes the Architectural Decision Records (ADRs) process used in the Floxide framework.
 
 ## What are ADRs?
 
@@ -8,16 +8,16 @@ Architectural Decision Records (ADRs) are documents that capture important archi
 
 ## Why Use ADRs?
 
-ADRs serve several important purposes in the Flowrs project:
+ADRs serve several important purposes in the Floxide project:
 
 1. **Documentation**: They provide a clear record of architectural decisions.
 2. **Context Preservation**: They capture the context and reasoning behind decisions.
 3. **Knowledge Sharing**: They help new contributors understand the architecture.
 4. **Decision Making**: They provide a structured process for making and reviewing architectural decisions.
 
-## ADR Process in Flowrs
+## ADR Process in Floxide
 
-In the Flowrs framework, we follow a specific process for creating and managing ADRs:
+In the Floxide framework, we follow a specific process for creating and managing ADRs:
 
 ### ADR Creation and Process
 
@@ -68,4 +68,4 @@ To create a new ADR:
 
 ## Conclusion
 
-The ADR process is a critical part of the Flowrs framework's development approach. By documenting architectural decisions in a structured way, we ensure that the project's architecture is well-understood, maintainable, and evolves in a controlled manner.
+The ADR process is a critical part of the Floxide framework's development approach. By documenting architectural decisions in a structured way, we ensure that the project's architecture is well-understood, maintainable, and evolves in a controlled manner.

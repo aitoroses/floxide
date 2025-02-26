@@ -1,10 +1,10 @@
 # Long-Running Node Implementation
 
-This document describes the implementation details of long-running nodes in the Flowrs framework.
+This document describes the implementation details of long-running nodes in the Floxide framework.
 
 ## Overview
 
-Long-running nodes in Flowrs provide support for tasks that may take significant time to complete, with proper progress tracking and cancellation support.
+Long-running nodes in Floxide provide support for tasks that may take significant time to complete, with proper progress tracking and cancellation support.
 
 ## Core Components
 
@@ -19,9 +19,9 @@ where
     Context: Send + Sync + 'static,
     Action: ActionType + Send + Sync + 'static + Debug,
 {
-    async fn start(&self, ctx: &mut Context) -> Result<(), FlowrsError>;
-    async fn check_progress(&self, ctx: &mut Context) -> Result<Progress, FlowrsError>;
-    async fn cancel(&self, ctx: &mut Context) -> Result<(), FlowrsError>;
+    async fn start(&self, ctx: &mut Context) -> Result<(), FloxideError>;
+    async fn check_progress(&self, ctx: &mut Context) -> Result<Progress, FloxideError>;
+    async fn cancel(&self, ctx: &mut Context) -> Result<(), FloxideError>;
     fn id(&self) -> NodeId;
 }
 ```
@@ -34,7 +34,7 @@ The `Progress` enum represents the current state of a long-running task:
 pub enum Progress {
     Running(f32), // 0.0 to 1.0
     Complete(Action),
-    Failed(FlowrsError),
+    Failed(FloxideError),
 }
 ```
 

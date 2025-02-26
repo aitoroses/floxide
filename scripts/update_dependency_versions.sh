@@ -8,14 +8,14 @@ echo "Updating dependency versions to match workspace version: $WORKSPACE_VERSIO
 
 # Update all internal dependency versions in the root Cargo.toml
 # First, handle the format: version = "x.y.z"
-sed -i.bak -E "s/(flowrs-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*path[[:space:]]*=[[:space:]]*\"[^\"]+\",[[:space:]]*version[[:space:]]*=[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
+sed -i.bak -E "s/(floxide-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*path[[:space:]]*=[[:space:]]*\"[^\"]+\",[[:space:]]*version[[:space:]]*=[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
 
 # Then, handle the format: version = "=x.y.z"
-sed -i.bak -E "s/(flowrs-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*path[[:space:]]*=[[:space:]]*\"[^\"]+\",[[:space:]]*version[[:space:]]*=[[:space:]]*\"=)[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
+sed -i.bak -E "s/(floxide-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*path[[:space:]]*=[[:space:]]*\"[^\"]+\",[[:space:]]*version[[:space:]]*=[[:space:]]*\"=)[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
 
 # Also handle cases where version might come before path
-sed -i.bak -E "s/(flowrs-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*version[[:space:]]*=[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
-sed -i.bak -E "s/(flowrs-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*version[[:space:]]*=[[:space:]]*\"=)[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
+sed -i.bak -E "s/(floxide-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*version[[:space:]]*=[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
+sed -i.bak -E "s/(floxide-[a-z]+[[:space:]]*=[[:space:]]*\{[[:space:]]*version[[:space:]]*=[[:space:]]*\"=)[0-9]+\.[0-9]+\.[0-9]+/\1$WORKSPACE_VERSION/g" Cargo.toml
 
 # Remove backup file
 rm Cargo.toml.bak
@@ -24,6 +24,6 @@ echo "Dependency versions updated successfully!"
 
 # Verify the changes
 echo "Verifying changes..."
-grep -n "flowrs-" Cargo.toml | grep "version"
+grep -n "floxide-" Cargo.toml | grep "version"
 
 echo "Done!" 

@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-The Flowrs framework's documentation needed to be more cohesive and better organized to help users understand and effectively use the framework. The documentation was spread across multiple locations with inconsistent cross-referencing and varying levels of detail.
+The Floxide framework's documentation needed to be more cohesive and better organized to help users understand and effectively use the framework. The documentation was spread across multiple locations with inconsistent cross-referencing and varying levels of detail.
 
 Key issues that needed to be addressed:
 1. Inconsistent documentation formats across different components
@@ -84,9 +84,9 @@ We have decided to implement a comprehensive documentation structure with the fo
 The documentation has been updated to follow this structure:
 
 1. **API Documentation**
-   - Updated flowrs-reactive.md
-   - Updated flowrs-timer.md
-   - Updated flowrs-core.md
+   - Updated floxide-reactive.md
+   - Updated floxide-timer.md
+   - Updated floxide-core.md
    - Added comprehensive examples
 
 2. **Architecture Documentation**

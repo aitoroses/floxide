@@ -1,10 +1,10 @@
 # Timer Node Implementation
 
-This document describes the implementation details of timer nodes in the Flowrs framework.
+This document describes the implementation details of timer nodes in the Floxide framework.
 
 ## Overview
 
-Timer nodes in Flowrs provide scheduling capabilities with support for various schedule types and proper error handling.
+Timer nodes in Floxide provide scheduling capabilities with support for various schedule types and proper error handling.
 
 ## Core Components
 
@@ -20,7 +20,7 @@ where
     Action: ActionType + Send + Sync + 'static + Default + Debug,
 {
     fn schedule(&self) -> Schedule;
-    async fn execute_on_schedule(&self, ctx: &mut Context) -> Result<Action, FlowrsError>;
+    async fn execute_on_schedule(&self, ctx: &mut Context) -> Result<Action, FloxideError>;
     fn id(&self) -> NodeId;
 }
 ```

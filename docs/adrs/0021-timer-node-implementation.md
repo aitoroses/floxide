@@ -24,7 +24,7 @@ Key requirements for timer nodes include:
 
 ## Decision
 
-We will implement a new crate `flowrs-timer` that provides the `TimerNode` trait and related implementations as described in ADR-0016. The implementation will follow these design decisions:
+We will implement a new crate `floxide-timer` that provides the `TimerNode` trait and related implementations as described in ADR-0016. The implementation will follow these design decisions:
 
 ### 1. Core `Schedule` Enum
 
@@ -61,7 +61,7 @@ where
     async fn execute_on_schedule(
         &self,
         ctx: &mut Context
-    ) -> Result<Action, FlowrsError>;
+    ) -> Result<Action, FloxideError>;
 
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;

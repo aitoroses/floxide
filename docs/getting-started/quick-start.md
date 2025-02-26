@@ -1,28 +1,28 @@
 # Quick Start Guide
 
-This guide will help you create your first Flowrs workflow. We'll build a simple workflow that processes a message and returns a result.
+This guide will help you create your first Floxide workflow. We'll build a simple workflow that processes a message and returns a result.
 
 ## Prerequisites
 
 Before starting, make sure you have:
 
 - Installed Rust and Cargo (see [Installation](installation.md))
-- Created a new Rust project or added Flowrs to an existing project
+- Created a new Rust project or added Floxide to an existing project
 
 ## Step 1: Set Up Your Project
 
 First, let's set up a new Rust project and add the necessary dependencies:
 
 ```bash
-cargo new flowrs_quickstart
-cd flowrs_quickstart
+cargo new floxide_quickstart
+cd floxide_quickstart
 ```
 
 Edit your `Cargo.toml` file to include the required dependencies:
 
 ```toml
 [dependencies]
-flowrs-core = "0.1.0"
+floxide-core = "0.1.0"
 tokio = { version = "1.28", features = ["full"] }
 async-trait = "0.1.68"
 ```
@@ -32,7 +32,7 @@ async-trait = "0.1.68"
 Now, let's create a simple workflow that processes a message. Replace the contents of `src/main.rs` with the following code:
 
 ```rust
-use flowrs_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction};
+use floxide_core::{lifecycle_node, LifecycleNode, Workflow, DefaultAction};
 use async_trait::async_trait;
 use std::sync::Arc;
 

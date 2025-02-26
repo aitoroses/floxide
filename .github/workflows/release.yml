@@ -84,51 +84,51 @@ jobs:
       - name: Update dependency versions
         run: ./scripts/update_dependency_versions.sh
 
-      # Publish flowrs-core
-      - name: Publish flowrs-core
-        working-directory: ./crates/flowrs-core
+      # Publish floxide-core
+      - name: Publish floxide-core
+        working-directory: ./crates/floxide-core
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Wait for crates.io indexing
         run: sleep 15
 
-      - name: Publish flowrs-transform
-        working-directory: ./crates/flowrs-transform
+      - name: Publish floxide-transform
+        working-directory: ./crates/floxide-transform
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Wait for crates.io indexing
         run: sleep 15
 
-      - name: Publish flowrs-event
-        working-directory: ./crates/flowrs-event
+      - name: Publish floxide-event
+        working-directory: ./crates/floxide-event
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Wait for crates.io indexing
         run: sleep 15
 
-      - name: Publish flowrs-timer
-        working-directory: ./crates/flowrs-timer
+      - name: Publish floxide-timer
+        working-directory: ./crates/floxide-timer
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Wait for crates.io indexing
         run: sleep 15
 
-      - name: Publish flowrs-longrunning
-        working-directory: ./crates/flowrs-longrunning
+      - name: Publish floxide-longrunning
+        working-directory: ./crates/floxide-longrunning
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Wait for crates.io indexing
         run: sleep 15
 
-      - name: Publish flowrs-reactive
-        working-directory: ./crates/flowrs-reactive
+      - name: Publish floxide-reactive
+        working-directory: ./crates/floxide-reactive
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Wait for crates.io indexing
         run: sleep 15
 
       # Publish the main crate with all features
-      - name: Publish flowrs (root)
+      - name: Publish floxide (root)
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
       # Create GitHub Release

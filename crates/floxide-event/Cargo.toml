@@ -1,0 +1,22 @@
+[package]
+name = "floxide-event"
+version.workspace = true
+edition = "2021"
+authors = ["Aitor Oses <aitor.oses@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/aitoroses/floxide"
+description = "Event-driven node extensions for the Floxide framework"
+
+[dependencies]
+floxide-core = { path = "../floxide-core" }
+tokio = { workspace = true, features = ["full"] }
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+futures = { workspace = true }
+
+[features]
+default = ["tokio-full"]
+tokio-full = ["tokio/full"]
+tokio-minimal = ["tokio/rt", "tokio/sync", "tokio/time"]

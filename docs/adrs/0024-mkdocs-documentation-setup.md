@@ -10,7 +10,7 @@ Proposed
 
 ## Context
 
-The Flowrs project has extensive documentation in the form of ADRs, guides, and examples. However, this documentation is currently scattered across different directories and lacks a cohesive, easily navigable structure. To improve the developer experience and make the documentation more accessible, we need a documentation site that:
+The Floxide project has extensive documentation in the form of ADRs, guides, and examples. However, this documentation is currently scattered across different directories and lacks a cohesive, easily navigable structure. To improve the developer experience and make the documentation more accessible, we need a documentation site that:
 
 1. Presents all documentation in a unified, searchable format
 2. Provides clear navigation between different documentation types
@@ -18,11 +18,11 @@ The Flowrs project has extensive documentation in the form of ADRs, guides, and 
 4. Aligns with the project's technical nature through an appropriate theme
 5. Is easy to maintain and extend as the project grows
 
-MkDocs is a popular static site generator specifically designed for project documentation. It uses Markdown files as its source format, which aligns with our existing documentation approach. Additionally, there are terminal-themed options available that would match the technical nature of the Flowrs project.
+MkDocs is a popular static site generator specifically designed for project documentation. It uses Markdown files as its source format, which aligns with our existing documentation approach. Additionally, there are terminal-themed options available that would match the technical nature of the Floxide project.
 
 ## Decision
 
-We will implement MkDocs with a terminal theme for the Flowrs project documentation. Specifically:
+We will implement MkDocs with a terminal theme for the Floxide project documentation. Specifically:
 
 1. Use MkDocs as the documentation site generator
 2. Implement the "terminal" theme to align with the project's technical nature

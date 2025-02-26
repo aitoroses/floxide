@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use flowrs_core::{node, ActionType, FlowrsError, Node, NodeId, NodeOutcome, RetryNode, Workflow};
+use floxide_core::{node, ActionType, FloxideError, Node, NodeId, NodeOutcome, RetryNode, Workflow};
 use std::time::Duration;
 use tracing::{error, info, warn};
 use uuid::Uuid;
@@ -133,13 +133,13 @@ impl Node<OrderContext, OrderAction> for ValidateOrderNode {
     async fn process(
         &self,
         ctx: &mut OrderContext,
-    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FloxideError> {
         info!("Validating order {}", ctx.order_id);
 
         // Check if order has items
         if ctx.items.is_empty() {
             ctx.add_note("Validation failed: Order has no items");
-            return Err(FlowrsError::node_execution(self.id(), "Order has no items"));
+            return Err(FloxideError::node_execution(self.id(), "Order has no items"));
         }
 
         // Check if total is correct
@@ -149,7 +149,7 @@ impl Node<OrderContext, OrderAction> for ValidateOrderNode {
                 "Validation failed: Total amount mismatch: expected {}, got {}",
                 calculated_total, ctx.total_amount
             ));
-            return Err(FlowrsError::node_execution(
+            return Err(FloxideError::node_execution(
                 self.id(),
                 "Total amount mismatch",
             ));
@@ -158,7 +158,7 @@ impl Node<OrderContext, OrderAction> for ValidateOrderNode {
         // Check if shipping address is provided
         if ctx.shipping_address.is_none() {
             ctx.add_note("Validation failed: No shipping address provided");
-            return Err(FlowrsError::node_execution(
+            return Err(FloxideError::node_execution(
                 self.id(),
                 "No shipping address provided",
             ));
@@ -200,7 +200,7 @@ impl Node<OrderContext, OrderAction> for ProcessPaymentNode {
     async fn process(
         &self,
         ctx: &mut OrderContext,
-    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FloxideError> {
         ctx.payment_attempts += 1;
         info!(
             "Processing payment for order {} (attempt {})",
@@ -218,7 +218,7 @@ impl Node<OrderContext, OrderAction> for ProcessPaymentNode {
             );
             ctx.add_note(&note);
             warn!("{}", note);
-            return Err(FlowrsError::node_execution(
+            return Err(FloxideError::node_execution(
                 self.id(),
                 format!("Payment failed on attempt {}", ctx.payment_attempts),
             ));
@@ -261,7 +261,7 @@ impl Node<OrderContext, OrderAction> for ShipOrderNode {
     async fn process(
         &self,
         ctx: &mut OrderContext,
-    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FloxideError> {
         info!("Shipping order {}", ctx.order_id);
 
         // Clone needed values before mutating ctx
@@ -300,7 +300,7 @@ impl Node<OrderContext, OrderAction> for DeliverOrderNode {
     async fn process(
         &self,
         ctx: &mut OrderContext,
-    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FloxideError> {
         info!("Delivering order {}", ctx.order_id);
 
         ctx.update_status(OrderStatus::Delivered);
@@ -336,7 +336,7 @@ impl Node<OrderContext, OrderAction> for CancelOrderNode {
     async fn process(
         &self,
         ctx: &mut OrderContext,
-    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FlowrsError> {
+    ) -> Result<NodeOutcome<Self::Output, OrderAction>, FloxideError> {
         info!("Cancelling order {}", ctx.order_id);
 
         ctx.update_status(OrderStatus::Cancelled);

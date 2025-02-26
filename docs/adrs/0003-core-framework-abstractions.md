@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-The flowrs framework is designed as a directed graph workflow system that needs several key abstractions:
+The floxide framework is designed as a directed graph workflow system that needs several key abstractions:
 
 1. A core node interface for workflow steps
 2. A retry mechanism that handles failures
@@ -21,7 +21,7 @@ To create a robust and flexible framework, we need to determine how to implement
 
 ## Decision
 
-We will implement the core abstractions of the flowrs framework using a more idiomatic Rust approach that emphasizes clear ownership, strong typing, and composition over inheritance.
+We will implement the core abstractions of the floxide framework using a more idiomatic Rust approach that emphasizes clear ownership, strong typing, and composition over inheritance.
 
 ### Core Abstractions
 
@@ -149,7 +149,7 @@ fn create_order_workflow() -> Workflow<OrderContext, OrderAction> {
 }
 
 // Using the workflow
-async fn process_new_order(order: Order) -> Result<(), FlowrsError> {
+async fn process_new_order(order: Order) -> Result<(), FloxideError> {
     let mut context = OrderContext::from(order);
     let workflow = create_order_workflow();
     workflow.execute(&mut context).await
@@ -194,7 +194,7 @@ where
     type Output;
 
     /// Process this node with the given context
-    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FlowrsError>;
+    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FloxideError>;
 }
 ```
 
@@ -254,18 +254,18 @@ where
     }
 
     /// Execute the workflow with the provided context
-    pub async fn execute(&self, ctx: &mut Context) -> Result<(), FlowrsError> {
+    pub async fn execute(&self, ctx: &mut Context) -> Result<(), FloxideError> {
         let mut current = self.entry_point;
 
         loop {
             let node = self.nodes.get(&current)
-                .ok_or_else(|| FlowrsError::NodeNotFound(format!("{:?}", current)))?;
+                .ok_or_else(|| FloxideError::NodeNotFound(format!("{:?}", current)))?;
 
             match node.process(ctx).await? {
                 NodeOutcome::Complete(_) => return Ok(()),
                 NodeOutcome::Transition(action, _) => {
                     current = *self.edges.get(&(current, action.clone()))
-                        .ok_or_else(|| FlowrsError::EdgeNotFound(
+                        .ok_or_else(|| FloxideError::EdgeNotFound(
                             format!("{:?}", current),
                             format!("{:?}", action)
                         ))?;
@@ -310,7 +310,7 @@ where
 {
     type Output = N::Output;
 
-    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
+    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FloxideError> {
         let mut attempts = 0;
 
         loop {
@@ -424,9 +424,9 @@ where
     Context: BatchContext<ItemType> + Send,
     A: ActionType,
 {
-    type Output = Vec<Result<ItemNode::Output, FlowrsError>>;
+    type Output = Vec<Result<ItemNode::Output, FloxideError>>;
 
-    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
+    async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FloxideError> {
         let items = ctx.get_batch_items()?;
 
         let results = process_batch(
@@ -452,19 +452,19 @@ where
 
 /// Helper trait for contexts that support batch processing
 pub trait BatchContext<T> {
-    fn get_batch_items(&self) -> Result<Vec<T>, FlowrsError>;
-    fn create_item_context(&self, item: T) -> Result<Self, FlowrsError> where Self: Sized;
+    fn get_batch_items(&self) -> Result<Vec<T>, FloxideError>;
+    fn create_item_context(&self, item: T) -> Result<Self, FloxideError> where Self: Sized;
 }
 
 async fn process_batch<T, F, Fut, R>(
     items: Vec<T>,
     parallelism: usize,
     process_fn: F,
-) -> Vec<Result<R, FlowrsError>>
+) -> Vec<Result<R, FloxideError>>
 where
     T: Send + 'static,
     F: Fn(T) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Result<R, FlowrsError>> + Send,
+    Fut: Future<Output = Result<R, FloxideError>> + Send,
     R: Send + 'static,
 {
     use futures::stream::{self, StreamExt};
@@ -489,7 +489,7 @@ We'll provide helper functions to create nodes from closures:
 pub fn node<Context, A, T, F, Fut>(f: F) -> impl Node<Context, A, Output = T>
 where
     F: Fn(&mut Context) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = Result<NodeOutcome<T, A>, FlowrsError>> + Send + 'static,
+    Fut: Future<Output = Result<NodeOutcome<T, A>, FloxideError>> + Send + 'static,
     A: ActionType,
     T: 'static,
 {
@@ -501,12 +501,12 @@ where
     impl<F, T, Context, A, Fut> Node<Context, A> for SimpleNode<F, T, Context, A>
     where
         F: Fn(&mut Context) -> Fut + Send + Sync + 'static,
-        Fut: Future<Output = Result<NodeOutcome<T, A>, FlowrsError>> + Send + 'static,
+        Fut: Future<Output = Result<NodeOutcome<T, A>, FloxideError>> + Send + 'static,
         A: ActionType,
     {
         type Output = T;
 
-        async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<T, A>, FlowrsError> {
+        async fn process(&self, ctx: &mut Context) -> Result<NodeOutcome<T, A>, FloxideError> {
             (self.func)(ctx).await
         }
     }

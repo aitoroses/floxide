@@ -1,4 +1,4 @@
-//! # Flowrs - A directed graph workflow system in Rust
+//! # Floxide - A directed graph workflow system in Rust
 //!
 //! This crate provides a flexible, type-safe framework for building directed graph workflows.
 //! It allows you to create complex processing pipelines with clear transitions between steps.
@@ -21,32 +21,32 @@
 //!
 //! ```toml
 //! [dependencies]
-//! flowrs = { version = "1.0.0", features = ["transform", "event"] }
+//! floxide = { version = "1.0.0", features = ["transform", "event"] }
 //! ```
 
 // Re-export core components (enabled by default with the "core" feature)
 #[cfg(feature = "core")]
-pub use flowrs_core::*;
+pub use floxide_core::*;
 
 // Re-export transform functionality
 #[cfg(feature = "transform")]
-pub use flowrs_transform::*;
+pub use floxide_transform::*;
 
 // Re-export event functionality
 #[cfg(feature = "event")]
-pub use flowrs_event::*;
+pub use floxide_event::*;
 
 // Re-export timer functionality
 #[cfg(feature = "timer")]
-pub use flowrs_timer::*;
+pub use floxide_timer::*;
 
 // Re-export longrunning functionality
 #[cfg(feature = "longrunning")]
-pub use flowrs_longrunning::*;
+pub use floxide_longrunning::*;
 
 // Re-export reactive functionality
 #[cfg(feature = "reactive")]
-pub use flowrs_reactive::*;
+pub use floxide_reactive::*;
 
 /// Initialize the framework with default settings.
 ///

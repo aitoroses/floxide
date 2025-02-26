@@ -1,8 +1,8 @@
 //! Example demonstrating the ReactiveNode functionality for reacting to changes
 //! in external data sources.
 
-use flowrs_core::{DefaultAction, FlowrsError};
-use flowrs_reactive::{
+use floxide_core::{DefaultAction, FloxideError};
+use floxide_reactive::{
     CustomReactiveNode, FileChange, FileWatcherNode, ReactiveActionExt, ReactiveNode,
     ReactiveNodeAdapter,
 };
@@ -18,9 +18,9 @@ use tokio::time::sleep;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::{info, Level};
 
-// Helper function to convert IO errors to FlowrsError
-fn io_err_to_flowrs(err: std::io::Error) -> FlowrsError {
-    FlowrsError::Other(format!("IO error: {}", err))
+// Helper function to convert IO errors to FloxideError
+fn io_err_to_floxide(err: std::io::Error) -> FloxideError {
+    FloxideError::Other(format!("IO error: {}", err))
 }
 
 #[derive(Debug, Clone)]
@@ -87,7 +87,7 @@ impl SensorContext {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     // Initialize logging
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
@@ -101,13 +101,13 @@ async fn main() -> Result<(), FlowrsError> {
     Ok(())
 }
 
-async fn run_file_watcher_example() -> Result<(), FlowrsError> {
+async fn run_file_watcher_example() -> Result<(), FloxideError> {
     // Create a temporary file for demonstration
     let temp_file_path = "temp_watch_file.txt";
     {
-        let mut file = File::create(temp_file_path).map_err(io_err_to_flowrs)?;
+        let mut file = File::create(temp_file_path).map_err(io_err_to_floxide)?;
         file.write_all(b"Initial content")
-            .map_err(io_err_to_flowrs)?;
+            .map_err(io_err_to_floxide)?;
     }
     info!("Created temporary file at {}", temp_file_path);
 
@@ -167,9 +167,9 @@ async fn run_file_watcher_example() -> Result<(), FlowrsError> {
 
         // Modify the file
         let content = format!("Updated content {}", i);
-        let mut file = File::create(temp_file_path).map_err(io_err_to_flowrs)?;
+        let mut file = File::create(temp_file_path).map_err(io_err_to_floxide)?;
         file.write_all(content.as_bytes())
-            .map_err(io_err_to_flowrs)?;
+            .map_err(io_err_to_floxide)?;
         info!("Modified file: {}", content);
     }
 
@@ -178,14 +178,14 @@ async fn run_file_watcher_example() -> Result<(), FlowrsError> {
 
     // Clean up
     if Path::new(temp_file_path).exists() {
-        std::fs::remove_file(temp_file_path).map_err(io_err_to_flowrs)?;
+        std::fs::remove_file(temp_file_path).map_err(io_err_to_floxide)?;
         info!("Removed temporary file");
     }
 
     Ok(())
 }
 
-async fn run_sensor_data_example() -> Result<(), FlowrsError> {
+async fn run_sensor_data_example() -> Result<(), FloxideError> {
     // Create a custom reactive node for sensor data
     let sensor_node = CustomReactiveNode::<_, _, _, _, _>::new(
         || {

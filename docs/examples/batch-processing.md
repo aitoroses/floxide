@@ -1,6 +1,6 @@
 # Batch Processing Example
 
-This document provides a complete example of using batch processing capabilities in the Flowrs framework.
+This document provides a complete example of using batch processing capabilities in the Floxide framework.
 
 ## Overview
 
@@ -12,8 +12,8 @@ Before running this example, ensure you have the following dependencies in your 
 
 ```toml
 [dependencies]
-flowrs-core = "0.1.0"
-flowrs-transform = "0.1.0"
+floxide-core = "0.1.0"
+floxide-transform = "0.1.0"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
@@ -24,8 +24,8 @@ tokio = { version = "1.0", features = ["full"] }
 First, define the state and item types for your batch processing workflow:
 
 ```rust
-use flowrs_core::prelude::*;
-use flowrs_transform::prelude::*;
+use floxide_core::prelude::*;
+use floxide_transform::prelude::*;
 use std::sync::Arc;
 
 // Define a state type to track processing
@@ -52,7 +52,7 @@ Next, create a batch context that will manage the collection of items:
 struct DataBatchContext {
     state: ProcessingState,
     items: Vec<DataItem>,
-    results: Vec<Result<DataItem, FlowrsError>>,
+    results: Vec<Result<DataItem, FloxideError>>,
 }
 
 impl DataBatchContext {
@@ -67,17 +67,17 @@ impl DataBatchContext {
         }
     }
 
-    fn get_results(&self) -> &Vec<Result<DataItem, FlowrsError>> {
+    fn get_results(&self) -> &Vec<Result<DataItem, FloxideError>> {
         &self.results
     }
 }
 
 impl BatchContext<DataItem> for DataBatchContext {
-    fn get_batch_items(&self) -> Result<Vec<DataItem>, FlowrsError> {
+    fn get_batch_items(&self) -> Result<Vec<DataItem>, FloxideError> {
         Ok(self.items.clone())
     }
 
-    fn create_item_context(&self, item: DataItem) -> Result<Self, FlowrsError> {
+    fn create_item_context(&self, item: DataItem) -> Result<Self, FloxideError> {
         Ok(Self {
             state: self.state.clone(),
             items: vec![item],
@@ -85,7 +85,7 @@ impl BatchContext<DataItem> for DataBatchContext {
         })
     }
 
-    fn update_with_results(&mut self, results: Vec<Result<DataItem, FlowrsError>>) -> Result<(), FlowrsError> {
+    fn update_with_results(&mut self, results: Vec<Result<DataItem, FloxideError>>) -> Result<(), FloxideError> {
         self.results = results;
 
         // Update state based on results
@@ -113,7 +113,7 @@ impl Node for DataProcessorNode {
     type Context = DataBatchContext;
     type Action = NextAction;
 
-    async fn run(&self, ctx: &mut Self::Context) -> Result<Self::Action, FlowrsError> {
+    async fn run(&self, ctx: &mut Self::Context) -> Result<Self::Action, FloxideError> {
         // Process a single item (this will be called for each item in the batch)
         if let Some(item) = ctx.get_batch_items()?.first() {
             println!("Processing item {}: {}", item.id, item.value);
@@ -142,7 +142,7 @@ Finally, create and execute a batch flow:
 
 ```rust
 #[tokio::main]
-async fn main() -> Result<(), FlowrsError> {
+async fn main() -> Result<(), FloxideError> {
     // Create sample data
     let items = vec![
         DataItem { id: 1, value: "item1".to_string() },
@@ -213,11 +213,11 @@ Processed item 5: ITEM5
 You can add error handling to your batch processing node:
 
 ```rust
-async fn run(&self, ctx: &mut Self::Context) -> Result<Self::Action, FlowrsError> {
+async fn run(&self, ctx: &mut Self::Context) -> Result<Self::Action, FloxideError> {
     if let Some(item) = ctx.get_batch_items()?.first() {
         // Simulate an error for items with even IDs
         if item.id % 2 == 0 {
-            return Err(FlowrsError::ProcessingFailed(format!("Failed to process item {}", item.id)));
+            return Err(FloxideError::ProcessingFailed(format!("Failed to process item {}", item.id)));
         }
 
         // Process normally for odd IDs
@@ -248,10 +248,10 @@ impl CustomBatchProcessor {
         Self { concurrency_limit, retry_count }
     }
 
-    async fn process_with_retry<T, F, Fut>(&self, items: Vec<T>, processor: F) -> Vec<Result<T, FlowrsError>>
+    async fn process_with_retry<T, F, Fut>(&self, items: Vec<T>, processor: F) -> Vec<Result<T, FloxideError>>
     where
         F: Fn(T) -> Fut + Send + Sync + Clone + 'static,
-        Fut: Future<Output = Result<T, FlowrsError>> + Send,
+        Fut: Future<Output = Result<T, FloxideError>> + Send,
         T: Clone + Send + 'static,
     {
         // Implementation with retry logic
@@ -262,6 +262,6 @@ impl CustomBatchProcessor {
 
 ## Conclusion
 
-This example demonstrates how to use batch processing in the Flowrs framework to efficiently process collections of items in parallel. By leveraging the `BatchContext`, `BatchNode`, and `BatchFlow` abstractions, you can create powerful and flexible batch processing workflows.
+This example demonstrates how to use batch processing in the Floxide framework to efficiently process collections of items in parallel. By leveraging the `BatchContext`, `BatchNode`, and `BatchFlow` abstractions, you can create powerful and flexible batch processing workflows.
 
 For more information on batch processing, refer to the [Batch Processing Implementation](../architecture/batch-processing-implementation.md) documentation.

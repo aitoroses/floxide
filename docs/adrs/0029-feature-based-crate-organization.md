@@ -10,14 +10,14 @@ Accepted
 
 ## Context
 
-Currently, the FlowRS framework is organized as a workspace with multiple subcrates, each providing specific functionality:
+Currently, the Floxide framework is organized as a workspace with multiple subcrates, each providing specific functionality:
 
-- `flowrs-core`: Core abstractions and functionality
-- `flowrs-transform`: Transform node implementations
-- `flowrs-event`: Event-driven workflow functionality
-- `flowrs-timer`: Time-based workflow functionality
-- `flowrs-longrunning`: Long-running process functionality
-- `flowrs-reactive`: Reactive workflow functionality
+- `floxide-core`: Core abstractions and functionality
+- `floxide-transform`: Transform node implementations
+- `floxide-event`: Event-driven workflow functionality
+- `floxide-timer`: Time-based workflow functionality
+- `floxide-longrunning`: Long-running process functionality
+- `floxide-reactive`: Reactive workflow functionality
 
 While this modular approach provides flexibility, it also introduces complexity for users who need to manage multiple dependencies. We want to maintain the ability to selectively include functionality while simplifying the user experience.
 
@@ -25,7 +25,7 @@ While this modular approach provides flexibility, it also introduces complexity 
 
 We will reorganize the crate structure to use feature flags instead of separate crates for publishing. This approach will:
 
-1. Publish a single crate named `flowrs` to crates.io
+1. Publish a single crate named `floxide` to crates.io
 2. Use feature flags to enable/disable specific functionality
 3. Maintain the workspace structure for development
 4. Conditionally re-export modules based on enabled features
@@ -44,7 +44,7 @@ The following features will be defined:
 
 ### Implementation Approach
 
-1. Keep the root crate name as `flowrs` in Cargo.toml
+1. Keep the root crate name as `floxide` in Cargo.toml
 2. Add feature definitions that conditionally include subcrates
 3. Modify src/lib.rs to conditionally re-export modules based on enabled features
 4. Update examples to use the appropriate features
@@ -58,7 +58,7 @@ The following features will be defined:
 2. **Reduced Dependency Management**: No need to manage version compatibility between subcrates
 3. **Flexible Inclusion**: Users can include only the functionality they need
 4. **Smaller Binaries**: Applications only include the code they use
-5. **Consistent Branding**: Maintains the "flowrs" name across all components
+5. **Consistent Branding**: Maintains the "floxide" name across all components
 
 ### Negative
 

@@ -1,10 +1,10 @@
-# Error Handling in Flowrs
+# Error Handling in Floxide
 
-This guide explains how to handle errors effectively in the Flowrs framework.
+This guide explains how to handle errors effectively in the Floxide framework.
 
 ## Overview
 
-Flowrs provides a comprehensive error handling system that allows you to:
+Floxide provides a comprehensive error handling system that allows you to:
 - Define custom error types for your nodes
 - Handle errors at different lifecycle phases
 - Implement recovery strategies
@@ -12,12 +12,12 @@ Flowrs provides a comprehensive error handling system that allows you to:
 
 ## Error Types
 
-### FlowrsError
+### FloxideError
 
-The core error type in Flowrs is `FlowrsError`:
+The core error type in Floxide is `FloxideError`:
 
 ```rust
-pub enum FlowrsError {
+pub enum FloxideError {
     NodeError(String),
     WorkflowError(String),
     StateError(String),
@@ -40,9 +40,9 @@ pub enum MyNodeError {
     ProcessingError(String),
 }
 
-impl From<MyNodeError> for FlowrsError {
+impl From<MyNodeError> for FloxideError {
     fn from(err: MyNodeError) -> Self {
-        FlowrsError::NodeError(err.to_string())
+        FloxideError::NodeError(err.to_string())
     }
 }
 ```
@@ -54,18 +54,18 @@ impl From<MyNodeError> for FlowrsError {
 ```rust
 #[async_trait]
 impl LifecycleNode<MyContext, DefaultAction> for MyNode {
-    async fn prep(&self, ctx: &mut MyContext) -> Result<Self::PrepOutput, FlowrsError> {
+    async fn prep(&self, ctx: &mut MyContext) -> Result<Self::PrepOutput, FloxideError> {
         match validate_input(ctx) {
             Ok(input) => Ok(input),
             Err(e) => Err(MyNodeError::ValidationError(e.to_string()).into()),
         }
     }
 
-    async fn exec(&self, input: Self::PrepOutput) -> Result<Self::ExecOutput, FlowrsError> {
+    async fn exec(&self, input: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         process_data(input).map_err(|e| MyNodeError::ProcessingError(e.to_string()).into())
     }
 
-    async fn post(&self, output: Self::ExecOutput) -> Result<DefaultAction, FlowrsError> {
+    async fn post(&self, output: Self::ExecOutput) -> Result<DefaultAction, FloxideError> {
         Ok(DefaultAction::Next)
     }
 }
@@ -100,9 +100,9 @@ impl TransformNode<Input, Output, MyNodeError> for MyTransformNode {
 
 ```rust
 impl MyNode {
-    async fn with_retry<T, F>(&self, f: F) -> Result<T, FlowrsError>
+    async fn with_retry<T, F>(&self, f: F) -> Result<T, FloxideError>
     where
-        F: Fn() -> Future<Output = Result<T, FlowrsError>>,
+        F: Fn() -> Future<Output = Result<T, FloxideError>>,
     {
         let mut attempts = 0;
         while attempts < 3 {
@@ -126,7 +126,7 @@ impl MyNode {
 
 ```rust
 impl MyNode {
-    async fn with_fallback<T>(&self, f: impl Fn() -> T) -> Result<T, FlowrsError> {
+    async fn with_fallback<T>(&self, f: impl Fn() -> T) -> Result<T, FloxideError> {
         match self.process_data().await {
             Ok(result) => Ok(result),
             Err(_) => Ok(f()),
@@ -152,7 +152,7 @@ let workflow = Workflow::new(node1)
 
 ```rust
 impl MyContext {
-    fn record_error(&mut self, error: &FlowrsError) {
+    fn record_error(&mut self, error: &FloxideError) {
         self.errors.push(ErrorRecord {
             timestamp: Utc::now(),
             message: error.to_string(),
@@ -166,7 +166,7 @@ impl MyContext {
 1. **Custom Error Types**
    - Define specific error types for your nodes
    - Use `thiserror` for error definitions
-   - Implement `From` for `FlowrsError`
+   - Implement `From` for `FloxideError`
 
 2. **Error Context**
    - Include relevant context in errors

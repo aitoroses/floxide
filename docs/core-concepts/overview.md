@@ -1,10 +1,10 @@
 # Core Concepts Overview
 
-Flowrs is built around a set of core concepts that form the foundation of the framework. Understanding these concepts is essential for effectively using Flowrs to build workflows.
+Floxide is built around a set of core concepts that form the foundation of the framework. Understanding these concepts is essential for effectively using Floxide to build workflows.
 
 ## Key Abstractions
 
-Flowrs is designed with a trait-based architecture that provides flexibility and type safety. The key abstractions are:
+Floxide is designed with a trait-based architecture that provides flexibility and type safety. The key abstractions are:
 
 ### Nodes
 
@@ -39,7 +39,7 @@ The most common type of node is the `LifecycleNode`, which follows a three-phase
 
 ## Workflow Patterns
 
-Flowrs supports various workflow patterns through its modular crate system:
+Floxide supports various workflow patterns through its modular crate system:
 
 ### Linear Workflows
 
@@ -108,7 +108,7 @@ graph TD
 
 ## Type Safety
 
-One of the key features of Flowrs is its emphasis on type safety. The framework leverages Rust's type system to ensure that:
+One of the key features of Floxide is its emphasis on type safety. The framework leverages Rust's type system to ensure that:
 
 - Nodes can only be connected if their input and output types are compatible
 - Actions are type-checked at compile time
@@ -118,11 +118,11 @@ This type safety helps catch errors at compile time rather than runtime, leading
 
 ## Async Execution
 
-Flowrs is built with asynchronous execution in mind. All node execution is asynchronous, allowing for efficient handling of I/O-bound operations. The framework uses Tokio as its async runtime, providing a solid foundation for concurrent execution.
+Floxide is built with asynchronous execution in mind. All node execution is asynchronous, allowing for efficient handling of I/O-bound operations. The framework uses Tokio as its async runtime, providing a solid foundation for concurrent execution.
 
 ## Next Steps
 
-Now that you understand the core concepts of Flowrs, you can explore each concept in more detail:
+Now that you understand the core concepts of Floxide, you can explore each concept in more detail:
 
 - [Nodes](nodes.md): Learn about the different types of nodes and how to create them
 - [Workflows](workflows.md): Understand how to build and execute workflows

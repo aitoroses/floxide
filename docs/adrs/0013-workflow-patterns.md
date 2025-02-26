@@ -10,13 +10,13 @@ Accepted
 
 ## Context
 
-The Flowrs framework is designed as a directed graph workflow system that can support various workflow patterns. To provide a comprehensive and flexible framework, we need to define and document the core workflow patterns that the framework will support. These patterns represent common use cases and architectural approaches for building workflows.
+The Floxide framework is designed as a directed graph workflow system that can support various workflow patterns. To provide a comprehensive and flexible framework, we need to define and document the core workflow patterns that the framework will support. These patterns represent common use cases and architectural approaches for building workflows.
 
 Users of the framework need clear guidance on how to implement different types of workflows to solve various business problems. By defining these patterns explicitly, we can ensure the framework's design accommodates all these use cases and provides appropriate abstractions.
 
 ## Decision
 
-We will support eight core workflow patterns in the Flowrs framework, each addressing different workflow requirements:
+We will support eight core workflow patterns in the Floxide framework, each addressing different workflow requirements:
 
 ### 1. Node
 
@@ -28,7 +28,7 @@ We will support eight core workflow patterns in the Flowrs framework, each addre
 pub trait Node<Context, A: ActionType> {
     type Output;
 
-    async fn process(&self, context: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FlowrsError>;
+    async fn process(&self, context: &mut Context) -> Result<NodeOutcome<Self::Output, A>, FloxideError>;
 }
 ```
 
@@ -75,7 +75,7 @@ where
         // Implementation details
     }
 
-    pub async fn execute_all(&self, contexts: &mut [C]) -> Vec<Result<N::Output, FlowrsError>> {
+    pub async fn execute_all(&self, contexts: &mut [C]) -> Vec<Result<N::Output, FloxideError>> {
         // Implementation details
     }
 }
@@ -90,7 +90,7 @@ where
 **Implementation**: Leverages Rust's async/await syntax and the Tokio runtime for asynchronous execution.
 
 ```rust
-pub async fn execute<C, A>(&self, context: &mut C) -> Result<Self::Output, FlowrsError>
+pub async fn execute<C, A>(&self, context: &mut C) -> Result<Self::Output, FloxideError>
 where
     A: ActionType,
 {
@@ -177,7 +177,7 @@ where
 {
     type Output = W::Output;
 
-    async fn process(&self, context: &mut C) -> Result<NodeOutcome<Self::Output, A>, FlowrsError> {
+    async fn process(&self, context: &mut C) -> Result<NodeOutcome<Self::Output, A>, FloxideError> {
         // Implementation details
     }
 }
@@ -443,7 +443,7 @@ In addition to the core workflow patterns, we recognize that the framework will 
 
 ### Positive
 
-1. **Comprehensive Framework**: By supporting these eight patterns, Flowrs can address a wide range of workflow requirements.
+1. **Comprehensive Framework**: By supporting these eight patterns, Floxide can address a wide range of workflow requirements.
 2. **Clear Documentation**: Explicitly defining these patterns provides clear guidance to users on how to implement different types of workflows.
 3. **Consistent Design**: Having these patterns defined upfront ensures the framework's design is consistent and accommodates all these use cases.
 4. **Flexibility**: The combination of these patterns allows for complex workflow designs that can solve real-world problems.

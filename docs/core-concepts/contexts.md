@@ -1,10 +1,10 @@
 # Contexts
 
-Contexts are a fundamental concept in the Flowrs framework that provide a way to share state between nodes in a workflow. They serve as the primary mechanism for passing data through the workflow execution pipeline.
+Contexts are a fundamental concept in the Floxide framework that provide a way to share state between nodes in a workflow. They serve as the primary mechanism for passing data through the workflow execution pipeline.
 
 ## What is a Context?
 
-A context in Flowrs is a container for state that is passed between nodes during workflow execution. It encapsulates all the data needed for a node to perform its operations and allows nodes to communicate with each other by modifying and passing along this state.
+A context in Floxide is a container for state that is passed between nodes during workflow execution. It encapsulates all the data needed for a node to perform its operations and allows nodes to communicate with each other by modifying and passing along this state.
 
 Contexts are strongly typed, which means that the type of data they can contain is defined at compile time. This provides type safety and ensures that nodes can only access and modify data in ways that are compatible with the defined types.
 
@@ -20,14 +20,14 @@ Contexts follow a lifecycle that aligns with the node execution lifecycle:
 
 ## Context Types
 
-Flowrs supports several types of contexts to accommodate different workflow patterns:
+Floxide supports several types of contexts to accommodate different workflow patterns:
 
 ### Basic Context
 
 The basic context is used for simple workflows where a single state object is passed between nodes. It is defined using a generic type parameter that specifies the type of state it can contain.
 
 ```rust
-use flowrs_core::context::Context;
+use floxide_core::context::Context;
 
 // Define a state type
 struct MyState {
@@ -43,7 +43,7 @@ let context = Context::new(MyState { value: 42 });
 The batch context is used for batch processing workflows where multiple items need to be processed in parallel. It extends the basic context with functionality for managing a collection of items.
 
 ```rust
-use flowrs_batch::context::BatchContext;
+use floxide_batch::context::BatchContext;
 
 // Define a state type
 struct MyState {
@@ -59,7 +59,7 @@ let context = BatchContext::new(MyState { values: vec![1, 2, 3, 4, 5] });
 The event context is used for event-driven workflows where nodes can emit and respond to events. It extends the basic context with functionality for event handling.
 
 ```rust
-use flowrs_event::context::EventContext;
+use floxide_event::context::EventContext;
 
 // Define a state type
 struct MyState {
@@ -78,8 +78,8 @@ Nodes can access and modify the state contained in a context using the context's
 - `state_mut()`: Returns a mutable reference to the state.
 
 ```rust
-use flowrs_core::context::Context;
-use flowrs_core::node::{Node, NodeResult};
+use floxide_core::context::Context;
+use floxide_core::node::{Node, NodeResult};
 
 struct MyNode;
 
@@ -106,7 +106,7 @@ For example, the `BatchContext` extends the basic `Context` with methods for bat
 
 ## Best Practices
 
-When working with contexts in Flowrs, consider the following best practices:
+When working with contexts in Floxide, consider the following best practices:
 
 1. **Keep state minimal**: Include only the data that is necessary for the workflow execution.
 2. **Use appropriate context types**: Choose the context type that best matches your workflow pattern.
@@ -122,4 +122,4 @@ When working with contexts in Flowrs, consider the following best practices:
 
 ## Conclusion
 
-Contexts are a powerful abstraction in the Flowrs framework that enable type-safe state management and communication between nodes in a workflow. By understanding how to use contexts effectively, you can build robust and maintainable workflow applications.
+Contexts are a powerful abstraction in the Floxide framework that enable type-safe state management and communication between nodes in a workflow. By understanding how to use contexts effectively, you can build robust and maintainable workflow applications.

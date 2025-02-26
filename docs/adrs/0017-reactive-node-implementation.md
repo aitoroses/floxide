@@ -29,7 +29,7 @@ The challenges include:
 
 ## Decision
 
-We will implement a `ReactiveNode` trait and supporting infrastructure in a new `flowrs-reactive` crate with the following components:
+We will implement a `ReactiveNode` trait and supporting infrastructure in a new `floxide-reactive` crate with the following components:
 
 ### 1. Core Trait and Types
 
@@ -44,14 +44,14 @@ where
     Action: ActionType + Send + Sync + 'static + Debug,
 {
     /// Set up a stream of changes to watch
-    async fn watch(&self) -> Result<impl Stream<Item = Change> + Send, FlowrsError>;
+    async fn watch(&self) -> Result<impl Stream<Item = Change> + Send, FloxideError>;
 
     /// React to a detected change
     async fn react_to_change(
         &self,
         change: Change,
         ctx: &mut Context,
-    ) -> Result<Action, FlowrsError>;
+    ) -> Result<Action, FloxideError>;
 
     /// Get the node's unique identifier
     fn id(&self) -> NodeId;
@@ -176,7 +176,7 @@ let ctx_clone = ctx.clone();
 We could have used a callback-based approach instead of streams:
 
 ```rust
-async fn on_change(&self, callback: impl Fn(Change) -> Result<Action, FlowrsError>);
+async fn on_change(&self, callback: impl Fn(Change) -> Result<Action, FloxideError>);
 ```
 
 This would be simpler in some ways but less flexible and harder to integrate with other async code. Streams provide better composition and more control over backpressure.
@@ -186,7 +186,7 @@ This would be simpler in some ways but less flexible and harder to integrate wit
 We could have used a polling-based approach instead of reactive streams:
 
 ```rust
-async fn check_for_changes(&self) -> Result<Option<Change>, FlowrsError>;
+async fn check_for_changes(&self) -> Result<Option<Change>, FloxideError>;
 ```
 
 This would be simpler to implement but less efficient and less idiomatic for truly reactive patterns.
