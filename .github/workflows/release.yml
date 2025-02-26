@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g., v1.0.1)"
+        required: true
+        type: string
 
 # Sets permissions of the GITHUB_TOKEN to allow creating releases
 permissions:
@@ -17,7 +23,23 @@ jobs:
     name: Publish to crates.io
     runs-on: ubuntu-latest
     steps:
+      - name: Determine tag ref
+        id: determine_ref
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG_REF=refs/tags/${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_REF=${{ github.ref }}" >> $GITHUB_OUTPUT
+          fi
+
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.determine_ref.outputs.TAG_REF }}
+          fetch-depth: 0
+
+      - name: Fetch annotated tag (workaround for actions/checkout#290)
+        run: |
+          git fetch --force origin ${{ steps.determine_ref.outputs.TAG_REF }}:${{ steps.determine_ref.outputs.TAG_REF }}
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -38,7 +60,12 @@ jobs:
 
       - name: Verify tag version matches Cargo.toml
         run: |
-          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG_VERSION="${{ github.event.inputs.tag }}"
+            TAG_VERSION=${TAG_VERSION#v}
+          else
+            TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          fi
           CARGO_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
           if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
             echo "Tag version ($TAG_VERSION) does not match Cargo.toml version ($CARGO_VERSION)"
