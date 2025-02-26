@@ -36,6 +36,7 @@ jobs:
         with:
           ref: ${{ steps.determine_ref.outputs.TAG_REF }}
           fetch-depth: 0
+          token: ${{ secrets.WORKFLOW_PAT }}
 
       - name: Fetch annotated tag (workaround for actions/checkout#290)
         run: |
@@ -79,11 +80,11 @@ jobs:
       - name: Update subcrate versions
         run: ./scripts/update_subcrate_versions.sh
 
-      # Update dependency versions to match workspace version
+      # Update dependency versions in the root crate
       - name: Update dependency versions
         run: ./scripts/update_dependency_versions.sh
 
-      # Publish subcrates first (needed for workspace dependencies)
+      # Publish flowrs-core
       - name: Publish flowrs-core
         working-directory: ./crates/flowrs-core
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
@@ -130,10 +131,14 @@ jobs:
       - name: Publish flowrs (root)
         run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
 
+      # Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ steps.determine_ref.outputs.TAG_REF }}
+          name: Release ${{ steps.determine_ref.outputs.TAG_REF }}
+          draft: false
+          prerelease: false
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

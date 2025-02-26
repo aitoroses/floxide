@@ -12,27 +12,27 @@ flowchart TD
     
     G --> H[GitHub Actions workflow triggered by tag]
     
-    H --> I[Checkout code at tag ref]
+    H --> I[Checkout code at tag ref using WORKFLOW_PAT]
     I --> J[Verify tag version matches Cargo.toml version]
     J --> K[Run tests with all features]
     K --> L1[Run update_subcrate_versions.sh again]
     L1 --> L2[Run update_dependency_versions.sh again]
     
-    L2 --> M[Publish flowrs-core subcrate]
+    L2 --> M[Publish flowrs-core subcrate using CRATES_IO_TOKEN]
     M --> N[Wait for crates.io indexing]
-    N --> O[Publish flowrs-transform subcrate]
+    N --> O[Publish flowrs-transform subcrate using CRATES_IO_TOKEN]
     O --> P[Wait for crates.io indexing]
-    P --> Q[Publish flowrs-event subcrate]
+    P --> Q[Publish flowrs-event subcrate using CRATES_IO_TOKEN]
     Q --> R[Wait for crates.io indexing]
-    R --> S[Publish flowrs-timer subcrate]
+    R --> S[Publish flowrs-timer subcrate using CRATES_IO_TOKEN]
     S --> T[Wait for crates.io indexing]
-    T --> U[Publish flowrs-longrunning subcrate]
+    T --> U[Publish flowrs-longrunning subcrate using CRATES_IO_TOKEN]
     U --> V[Wait for crates.io indexing]
-    V --> W[Publish flowrs-reactive subcrate]
+    V --> W[Publish flowrs-reactive subcrate using CRATES_IO_TOKEN]
     W --> X[Wait for crates.io indexing]
     
-    X --> Y[Publish root flowrs crate]
-    Y --> Z[Create GitHub Release]
+    X --> Y[Publish root flowrs crate using CRATES_IO_TOKEN]
+    Y --> Z[Create GitHub Release using GITHUB_TOKEN]
 ```
 
 ## Explanation
@@ -49,14 +49,14 @@ flowchart TD
 ### 2. Release Workflow (CI/CD)
 
 - **Workflow triggered**: The GitHub Actions workflow is triggered by the new tag.
-- **Checkout code**: The workflow checks out the code at the tag reference.
+- **Checkout code**: The workflow checks out the code at the tag reference using the `WORKFLOW_PAT` token for authentication.
 - **Verify versions**: It verifies that the tag version matches the version in Cargo.toml.
 - **Run tests**: All tests are run with all features enabled to ensure everything works.
 - **Run update scripts again**: Both scripts are run again to ensure all versions are correct.
 
 ### 3. Publication Phase (CI/CD)
 
-- **Publish subcrates in order**: The workflow publishes each subcrate in a specific order:
+- **Publish subcrates in order**: The workflow publishes each subcrate in a specific order using the `CRATES_IO_TOKEN` for authentication:
   1. `flowrs-core`
   2. `flowrs-transform`
   3. `flowrs-event`
@@ -65,7 +65,7 @@ flowchart TD
   6. `flowrs-reactive`
 - **Wait for indexing**: After each subcrate is published, the workflow waits for crates.io to index it.
 - **Publish root crate**: Finally, the root `flowrs` crate is published, which depends on all the subcrates.
-- **Create GitHub Release**: A GitHub Release is created with release notes.
+- **Create GitHub Release**: A GitHub Release is created with release notes using the `GITHUB_TOKEN` token.
 
 ### Key Points
 
@@ -75,5 +75,9 @@ flowchart TD
 2. **Publication Order**: Subcrates must be published before the root crate to ensure dependencies are available on crates.io.
 3. **Waiting Periods**: The workflow includes waiting periods to allow crates.io to index each published crate.
 4. **Verification**: The workflow verifies that the tag version matches the Cargo.toml version to prevent mismatches.
+5. **Authentication Tokens**:
+   - `WORKFLOW_PAT`: GitHub Personal Access Token used for repository operations that need to trigger other workflows (checkout)
+   - `GITHUB_TOKEN`: Automatically provided token used for GitHub operations (creating releases)
+   - `CRATES_IO_TOKEN`: Crates.io API token used for publishing packages to crates.io
 
-This process ensures that all crates in the workspace are published with consistent versions and that dependencies are available when needed during the publication process. 
+This process ensures that all crates in the workspace are published with consistent versions and that dependencies are available when needed during the publication process. The authentication tokens provide secure access to both GitHub and crates.io, enabling the automated release process to run without manual intervention. 
