@@ -280,7 +280,7 @@ checksum = "b7914353092ddf589ad78f25c5c1c21b7f80b0ff8621e7c814c3485b5306da9d"
 
 [[package]]
 name = "flowrs"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-benches"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "criterion",
  "flowrs-core",
@@ -313,7 +313,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-core"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "async-trait",
  "futures",
@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-event"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "async-trait",
  "flowrs-core",
@@ -339,7 +339,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-longrunning"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -355,7 +355,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-reactive"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "async-trait",
  "flowrs-core",
@@ -369,7 +369,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-timer"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -382,7 +382,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-transform"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "async-trait",
  "flowrs-core",
