@@ -125,13 +125,21 @@ jobs:
                   
                   # Manually trigger the release workflow since automatic trigger is not reliable
                   echo "Manually triggering the release workflow..."
-                  curl -X POST \
-                    -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                    -H "Accept: application/vnd.github.v3+json" \
-                    https://api.github.com/repos/${{ github.repository }}/actions/workflows/release.yml/dispatches \
-                    -d "{\"ref\":\"${{ github.ref }}\", \"inputs\": {\"tag\": \"$TAG_NAME\"}}"
-                  
-                  echo "Release workflow manually triggered."
+                  if [ -n "${{ secrets.WORKFLOW_PAT }}" ]; then
+                    curl -X POST \
+                      -H "Authorization: token ${{ secrets.WORKFLOW_PAT }}" \
+                      -H "Accept: application/vnd.github.v3+json" \
+                      https://api.github.com/repos/${{ github.repository }}/actions/workflows/release.yml/dispatches \
+                      -d "{\"ref\":\"refs/heads/main\", \"inputs\": {\"tag\": \"$TAG_NAME\"}}" \
+                      --fail \
+                      || echo "::warning::Failed to trigger release workflow via API."
+                    
+                    echo "Release workflow manually triggered."
+                  else
+                    echo "::warning::To automatically trigger the release workflow, you need to create a Personal Access Token (PAT)"
+                    echo "::warning::with 'workflow' permission and store it as a repository secret named WORKFLOW_PAT."
+                    echo "::warning::Alternatively, you can manually trigger the release workflow from the Actions tab with tag: $TAG_NAME"
+                  fi
                 else
                   echo "Warning: Tag $TAG_NAME not found on remote. Release workflow may not trigger."
                 fi

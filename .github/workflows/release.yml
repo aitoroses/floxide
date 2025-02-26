@@ -75,6 +75,10 @@ jobs:
       - name: Run tests with all features
         run: cargo test --all-features
 
+      # Update dependency versions to match workspace version
+      - name: Update dependency versions
+        run: ./scripts/update_dependency_versions.sh
+
       # Publish subcrates first (needed for workspace dependencies)
       - name: Publish flowrs-core
         working-directory: ./crates/flowrs-core
