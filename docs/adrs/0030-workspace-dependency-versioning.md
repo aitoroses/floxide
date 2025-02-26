@@ -190,4 +190,36 @@ For future consideration:
 ## Related ADRs
 
 - [ADR 0014: Crate Publishing and CI/CD](0014-crate-publishing-and-cicd.md)
-- [ADR 0029: Feature-Based Crate Organization](0029-feature-based-crate-organization.md) 
+- [ADR 0029: Feature-Based Crate Organization](0029-feature-based-crate-organization.md)
+
+## Additional Considerations
+
+### Consistent Version Formats
+
+When specifying versions for internal dependencies in the root crate, it's important to maintain a consistent format. We encountered issues with mixed version formats:
+
+```toml
+# Inconsistent version formats
+flowrs-core = { path = "./crates/flowrs-core", version = "1.0.2", optional = true }  # No equals sign
+flowrs-event = { path = "./crates/flowrs-event", version = "=1.0.3", optional = true }  # With equals sign
+```
+
+The `update_dependency_versions.sh` script has been enhanced to handle both formats:
+- Version specifications with no equals sign: `version = "1.0.3"`
+- Version specifications with equals sign: `version = "=1.0.3"`
+
+Additionally, the script now handles cases where the `version` attribute might appear before the `path` attribute in the dependency specification.
+
+### Publishing Order Importance
+
+When publishing to crates.io, all dependencies must have explicit version specifications, even for local path dependencies. If a subcrate is published without all its dependencies having explicit versions, the publish will fail with an error like:
+
+```
+error: all dependencies must have a version specified when publishing.
+dependency `flowrs-core` does not specify a version
+```
+
+This reinforces the importance of:
+1. Running the `update_dependency_versions.sh` script before publishing
+2. Following the correct publishing order (subcrates first, then the root crate)
+3. Ensuring all version numbers are consistent across the workspace 
