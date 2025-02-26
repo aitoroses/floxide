@@ -75,6 +75,10 @@ jobs:
       - name: Run tests with all features
         run: cargo test --all-features
 
+      # Update subcrate versions to use workspace inheritance
+      - name: Update subcrate versions
+        run: ./scripts/update_subcrate_versions.sh
+
       # Update dependency versions to match workspace version
       - name: Update dependency versions
         run: ./scripts/update_dependency_versions.sh

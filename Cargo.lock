@@ -326,7 +326,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-event"
-version = "1.0.0"
+version = "1.0.2"
 dependencies = [
  "async-trait",
  "flowrs-core",
@@ -339,7 +339,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-longrunning"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "async-trait",
  "chrono",
@@ -355,7 +355,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-reactive"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "async-trait",
  "flowrs-core",
@@ -369,7 +369,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-timer"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "async-trait",
  "chrono",

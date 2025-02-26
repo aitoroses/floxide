@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-event"
-version = "1.0.0"
+version.workspace = true
 edition = "2021"
 authors = ["Aitor Oses <aitor.oses@gmail.com>"]
 license = "MIT OR Apache-2.0"
