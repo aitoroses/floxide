@@ -11,7 +11,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 authors = ["Flowrs Contributors"]
 license = "MIT"
@@ -77,10 +77,10 @@ tokio-stream.workspace = true
 # Feature-gated dependencies
 flowrs-core = { path = "./crates/flowrs-core", version = "1.0.2", optional = true }
 flowrs-transform = { path = "./crates/flowrs-transform", version = "1.0.2", optional = true }
-flowrs-event = { path = "./crates/flowrs-event", version = "1.0.2", optional = true }
-flowrs-timer = { path = "./crates/flowrs-timer", version = "1.0.2", optional = true }
-flowrs-longrunning = { path = "./crates/flowrs-longrunning", version = "1.0.2", optional = true }
-flowrs-reactive = { path = "./crates/flowrs-reactive", version = "1.0.2", optional = true }
+flowrs-event = { path = "./crates/flowrs-event", version = "=1.0.3", optional = true }
+flowrs-timer = { path = "./crates/flowrs-timer", version = "=1.0.3", optional = true }
+flowrs-longrunning = { path = "./crates/flowrs-longrunning", version = "=1.0.3", optional = true }
+flowrs-reactive = { path = "./crates/flowrs-reactive", version = "=1.0.3", optional = true }
 
 # Example configurations
 [[example]]
