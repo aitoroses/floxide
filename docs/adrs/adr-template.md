@@ -8,7 +8,7 @@ Proposed
 
 ## Date
 
-<!-- YYYY-MM-DD -->
+2025-02-27
 
 YYYY-MM-DD
 
