@@ -116,7 +116,7 @@ elif [ "$SKIP_PUBLISH" = true ]; then
 else
   echo -e "\n${YELLOW}Step 2: Publishing crates...${NC}"
   echo -e "${BLUE}Publishing in dependency order...${NC}"
-  cargo workspaces publish --from-git --no-git-commit --allow-branch="*" --token $CRATES_IO_TOKEN
+  cargo workspaces publish --from-git --no-git-commit --token $CRATES_IO_TOKEN
   echo -e "${GREEN}✓ All crates published successfully${NC}"
 fi
 

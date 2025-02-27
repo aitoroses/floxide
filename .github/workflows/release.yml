@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.WORKFLOW_PAT || github.token }}
+          token: ${{ github.token }}
 
       - name: Setup Rust
         uses: actions-rs/toolchain@v1
@@ -140,7 +140,7 @@ jobs:
         if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
         run: |
           echo "Publishing version ${{ steps.bump_version.outputs.VERSION }} to crates.io"
-          cargo workspaces publish --from-git --no-git-commit --allow-branch="*" --token ${{ secrets.CRATES_IO_TOKEN }}
+          cargo workspaces publish --from-git --no-git-commit --token ${{ secrets.CRATES_IO_TOKEN }}
         env:
           CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 

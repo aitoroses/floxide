@@ -52,6 +52,9 @@ We will remove all deprecated scripts and workflows from the codebase to reduce 
 
 4. Update any references to these scripts or workflows in other documentation or code.
 
+5. Fix compatibility issues with cargo-workspaces:
+   - Remove the conflicting `--allow-branch` parameter when used with `--no-git-commit` in the publish command.
+
 ## Consequences
 
 ### Advantages
