@@ -45,6 +45,20 @@ jobs:
         # with:
         #   rust-version: stable
 
+      # 3.5. Configure SSL certificates and cargo credentials
+      - name: Configure SSL and cargo credentials
+        run: |
+          # Ensure SSL certificates are properly set up
+          echo "Setting up SSL certificates..."
+          sudo update-ca-certificates --fresh || true
+
+          # Set up cargo credentials
+          echo "Setting up cargo credentials..."
+          mkdir -p ~/.cargo
+          echo "[registry]" > ~/.cargo/credentials.toml
+          echo "token = \"${{ secrets.CRATES_IO_TOKEN }}\"" >> ~/.cargo/credentials.toml
+          chmod 600 ~/.cargo/credentials.toml
+
       # 4. Cache Rust build artifacts for faster builds (optional optimization)
       - name: Cache cargo build
         uses: Swatinem/rust-cache@v2
@@ -70,6 +84,10 @@ jobs:
         env:
           CARGO_NET_EMPTY_VERSION_REPLACE: "true"
           # ^ (Optional environment fix: ensures cargo publishes use new versions if a crate had 0.0.0 version placeholders)
+          # Fix SSL certificate issues
+          NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
+          # Use token for authentication
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
       # 7. *Skip-commit mode:* If versions are already bumped manually, just create tag for current commit
       - name: Tag existing commit (skip version bump)
@@ -100,6 +118,10 @@ jobs:
         if: ${{ inputs.dry_run != 'true' }}
         env:
           CARGO_REGISTRIES_CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+          # Direct token for cargo login
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+          # Fix SSL certificate issues
+          NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
         run: |
           # Use --from-git to publish based on existing tags (skip versioning step)
           cargo workspaces publish --from-git --yes \
