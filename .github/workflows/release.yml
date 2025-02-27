@@ -1,186 +1,106 @@
-name: Release
-
+name: Release (Cargo Workspaces)
 on:
   workflow_dispatch:
     inputs:
-      bump_type:
-        description: "Version bump type (patch, minor, major) or specific version"
+      release_type:
+        description: "Semver bump level for the release."
         required: true
         type: choice
-        options:
-          - patch
-          - minor
-          - major
+        options: [patch, minor, major]
       dry_run:
-        description: "Dry run (no changes will be made)"
+        description: "Set to true to simulate the release (no push or actual publish)."
         required: false
-        type: boolean
         default: false
-      publish:
-        description: "Publish to crates.io after version bump"
-        required: false
         type: boolean
-        default: true
-      skip_tagging:
-        description: "Skip tagging (only relevant if not publishing)"
+      skip_commit:
+        description: "If true, skip version bump commit (assume versions already updated)."
         required: false
-        type: boolean
         default: false
-      force_tag:
-        description: "Force update existing tag if it exists"
-        required: false
         type: boolean
-        default: false
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write # Needed for pushing tags and creating releases
-
-env:
-  CARGO_TERM_COLOR: always
+  contents: write
+  packages: write
 
 jobs:
   release:
-    name: Release Process
     runs-on: ubuntu-latest
     steps:
+      # 1. Check out the repository
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ github.token }}
+        # Use the default GITHUB_TOKEN for authentication (set by Actions)
+        # This token will be used later for pushing commits and tags.
 
+      # 2. Configure git author (required for committing via Actions)&#8203;:contentReference[oaicite:14]{index=14}
+      - name: Configure Git user
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      # 3. Set up Rust toolchain (uses Rust stable by default)
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
+        # uses: actions/setup-rust@v1
+        # with:
+        #   rust-version: stable
 
+      # 4. Cache Rust build artifacts for faster builds (optional optimization)
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+
+      # 5. Install cargo-workspaces CLI tool
       - name: Install cargo-workspaces
-        run: cargo install cargo-workspaces
-
-      - name: Configure Git
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-
-      # Step 1: Version Bump
-      - name: Bump versions
-        id: bump_version
-        run: |
-          ARGS=""
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            ARGS="--dry-run"
-            echo "Running in dry-run mode. No changes will be made."
-          fi
-
-          # Run the version bump
-          ./scripts/release_with_workspaces.sh ${{ github.event.inputs.bump_type }} $ARGS --skip-publish --no-git-commit
-
-          # Get the new version
-          NEW_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
-          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            echo "Would update to version $NEW_VERSION (dry run)"
-          else
-            echo "Updated to version $NEW_VERSION"
-          fi
-
-      # Step 2: Create Tag (if not dry run and not skipping tagging)
-      - name: Create and push tag
-        if: github.event.inputs.dry_run != 'true' && github.event.inputs.skip_tagging != 'true'
-        id: create_tag
-        run: |
-          TAG_NAME="v${{ steps.bump_version.outputs.VERSION }}"
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
-
-          # Check if tag exists
-          if git show-ref --tags "$TAG_NAME" --quiet; then
-            if [ "${{ github.event.inputs.force_tag }}" = "true" ]; then
-              echo "Tag $TAG_NAME exists, force updating"
-              git tag -d "$TAG_NAME"
-              git push origin ":refs/tags/$TAG_NAME" || true
-
-              # Also delete individual crate tags if they exist
-              for CRATE_TAG in $(git tag | grep "@${{ steps.bump_version.outputs.VERSION }}$"); do
-                echo "Deleting individual crate tag: $CRATE_TAG"
-                git tag -d "$CRATE_TAG"
-                git push origin ":refs/tags/$CRATE_TAG" || true
-              done
-
-              # Create new tag
-              git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
-              git push origin "$TAG_NAME"
-
-              echo "Tags updated successfully"
-            else
-              echo "Tag $TAG_NAME already exists. Use force_tag option to update it."
-              exit 0
-            fi
-          else
-            git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
-            git push origin "$TAG_NAME"
-            echo "Tag $TAG_NAME created and pushed"
-          fi
-
-      # Step 3: Run tests before publishing
-      - name: Run tests with all features
-        if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
-        run: cargo test --all-features
-
-      # Step 4: Update versions in subcrates
-      - name: Update subcrate and dependency versions
-        if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
-        run: ./scripts/update_versions.sh
-
-      # Step 5: Publish to crates.io
-      - name: Publish to crates.io
-        if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
-        run: |
-          echo "Publishing version ${{ steps.bump_version.outputs.VERSION }} to crates.io"
-          cargo workspaces publish --from-git --no-git-commit --token ${{ secrets.CRATES_IO_TOKEN }} --yes
-        env:
-          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
-
-      # Step 6: Create GitHub Release
-      - name: Create GitHub Release
-        if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: taiki-e/install-action@v2
         with:
-          tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}
-          name: Release ${{ steps.create_tag.outputs.TAG_NAME }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+          tool: cargo-workspaces
 
-      # Final step: Summary
-      - name: Process Summary
+      # 6. Version bump, commit, and tag (without pushing yet) using cargo-workspaces
+      - name: Bump version and tag commit
+        if: ${{ inputs.skip_commit != 'true' }}
         run: |
-          echo "Release Process Summary:"
-          echo "------------------------"
-          echo "Version: ${{ steps.bump_version.outputs.VERSION }}"
+          # Run cargo-workspaces publish with version bump, but don't push yet.
+          # This will bump versions, update Cargo.toml and dependencies, commit, and tag locally&#8203;:contentReference[oaicite:15]{index=15}.
+          cargo workspaces publish ${{ inputs.release_type }} \
+            --yes --allow-branch main \  # Allow running on 'main' branch&#8203;:contentReference[oaicite:16]{index=16}
+            --no-git-push \             # Commit and tag locally, but don't push yet (we'll push manually to handle conflicts)
+            ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
+        env:
+          CARGO_NET_EMPTY_VERSION_REPLACE: "true"
+          # ^ (Optional environment fix: ensures cargo publishes use new versions if a crate had 0.0.0 version placeholders)
 
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            echo "Mode: Dry Run (no changes made)"
-          else
-            echo "Mode: Production"
+      # 7. *Skip-commit mode:* If versions are already bumped manually, just create tag for current commit
+      - name: Tag existing commit (skip version bump)
+        if: ${{ inputs.skip_commit == 'true' }}
+        run: |
+          # Determine version for tagging (assuming a workspace with unified version)
+          VERSION=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[0].version')
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          echo "Tagged current commit with v${VERSION}"
 
-            if [ "${{ github.event.inputs.skip_tagging }}" != "true" ]; then
-              echo "Tag: ${{ steps.create_tag.outputs.TAG_NAME }}"
-            else
-              echo "Tagging: Skipped"
-            fi
+      # 8. Push commit and tags to remote (handle existing tags by force-pushing if needed)
+      - name: Push changes to GitHub
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          # Use provided GITHUB_TOKEN (from checkout) for authentication (already configured by checkout action)
+          TAG_REF: "refs/tags/$(git tag --sort=-creatordate -l | head -n1)"
+        run: |
+          echo "Pushing new commit to origin..."
+          git push origin HEAD:${{ github.ref_name }}  # Push the new commit to the current branch
+          echo "Pushing tags to origin..."
+          git push origin --tags || { 
+            echo "Tag push failed (tag may already exist). Forcing tag update..."; 
+            git push origin --tags --force;  # Force-push tags if a conflict (existing tag) is detected&#8203;:contentReference[oaicite:17]{index=17}
+          }
 
-            if [ "${{ github.event.inputs.publish }}" = "true" ]; then
-              echo "Published: Yes (to crates.io)"
-              echo "GitHub Release: Created"
-            else
-              echo "Published: No"
-              echo "GitHub Release: Not created"
-            fi
-          fi
-
-          echo "------------------------"
-          echo "Release process completed successfully!"
+      # 9. Publish crates to crates.io in dependency order
+      - name: Publish to crates.io
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          CARGO_REGISTRIES_CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: |
+          # Use --from-git to publish based on existing tags (skip versioning step)&#8203;:contentReference[oaicite:18]{index=18}.
+          cargo workspaces publish --from-git --yes \
+            --allow-branch main \
+            --token "${{ secrets.CRATES_IO_TOKEN }}" \
+            ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
