@@ -28,11 +28,11 @@ jobs:
     steps:
       # 1. Check out the repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         # Use the default GITHUB_TOKEN for authentication (set by Actions)
         # This token will be used later for pushing commits and tags.
 
-      # 2. Configure git author (required for committing via Actions)&#8203;:contentReference[oaicite:14]{index=14}
+      # 2. Configure git author (required for committing via Actions)
       - name: Configure Git user
         run: |
           git config user.name "GitHub Actions"
@@ -60,10 +60,12 @@ jobs:
         if: ${{ inputs.skip_commit != 'true' }}
         run: |
           # Run cargo-workspaces publish with version bump, but don't push yet.
-          # This will bump versions, update Cargo.toml and dependencies, commit, and tag locally&#8203;:contentReference[oaicite:15]{index=15}.
+          # This will bump versions, update Cargo.toml and dependencies, commit, and tag locally.
+          # Allow running on 'main' branch
+          # Commit and tag locally, but don't push yet (we'll push manually to handle conflicts)
           cargo workspaces publish ${{ inputs.release_type }} \
-            --yes --allow-branch main \  # Allow running on 'main' branch&#8203;:contentReference[oaicite:16]{index=16}
-            --no-git-push \             # Commit and tag locally, but don't push yet (we'll push manually to handle conflicts)
+            --yes --allow-branch main \
+            --no-git-push \
             ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
         env:
           CARGO_NET_EMPTY_VERSION_REPLACE: "true"
@@ -90,7 +92,7 @@ jobs:
           echo "Pushing tags to origin..."
           git push origin --tags || { 
             echo "Tag push failed (tag may already exist). Forcing tag update..."; 
-            git push origin --tags --force;  # Force-push tags if a conflict (existing tag) is detected&#8203;:contentReference[oaicite:17]{index=17}
+            git push origin --tags --force;  # Force-push tags if a conflict (existing tag) is detected
           }
 
       # 9. Publish crates to crates.io in dependency order
@@ -99,7 +101,7 @@ jobs:
         env:
           CARGO_REGISTRIES_CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
         run: |
-          # Use --from-git to publish based on existing tags (skip versioning step)&#8203;:contentReference[oaicite:18]{index=18}.
+          # Use --from-git to publish based on existing tags (skip versioning step)
           cargo workspaces publish --from-git --yes \
             --allow-branch main \
             --token "${{ secrets.CRATES_IO_TOKEN }}" \
