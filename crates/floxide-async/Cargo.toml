@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "DEPRECATED - Renamed to floxide-transform. This is a compatibility layer that will be removed in a future version."
+publish = false
 
 [dependencies]
 floxide-transform = { path = "../floxide-transform" }

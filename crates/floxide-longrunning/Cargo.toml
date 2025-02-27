@@ -1,23 +1,24 @@
 [package]
 name = "floxide-longrunning"
 version.workspace = true
-edition = "2021"
-description = "Support for long-running processes with checkpoints in the Floxide framework"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/aitoroses/Pocket-Flow-Framework"
-authors = ["The Floxide Authors"]
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Long-running node abstractions for the floxide framework"
+publish = true
 
 [dependencies]
-floxide-core = { path = "../floxide-core" }
-async-trait = "0.1.77"
-chrono = "0.4.33"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-tracing = "0.1.40"
-uuid = { version = "1.7.0", features = ["v4", "serde"] }
-tokio = { version = "1.35.1", features = ["sync", "time", "rt", "macros"] }
-thiserror = "1.0.56"
+floxide-core = { path = "../floxide-core", version = "1.0.9" }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+tokio = { workspace = true, features = ["sync", "time", "rt", "macros"] }
+thiserror = { workspace = true }
 
 [dev-dependencies]
-tokio = { version = "1.35.1", features = ["full"] }
-tracing-subscriber = "0.3.18"
+tokio = { workspace = true, features = ["full"] }
+tracing-subscriber = { workspace = true }

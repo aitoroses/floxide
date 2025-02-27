@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "Core components of the floxide framework for directed graph workflows"
+publish = true
 
 [features]
 default = ["async"]

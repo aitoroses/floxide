@@ -1,14 +1,15 @@
 [package]
 name = "floxide-event"
 version.workspace = true
-edition = "2021"
-authors = ["Aitor Oses <aitor.oses@gmail.com>"]
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/aitoroses/floxide"
-description = "Event-driven node extensions for the Floxide framework"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Event-driven node abstractions for the floxide framework"
+publish = true
 
 [dependencies]
-floxide-core = { path = "../floxide-core" }
+floxide-core = { path = "../floxide-core", version = "1.0.9" }
 tokio = { workspace = true, features = ["full"] }
 async-trait = { workspace = true }
 thiserror = { workspace = true }

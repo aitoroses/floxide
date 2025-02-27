@@ -1,19 +1,20 @@
 [package]
 name = "floxide-timer"
 version.workspace = true
-edition = "2021"
-authors = ["Floxide Contributors"]
-description = "Timer-based node extensions for the Floxide framework"
-license = "MIT"
-repository = "https://github.com/floxide/floxide"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Timer node abstractions for the floxide framework"
+publish = true
 keywords = ["workflow", "timer", "scheduling", "async"]
 categories = ["asynchronous"]
 
 [dependencies]
-floxide-core = { path = "../floxide-core" }
-async-trait = "0.1.77"
-chrono = "0.4.34"
-tokio = { version = "1.36.0", features = ["full"] }
-tracing = "0.1.40"
-uuid = { version = "1.7.0", features = ["v4", "serde"] }
-thiserror = "1.0.57"
+floxide-core = { path = "../floxide-core", version = "1.0.9" }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+thiserror = { workspace = true }

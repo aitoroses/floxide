@@ -1,27 +1,28 @@
 [package]
 name = "floxide-reactive"
 version.workspace = true
-edition = "2021"
-description = "Support for reactive nodes in the Floxide framework"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/aitoroses/Pocket-Flow-Framework"
-authors = ["The Floxide Authors"]
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Reactive node abstractions for the floxide framework"
+publish = true
 
 [dependencies]
-floxide-core = { path = "../floxide-core" }
-async-trait = "0.1.77"
-futures = "0.3.30"
-tokio = { version = "1.35.1", features = [
+floxide-core = { path = "../floxide-core", version = "1.0.9" }
+async-trait = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true, features = [
     "sync",
     "time",
     "rt",
     "macros",
     "fs",
 ] }
-tokio-stream = { version = "0.1.14", features = ["sync"] }
-tracing = "0.1.40"
-thiserror = "1.0.56"
+tokio-stream = { workspace = true, features = ["sync"] }
+tracing = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
-tokio = { version = "1.35.1", features = ["full"] }
-tracing-subscriber = "0.3.18"
+tokio = { workspace = true, features = ["full"] }
+tracing-subscriber = { workspace = true }
