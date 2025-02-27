@@ -10,9 +10,9 @@ Proposed
 
 ## Context
 
-As part of our transition to using cargo-workspaces for managing versions and publishing (as documented in ADR-0033, ADR-0034, and ADR-0035), we encountered an issue with the `release_with_workspaces.sh` script. The script was using incompatible command-line options when calling `cargo workspaces version`.
+As part of our transition to using cargo-workspaces for managing versions and publishing (as documented in ADR-0033, ADR-0034, and ADR-0035), we encountered several issues with the `release_with_workspaces.sh` script and its integration with GitHub Actions workflows:
 
-Specifically, the script was using both `--no-git-commit` and `--allow-branch="*"` options together, which caused the following error:
+1. The script was using incompatible command-line options when calling `cargo workspaces version`. Specifically, it was using both `--no-git-commit` and `--allow-branch="*"` options together, which caused the following error:
 
 ```
 error: The argument '--no-git-commit' cannot be used with '--allow-branch <pattern>'
@@ -20,32 +20,47 @@ USAGE:
     cargo workspaces version --no-git-commit <BUMP>
 ```
 
-According to the cargo-workspaces documentation, these two options are mutually exclusive because:
-- `--no-git-commit` tells cargo-workspaces not to commit the version changes to git
-- `--allow-branch` specifies which branches to allow versioning from, which only makes sense in the context of git operations
+2. The script was not using the `--yes` flag with `cargo workspaces` commands, causing the CI process to hang waiting for user input during the version bump process.
 
-Since our script is handling the git operations manually (adding, committing, and pushing changes), we need to use the `--no-git-commit` option and avoid using `--allow-branch`.
+3. The script was always creating a git commit, which might not be desired in CI environments where git operations are handled separately.
 
 ## Decision
 
-We will modify the `release_with_workspaces.sh` script to remove the `--allow-branch="*"` option from the `cargo workspaces version` command, keeping only the `--no-git-commit` option.
+We will make the following changes to the `release_with_workspaces.sh` script:
 
-This change ensures that:
+1. Remove the `--allow-branch="*"` option from the `cargo workspaces version` command, keeping only the `--no-git-commit` option.
+
+2. Add the `--yes` flag to all `cargo workspaces` commands to skip confirmation prompts, ensuring the script can run non-interactively in CI environments.
+
+3. Add a new `--no-git-commit` option to the script to allow skipping the git commit step, making it more flexible for different environments.
+
+4. Update the GitHub Actions workflow to use the new `--no-git-commit` option when calling the script.
+
+These changes ensure that:
 1. The script can run successfully without errors
-2. We maintain control over the git operations in our script
-3. We follow the intended usage pattern for cargo-workspaces
+2. The script can run non-interactively in CI environments
+3. We have more flexibility in how git operations are handled
+4. We follow the intended usage pattern for cargo-workspaces
 
 ## Implementation Plan
 
-1. Update the `release_with_workspaces.sh` script to remove the `--allow-branch="*"` option from the `cargo workspaces version` command
-2. Test the script to ensure it works correctly with various options (patch, minor, major, dry-run, skip-publish)
-3. Update any documentation or workflows that reference this script to ensure they reflect the correct usage
+1. Update the `release_with_workspaces.sh` script to:
+   - Remove the `--allow-branch="*"` option from the `cargo workspaces version` command
+   - Add the `--yes` flag to all `cargo workspaces` commands
+   - Add a new `--no-git-commit` option to the script
+   - Make the git commit step conditional based on the new option
+
+2. Update the GitHub Actions workflow to use the new `--no-git-commit` option when calling the script
+
+3. Test the script to ensure it works correctly with various options (patch, minor, major, dry-run, skip-publish, no-git-commit)
 
 ## Consequences
 
 ### Positive
 
 - The release process will work correctly without errors
+- The script will run non-interactively in CI environments
+- We have more flexibility in how git operations are handled
 - The script will handle git operations in a consistent manner
 - We maintain a clean separation between cargo-workspaces version bumping and our custom git operations
 
