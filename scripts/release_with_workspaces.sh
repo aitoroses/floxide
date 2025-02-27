@@ -12,6 +12,7 @@ NC='\033[0m' # No Color
 VERSION=""
 DRY_RUN=false
 SKIP_PUBLISH=false
+NO_GIT_COMMIT=false
 HELP=false
 
 # Parse command line arguments
@@ -27,6 +28,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-publish)
       SKIP_PUBLISH=true
+      shift
+      ;;
+    --no-git-commit)
+      NO_GIT_COMMIT=true
       shift
       ;;
     *)
@@ -54,6 +59,7 @@ if [ "$HELP" = true ] || [ -z "$VERSION" ]; then
   echo "Options:"
   echo "  --dry-run           Show what would happen without making changes"
   echo "  --skip-publish      Skip the publishing step (only bump version)"
+  echo "  --no-git-commit     Skip the git commit step (useful for CI environments)"
   echo "  -h, --help          Show this help message"
   echo ""
   echo "Examples:"
@@ -61,6 +67,7 @@ if [ "$HELP" = true ] || [ -z "$VERSION" ]; then
   echo "  $0 minor --dry-run  # Show what would happen with a minor version bump"
   echo "  $0 1.2.3            # Set version to 1.2.3 and publish"
   echo "  $0 patch --skip-publish  # Only bump version, don't publish"
+  echo "  $0 patch --no-git-commit  # Bump version without creating a git commit"
   exit 0
 fi
 
@@ -82,6 +89,10 @@ if [ "$SKIP_PUBLISH" = true ]; then
   echo -e "${YELLOW}Publishing will be skipped.${NC}"
 fi
 
+if [ "$NO_GIT_COMMIT" = true ]; then
+  echo -e "${YELLOW}Git commit will be skipped.${NC}"
+fi
+
 echo -e "${YELLOW}Version: ${GREEN}$VERSION${NC}"
 echo ""
 
@@ -96,13 +107,17 @@ if [ "$DRY_RUN" = true ]; then
 else
   # For actual run, perform the version bump
   echo -e "${BLUE}Bumping version...${NC}"
-  cargo workspaces version $VERSION --no-git-commit
+  cargo workspaces version $VERSION --no-git-commit --yes
   
-  # Commit the version changes
-  echo -e "${BLUE}Committing version changes...${NC}"
-  git add .
-  git commit -m "chore: bump version to $(cargo workspaces list -a | grep 'floxide ' | awk '{print $2}')"
-  echo -e "${GREEN}✓ Version bumped and committed${NC}"
+  # Commit the version changes if not skipped
+  if [ "$NO_GIT_COMMIT" = false ]; then
+    echo -e "${BLUE}Committing version changes...${NC}"
+    git add .
+    git commit -m "chore: bump version to $(cargo workspaces list -a | grep 'floxide ' | awk '{print $2}')"
+    echo -e "${GREEN}✓ Version bumped and committed${NC}"
+  else
+    echo -e "${GREEN}✓ Version bumped (commit skipped)${NC}"
+  fi
 fi
 
 # Step 2: Publish all crates
@@ -116,7 +131,7 @@ elif [ "$SKIP_PUBLISH" = true ]; then
 else
   echo -e "\n${YELLOW}Step 2: Publishing crates...${NC}"
   echo -e "${BLUE}Publishing in dependency order...${NC}"
-  cargo workspaces publish --from-git --no-git-commit --token $CRATES_IO_TOKEN
+  cargo workspaces publish --from-git --no-git-commit --token $CRATES_IO_TOKEN --yes
   echo -e "${GREEN}✓ All crates published successfully${NC}"
 fi
 
