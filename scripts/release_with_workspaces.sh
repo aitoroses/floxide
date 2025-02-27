@@ -96,7 +96,7 @@ if [ "$DRY_RUN" = true ]; then
 else
   # For actual run, perform the version bump
   echo -e "${BLUE}Bumping version...${NC}"
-  cargo workspaces version $VERSION --no-git-commit --allow-branch="*"
+  cargo workspaces version $VERSION --no-git-commit
   
   # Commit the version changes
   echo -e "${BLUE}Committing version changes...${NC}"
