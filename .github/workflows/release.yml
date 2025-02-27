@@ -1,144 +1,186 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Tag to release (e.g., v1.0.1)"
+      bump_type:
+        description: "Version bump type (patch, minor, major) or specific version"
         required: true
-        type: string
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: "Dry run (no changes will be made)"
+        required: false
+        type: boolean
+        default: false
+      publish:
+        description: "Publish to crates.io after version bump"
+        required: false
+        type: boolean
+        default: true
+      skip_tagging:
+        description: "Skip tagging (only relevant if not publishing)"
+        required: false
+        type: boolean
+        default: false
+      force_tag:
+        description: "Force update existing tag if it exists"
+        required: false
+        type: boolean
+        default: false
 
-# Sets permissions of the GITHUB_TOKEN to allow creating releases
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write # Needed for creating GitHub releases
+  contents: write # Needed for pushing tags and creating releases
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  publish:
-    name: Publish to crates.io
+  release:
+    name: Release Process
     runs-on: ubuntu-latest
     steps:
-      - name: Determine tag ref
-        id: determine_ref
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "TAG_REF=refs/tags/${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-          else
-            echo "TAG_REF=${{ github.ref }}" >> $GITHUB_OUTPUT
-          fi
-
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          ref: ${{ steps.determine_ref.outputs.TAG_REF }}
           fetch-depth: 0
-          token: ${{ secrets.WORKFLOW_PAT }}
+          token: ${{ secrets.WORKFLOW_PAT || github.token }}
 
-      - name: Fetch annotated tag (workaround for actions/checkout#290)
-        run: |
-          git fetch --force origin ${{ steps.determine_ref.outputs.TAG_REF }}:${{ steps.determine_ref.outputs.TAG_REF }}
-
-      - name: Install Rust
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           override: true
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+      - name: Install cargo-workspaces
+        run: cargo install cargo-workspaces
 
-      - name: Verify tag version matches Cargo.toml
+      - name: Configure Git
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            TAG_VERSION="${{ github.event.inputs.tag }}"
-            TAG_VERSION=${TAG_VERSION#v}
-          else
-            TAG_VERSION=${GITHUB_REF#refs/tags/v}
-          fi
-          CARGO_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
-          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
-            echo "Tag version ($TAG_VERSION) does not match Cargo.toml version ($CARGO_VERSION)"
-            exit 1
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      # Step 1: Version Bump
+      - name: Bump versions
+        id: bump_version
+        run: |
+          ARGS=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ARGS="--dry-run"
+            echo "Running in dry-run mode. No changes will be made."
           fi
 
+          # Run the version bump
+          ./scripts/release_with_workspaces.sh ${{ github.event.inputs.bump_type }} $ARGS --skip-publish
+
+          # Get the new version
+          NEW_VERSION=$(grep -m 1 'version = ' Cargo.toml | cut -d '"' -f 2)
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "Would update to version $NEW_VERSION (dry run)"
+          else
+            echo "Updated to version $NEW_VERSION"
+          fi
+
+      # Step 2: Create Tag (if not dry run and not skipping tagging)
+      - name: Create and push tag
+        if: github.event.inputs.dry_run != 'true' && github.event.inputs.skip_tagging != 'true'
+        id: create_tag
+        run: |
+          TAG_NAME="v${{ steps.bump_version.outputs.VERSION }}"
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          # Check if tag exists
+          if git show-ref --tags "$TAG_NAME" --quiet; then
+            if [ "${{ github.event.inputs.force_tag }}" = "true" ]; then
+              echo "Tag $TAG_NAME exists, force updating"
+              git tag -d "$TAG_NAME"
+              git push origin ":refs/tags/$TAG_NAME" || true
+              
+              # Also delete individual crate tags if they exist
+              for CRATE_TAG in $(git tag | grep "@${{ steps.bump_version.outputs.VERSION }}$"); do
+                echo "Deleting individual crate tag: $CRATE_TAG"
+                git tag -d "$CRATE_TAG"
+                git push origin ":refs/tags/$CRATE_TAG" || true
+              done
+              
+              # Create new tag
+              git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+              git push origin "$TAG_NAME"
+              
+              echo "Tags updated successfully"
+            else
+              echo "Tag $TAG_NAME already exists. Use force_tag option to update it."
+              exit 0
+            fi
+          else
+            git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+            git push origin "$TAG_NAME"
+            echo "Tag $TAG_NAME created and pushed"
+          fi
+
+      # Step 3: Run tests before publishing
       - name: Run tests with all features
+        if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
         run: cargo test --all-features
 
-      # Update subcrate versions to use workspace inheritance
-      - name: Update subcrate versions
-        run: ./scripts/update_subcrate_versions.sh
+      # Step 4: Update versions in subcrates
+      - name: Update subcrate and dependency versions
+        if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
+        run: ./scripts/update_versions.sh
 
-      # Update dependency versions in the root crate
-      - name: Update dependency versions
-        run: ./scripts/update_dependency_versions.sh
+      # Step 5: Publish to crates.io
+      - name: Publish to crates.io
+        if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
+        run: |
+          echo "Publishing version ${{ steps.bump_version.outputs.VERSION }} to crates.io"
+          cargo workspaces publish --from-git --no-git-commit --allow-branch="*" --token ${{ secrets.CRATES_IO_TOKEN }}
+        env:
+          CRATES_IO_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
-      # Publish floxide-core
-      - name: Publish floxide-core
-        working-directory: ./crates/floxide-core
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-
-      - name: Wait for crates.io indexing
-        run: sleep 15
-
-      - name: Publish floxide-transform
-        working-directory: ./crates/floxide-transform
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-
-      - name: Wait for crates.io indexing
-        run: sleep 15
-
-      - name: Publish floxide-event
-        working-directory: ./crates/floxide-event
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-
-      - name: Wait for crates.io indexing
-        run: sleep 15
-
-      - name: Publish floxide-timer
-        working-directory: ./crates/floxide-timer
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-
-      - name: Wait for crates.io indexing
-        run: sleep 15
-
-      - name: Publish floxide-longrunning
-        working-directory: ./crates/floxide-longrunning
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-
-      - name: Wait for crates.io indexing
-        run: sleep 15
-
-      - name: Publish floxide-reactive
-        working-directory: ./crates/floxide-reactive
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-
-      - name: Wait for crates.io indexing
-        run: sleep 15
-
-      # Publish the main crate with all features
-      - name: Publish floxide (root)
-        run: cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
-
-      # Create GitHub Release
+      # Step 6: Create GitHub Release
       - name: Create GitHub Release
+        if: github.event.inputs.dry_run != 'true' && github.event.inputs.publish == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.determine_ref.outputs.TAG_REF }}
-          name: Release ${{ steps.determine_ref.outputs.TAG_REF }}
+          tag_name: ${{ steps.create_tag.outputs.TAG_NAME }}
+          name: Release ${{ steps.create_tag.outputs.TAG_NAME }}
           draft: false
           prerelease: false
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Final step: Summary
+      - name: Process Summary
+        run: |
+          echo "Release Process Summary:"
+          echo "------------------------"
+          echo "Version: ${{ steps.bump_version.outputs.VERSION }}"
+
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "Mode: Dry Run (no changes made)"
+          else
+            echo "Mode: Production"
+            
+            if [ "${{ github.event.inputs.skip_tagging }}" != "true" ]; then
+              echo "Tag: ${{ steps.create_tag.outputs.TAG_NAME }}"
+            else
+              echo "Tagging: Skipped"
+            fi
+            
+            if [ "${{ github.event.inputs.publish }}" = "true" ]; then
+              echo "Published: Yes (to crates.io)"
+              echo "GitHub Release: Created"
+            else
+              echo "Published: No"
+              echo "GitHub Release: Not created"
+            fi
+          fi
+
+          echo "------------------------"
+          echo "Release process completed successfully!"

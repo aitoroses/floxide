@@ -263,7 +263,10 @@ where
 
         // Check if the file exists
         if !Path::new(&file_path).exists() {
-            return Err(FloxideError::Other(format!("File not found: {}", file_path)));
+            return Err(FloxideError::Other(format!(
+                "File not found: {}",
+                file_path
+            )));
         }
 
         let (tx, rx) = mpsc::channel(10);

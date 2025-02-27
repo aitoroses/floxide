@@ -147,7 +147,10 @@ impl Schedule {
                         })?;
                     }
                 } else {
-                    return Err(FloxideError::Other(format!("Invalid day of month: {}", day)));
+                    return Err(FloxideError::Other(format!(
+                        "Invalid day of month: {}",
+                        day
+                    )));
                 }
 
                 Ok(next)

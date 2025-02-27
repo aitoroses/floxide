@@ -68,7 +68,10 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
         self.id.clone()
     }
 
-    async fn prep(&self, ctx: &mut TextProcessingContext) -> Result<Self::PrepOutput, FloxideError> {
+    async fn prep(
+        &self,
+        ctx: &mut TextProcessingContext,
+    ) -> Result<Self::PrepOutput, FloxideError> {
         info!("Preparing to analyze text: '{}'", ctx.input);
 
         // Validate the input
@@ -158,7 +161,10 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for UppercaseNode {
         self.id.clone()
     }
 
-    async fn prep(&self, ctx: &mut TextProcessingContext) -> Result<Self::PrepOutput, FloxideError> {
+    async fn prep(
+        &self,
+        ctx: &mut TextProcessingContext,
+    ) -> Result<Self::PrepOutput, FloxideError> {
         info!("Preparing to convert text to uppercase");
         ctx.add_note("Preparing uppercase conversion");
         Ok(ctx.input.clone())

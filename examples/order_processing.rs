@@ -1,12 +1,13 @@
 use async_trait::async_trait;
-use floxide_core::{node, ActionType, FloxideError, Node, NodeId, NodeOutcome, RetryNode, Workflow};
+use floxide_core::{
+    node, ActionType, FloxideError, Node, NodeId, NodeOutcome, RetryNode, Workflow,
+};
 use std::time::Duration;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
 /// Custom action type for our order workflow
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-
 enum OrderAction {
     Default,
     Next,
@@ -139,7 +140,10 @@ impl Node<OrderContext, OrderAction> for ValidateOrderNode {
         // Check if order has items
         if ctx.items.is_empty() {
             ctx.add_note("Validation failed: Order has no items");
-            return Err(FloxideError::node_execution(self.id(), "Order has no items"));
+            return Err(FloxideError::node_execution(
+                self.id(),
+                "Order has no items",
+            ));
         }
 
         // Check if total is correct

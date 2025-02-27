@@ -8,7 +8,7 @@ repository.workspace = true
 description = "Transform node abstractions for the floxide framework"
 
 [dependencies]
-floxide-core = { path = "../floxide-core" }
+floxide-core = { path = "../floxide-core", version = "1.0.4" }
 tokio = { workspace = true, features = ["full"] }
 async-trait = { workspace = true }
 thiserror = { workspace = true }

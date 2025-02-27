@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use floxide_core::{
     lifecycle::LifecycleNodeAdapter, DefaultAction, FloxideError, Node, NodeOutcome, Workflow,
 };
-use floxide_transform::{create_transform_node, to_lifecycle_node, TransformContext, TransformNode};
+use floxide_transform::{
+    create_transform_node, to_lifecycle_node, TransformContext, TransformNode,
+};
 use std::{error::Error, fmt};
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;

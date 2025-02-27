@@ -24,30 +24,6 @@
 //! floxide = { version = "1.0.0", features = ["transform", "event"] }
 //! ```
 
-// Re-export core components (enabled by default with the "core" feature)
-#[cfg(feature = "core")]
-pub use floxide_core::*;
-
-// Re-export transform functionality
-#[cfg(feature = "transform")]
-pub use floxide_transform::*;
-
-// Re-export event functionality
-#[cfg(feature = "event")]
-pub use floxide_event::*;
-
-// Re-export timer functionality
-#[cfg(feature = "timer")]
-pub use floxide_timer::*;
-
-// Re-export longrunning functionality
-#[cfg(feature = "longrunning")]
-pub use floxide_longrunning::*;
-
-// Re-export reactive functionality
-#[cfg(feature = "reactive")]
-pub use floxide_reactive::*;
-
 /// Initialize the framework with default settings.
 ///
 /// This sets up tracing for better logging and performs any necessary
@@ -55,17 +31,28 @@ pub use floxide_reactive::*;
 pub fn init() {
     // Initialize tracing for better logs
     tracing_subscriber::fmt::init();
-
-    // Additional initialization based on enabled features
-    #[cfg(feature = "core")]
-    {
-        // Core-specific initialization if needed
-    }
-
-    #[cfg(feature = "event")]
-    {
-        // Event-specific initialization if needed
-    }
-
-    // Other feature-specific initialization can be added here
 }
+
+// Re-export the core module (enabled by default)
+#[cfg(feature = "core")]
+pub use floxide_core as core;
+
+// Re-export the transform module
+#[cfg(feature = "transform")]
+pub use floxide_transform as transform;
+
+// Re-export the event module
+#[cfg(feature = "event")]
+pub use floxide_event as event;
+
+// Re-export the timer module
+#[cfg(feature = "timer")]
+pub use floxide_timer as timer;
+
+// Re-export the longrunning module
+#[cfg(feature = "longrunning")]
+pub use floxide_longrunning as longrunning;
+
+// Re-export the reactive module
+#[cfg(feature = "reactive")]
+pub use floxide_reactive as reactive;

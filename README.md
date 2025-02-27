@@ -45,6 +45,30 @@ Key architectural decisions include:
 
 - [**Long-Running Node Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0022-longrunning-node-implementation.md) - Enabling workflows to process work incrementally with state persistence between executions.
 
+- [**Simplified Publishing with Maintained Subcrate Structure**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0033-implementing-single-package-with-features.md) - Using cargo-workspaces for version management and publishing.
+
+- [**Script Consolidation for Release Process**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0034-script-consolidation-for-release-process.md) - Streamlining the release process with consolidated scripts.
+
+## 📦 Release Process
+
+Floxide uses [cargo-workspaces](https://github.com/pksunkara/cargo-workspaces) for version management and publishing. The release process is automated through a GitHub Actions workflow:
+
+**Combined Release Workflow**: The `combined-release.yml` workflow handles the entire release process in one go. It can be triggered manually from the GitHub Actions tab with options for:
+- Bump type (patch, minor, major)
+- Dry run (preview without making changes)
+- Whether to publish to crates.io
+- Tagging options
+
+This workflow combines version bumping, tagging, and publishing into a single, streamlined process.
+
+For local development and testing, you can use the following scripts:
+- `./scripts/release_with_workspaces.sh <version> [--dry-run] [--skip-publish]` - Bump version and optionally publish
+- `./scripts/update_versions.sh` - Update subcrate versions to use workspace inheritance
+- `./scripts/run_ci_locally.sh` - Run CI checks locally
+- `./scripts/serve-docs.sh` - Serve documentation locally
+
+For more details on the release process, see [ADR-0035: Combined Version Bump and Release Workflow](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0035-combined-version-bump-and-release-workflow.md).
+
 ## 🚀 Quick Start
 
 Add Floxide to your project:
