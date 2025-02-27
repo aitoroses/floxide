@@ -1,0 +1,20 @@
+[workspace]
+# Whether to inherit the version from the workspace
+inherit_version = true
+
+# Whether to link all dependencies to their workspace versions
+link_workspace_deps = true
+
+# Whether to update the versions of workspace dependencies when versioning
+update_workspace_deps = true
+
+# Custom publish order
+publish_order = [
+  "floxide-core",
+  "floxide-transform",
+  "floxide-event",
+  "floxide-timer",
+  "floxide-longrunning",
+  "floxide-reactive",
+  "floxide"
+]
