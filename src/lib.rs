@@ -7,7 +7,7 @@
 //!
 //! The crate is organized into feature-gated modules:
 //!
-//! - `core` (default): Core abstractions and functionality
+//! - Core functionality is always included
 //! - `transform`: Transform node implementations for data transformation pipelines
 //! - `event`: Event-driven workflow functionality
 //! - `timer`: Time-based workflow functionality
@@ -33,8 +33,7 @@ pub fn init() {
     tracing_subscriber::fmt::init();
 }
 
-// Re-export the core module (enabled by default)
-#[cfg(feature = "core")]
+// Re-export the core module (always included)
 pub use floxide_core as core;
 
 // Re-export the transform module

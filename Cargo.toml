@@ -51,14 +51,13 @@ description.workspace = true
 
 # Define features
 [features]
-default = ["core"]
+default = []
 # Define features with dependencies on subcrates
-core = ["floxide-core"]
-transform = ["core", "floxide-transform"]
-event = ["core", "floxide-event"]
-timer = ["core", "floxide-timer"]
-longrunning = ["core", "floxide-longrunning"]
-reactive = ["core", "floxide-reactive"]
+transform = ["floxide-transform"]
+event = ["floxide-event"]
+timer = ["floxide-timer"]
+longrunning = ["floxide-longrunning"]
+reactive = ["floxide-reactive"]
 full = ["transform", "event", "timer", "longrunning", "reactive"]
 
 [dependencies]
@@ -75,8 +74,10 @@ serde.workspace = true
 serde_json.workspace = true
 tokio-stream.workspace = true
 
-# Feature-gated dependencies on subcrates
+# Core crate (always included)
 floxide-core = { path = "./crates/floxide-core" }
+
+# Feature-gated dependencies on subcrates
 floxide-transform = { path = "./crates/floxide-transform", optional = true }
 floxide-event = { path = "./crates/floxide-event", optional = true }
 floxide-timer = { path = "./crates/floxide-timer", optional = true }
@@ -87,7 +88,7 @@ floxide-reactive = { path = "./crates/floxide-reactive", optional = true }
 [[example]]
 name = "lifecycle_node"
 path = "examples/lifecycle_node.rs"
-required-features = ["core"]
+required-features = []
 
 [[example]]
 name = "transform_node"
@@ -102,12 +103,12 @@ required-features = ["transform"]
 [[example]]
 name = "order_processing"
 path = "examples/order_processing.rs"
-required-features = ["core"]
+required-features = []
 
 [[example]]
 name = "batch_processing"
 path = "examples/batch_processing.rs"
-required-features = ["core"]
+required-features = []
 
 [[example]]
 name = "event_driven_workflow"
