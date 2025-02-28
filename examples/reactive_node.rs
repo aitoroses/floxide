@@ -1,5 +1,29 @@
-//! Example demonstrating the ReactiveNode functionality for reacting to changes
-//! in external data sources.
+// Reactive Node Pattern: Event-Driven Data Processing Example
+//
+// This example demonstrates how to implement and use the Reactive Node pattern
+// in the Flow Framework. The Reactive Node pattern allows nodes to react to
+// external events and data changes, making it ideal for:
+//
+// Key concepts demonstrated:
+// 1. Reactive processing based on external events
+// 2. File system monitoring and change detection
+// 3. Sensor data processing with real-time updates
+// 4. Custom reactive node implementations
+// 5. Integration with event streams and external data sources
+//
+// The example implements two scenarios:
+// - File watcher: A node that monitors file system changes and reacts to modifications
+// - Sensor data processor: A node that processes streaming sensor measurements
+//
+// Reactive nodes are particularly useful for:
+// - Monitoring external resources (files, databases, APIs)
+// - Processing real-time data streams
+// - Building event-driven architectures
+// - Creating responsive systems that adapt to changing conditions
+//
+// This example is designed in accordance with:
+// - ADR-0014: Reactive Node Pattern
+// - ADR-0019: External Event Integration Strategy
 
 use floxide_core::{DefaultAction, FloxideError};
 use floxide_reactive::{
@@ -18,11 +42,18 @@ use tokio::time::sleep;
 use tokio_stream::wrappers::ReceiverStream;
 use tracing::{info, Level};
 
-// Helper function to convert IO errors to FloxideError
+/// Helper function to convert IO errors to FloxideError
+///
+/// This utility function provides a consistent way to convert standard
+/// IO errors into the framework's error type for better error handling.
 fn io_err_to_floxide(err: std::io::Error) -> FloxideError {
     FloxideError::Other(format!("IO error: {}", err))
 }
 
+/// Context for file watching operations
+///
+/// This struct maintains the state of file monitoring operations,
+/// including change counts, file sizes, and a history of detected changes.
 #[derive(Debug, Clone)]
 struct FileWatchContext {
     // Using underscore prefix to indicate intentionally unused field
@@ -34,6 +65,9 @@ struct FileWatchContext {
 }
 
 impl FileWatchContext {
+    /// Creates a new file watch context for the specified file path
+    ///
+    /// Initializes an empty context that will track changes to the given file.
     fn new(file_path: impl Into<String>) -> Self {
         Self {
             _file_path: file_path.into(),
@@ -43,6 +77,10 @@ impl FileWatchContext {
         }
     }
 
+    /// Records a file change event in the context
+    ///
+    /// Updates the change count, latest file size, and adds the change
+    /// to the history of changes for the specific file path.
     fn record_change(&mut self, change: FileChange) {
         self.change_count += 1;
         self.latest_size = change.size;
@@ -52,6 +90,10 @@ impl FileWatchContext {
     }
 }
 
+/// Measurement data structure for sensor readings
+///
+/// Represents a single measurement from a sensor, including the sensor ID,
+/// timestamp, value, and unit of measurement.
 #[derive(Debug, Clone)]
 struct MeasurementData {
     sensor_id: String,
@@ -60,6 +102,11 @@ struct MeasurementData {
     unit: String,
 }
 
+/// Context for sensor data processing operations
+///
+/// This struct maintains the state of sensor data processing operations,
+/// including the history of measurements, total measurement count, and
+/// the latest values for each sensor.
 #[derive(Debug, Clone)]
 struct SensorContext {
     measurements: HashMap<String, Vec<MeasurementData>>,
@@ -68,6 +115,9 @@ struct SensorContext {
 }
 
 impl SensorContext {
+    /// Creates a new sensor context for processing measurements
+    ///
+    /// Initializes an empty context that will track sensor measurements.
     fn new() -> Self {
         Self {
             measurements: HashMap::new(),
@@ -76,6 +126,10 @@ impl SensorContext {
         }
     }
 
+    /// Records a measurement in the context
+    ///
+    /// Updates the total measurement count, latest values, and adds the
+    /// measurement to the history of measurements for the specific sensor.
     fn record_measurement(&mut self, data: MeasurementData) {
         self.total_measurements += 1;
         self.latest_values
@@ -101,6 +155,10 @@ async fn main() -> Result<(), FloxideError> {
     Ok(())
 }
 
+/// Runs the file watcher example
+///
+/// Demonstrates how to use the Reactive Node pattern to monitor file system
+/// changes and react to modifications.
 async fn run_file_watcher_example() -> Result<(), FloxideError> {
     // Create a temporary file for demonstration
     let temp_file_path = "temp_watch_file.txt";
@@ -185,6 +243,10 @@ async fn run_file_watcher_example() -> Result<(), FloxideError> {
     Ok(())
 }
 
+/// Runs the custom sensor data example
+///
+/// Demonstrates how to use the Reactive Node pattern to process streaming
+/// sensor measurements and react to changes.
 async fn run_sensor_data_example() -> Result<(), FloxideError> {
     // Create a custom reactive node for sensor data
     let sensor_node = CustomReactiveNode::<_, _, _, _, _>::new(

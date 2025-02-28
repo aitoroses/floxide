@@ -1,3 +1,31 @@
+// Batch Processing Pattern: Parallel Data Processing with Controlled Concurrency
+//
+// This example demonstrates how to implement batch processing in the Flow Framework.
+// Batch processing allows for efficient parallel processing of multiple items while
+// maintaining control over resource usage and execution flow.
+//
+// Key concepts demonstrated:
+// 1. Parallel processing with controlled concurrency
+// 2. Resource management and optimization
+// 3. Batch context for maintaining state across items
+// 4. Error handling and statistics tracking
+// 5. Progress monitoring and reporting
+//
+// The example processes a collection of images by:
+// - Resizing them to 80% of their original dimensions
+// - Converting them to WebP format
+// - Tracking success/failure statistics
+//
+// This pattern is particularly useful for:
+// - Processing large datasets efficiently
+// - ETL (Extract, Transform, Load) operations
+// - Media processing and conversion
+// - Any scenario requiring parallel execution with resource constraints
+//
+// This example is designed in accordance with:
+// - ADR-0012: Batch Processing Pattern
+// - ADR-0016: Concurrency Control Strategy
+
 use async_trait::async_trait;
 use floxide_core::{
     batch::BatchContext, error::FloxideError, DefaultAction, Node, NodeId, NodeOutcome,
@@ -11,18 +39,31 @@ use tracing_subscriber::fmt;
 use uuid::Uuid;
 
 /// Represents an image with various properties
+///
+/// This struct models an image with its metadata and content,
+/// serving as the basic unit of work in our batch processing example.
 #[derive(Debug, Clone)]
 struct Image {
+    /// Unique identifier for the image
     id: String,
+    /// Filename or title of the image
     name: String,
+    /// Width of the image in pixels
     width: u32,
+    /// Height of the image in pixels
     height: u32,
+    /// File format of the image (e.g., "jpg", "png", "webp")
     format: String,
+    /// Simulated image data (in a real application, this would be binary data)
     data: String,
+    /// Time taken to process this image in milliseconds
     processing_time_ms: u64,
 }
 
 impl Image {
+    /// Creates a new image with the given properties
+    ///
+    /// Initializes an image with a random ID and simulated processing time.
     fn _new(name: &str, width: u32, height: u32, format: &str) -> Self {
         // Simulate random processing time for this image
         let mut rng = rand::thread_rng();
@@ -39,6 +80,9 @@ impl Image {
         }
     }
 
+    /// Resizes the image to the specified dimensions
+    ///
+    /// Simulates the time it takes to resize an image.
     async fn _resize(&self, new_width: u32, new_height: u32) -> Result<Image, FloxideError> {
         // Simulate the time it takes to resize an image
         sleep(Duration::from_millis(self.processing_time_ms)).await;
@@ -55,6 +99,9 @@ impl Image {
         Ok(resized)
     }
 
+    /// Converts the image to the specified format
+    ///
+    /// Simulates the time it takes to convert an image.
     async fn _convert_format(&self, new_format: &str) -> Result<Image, FloxideError> {
         // Simulate the time it takes to convert an image
         sleep(Duration::from_millis(self.processing_time_ms / 2)).await;
@@ -69,62 +116,75 @@ impl Image {
 }
 
 /// Context for batch processing of images
+///
+/// This context implements the BatchContext trait, which is the core abstraction
+/// for batch processing in Floxide. It manages:
+/// - The collection of items to be processed (images)
+/// - The current item being processed (used in item-specific contexts)
+/// - Statistics about processing success/failure
+/// - Any additional batch-specific state
 #[derive(Debug, Clone)]
 struct ImageBatchContext {
+    /// Collection of images to be processed in the batch
     images: Vec<Image>,
+    /// The current image being processed (used in item-specific contexts)
     current_image: Option<Image>,
+    /// Number of successfully processed images
     processed_count: usize,
+    /// Number of images that failed processing
     failed_count: usize,
-    _target_format: String,
+    /// Target format for image conversion
+    target_format: String,
+    /// Statistics collected during batch processing
     stats: HashMap<String, usize>,
 }
 
 impl ImageBatchContext {
+    /// Creates a new batch context with the given images and target format
+    ///
+    /// Initializes the batch context with the specified images and target format.
     fn _new(images: Vec<Image>, target_format: &str) -> Self {
         Self {
             images,
             current_image: None,
             processed_count: 0,
             failed_count: 0,
-            _target_format: target_format.to_string(),
+            target_format: target_format.to_string(),
             stats: HashMap::new(),
         }
     }
 
+    /// Increments a named statistic counter
+    ///
+    /// Updates the batch context with the specified statistic.
     fn add_stat(&mut self, key: &str) {
         *self.stats.entry(key.to_string()).or_insert(0) += 1;
     }
 
+    /// Prints the batch processing statistics
+    ///
+    /// Displays the collected statistics for the batch processing operation.
     fn _print_stats(&self) {
         info!("Batch processing statistics:");
         for (key, value) in &self.stats {
             info!("  {}: {}", key, value);
         }
     }
-}
 
-impl BatchContext<Image> for ImageBatchContext {
-    fn get_batch_items(&self) -> Result<Vec<Image>, FloxideError> {
-        Ok(self.images.clone())
-    }
-
-    fn create_item_context(&self, item: Image) -> Result<Self, FloxideError> {
-        // Create a new context for a single item
-        let mut ctx = self.clone();
-        ctx.images = Vec::new();
-        ctx.current_image = Some(item);
-        Ok(ctx)
-    }
-
+    /// Updates the batch context with the results of processing multiple items
+    ///
+    /// This method is called after a batch of items has been processed to
+    /// update the overall batch context with the results. It's where you
+    /// would aggregate statistics, handle errors, or update any batch-level state.
     fn update_with_results(
         &mut self,
         results: &[Result<Image, FloxideError>],
     ) -> Result<(), FloxideError> {
-        // Update statistics
+        // Count successes and failures
         self.processed_count = results.iter().filter(|r| r.is_ok()).count();
         self.failed_count = results.iter().filter(|r| r.is_err()).count();
 
-        // Update statistics
+        // Update statistics for each result
         for result in results {
             match result {
                 Ok(_) => self.add_stat("success"),
@@ -136,11 +196,50 @@ impl BatchContext<Image> for ImageBatchContext {
     }
 }
 
+/// Implementation of the BatchContext trait for image processing
+///
+/// The BatchContext trait is the foundation of batch processing in Floxide.
+/// It defines three key methods:
+/// 1. get_batch_items: Returns all items to be processed
+/// 2. create_item_context: Creates a context for a single item
+/// 3. update_with_results: Updates the batch context with processing results
+impl BatchContext<Image> for ImageBatchContext {
+    /// Returns all images to be processed in this batch
+    ///
+    /// This method is called by the batch processing system to get the
+    /// complete list of items that need to be processed.
+    fn get_batch_items(&self) -> Result<Vec<Image>, FloxideError> {
+        Ok(self.images.clone())
+    }
+
+    /// Creates a context for processing a single image
+    ///
+    /// This method is called for each item in the batch to create a context
+    /// that will be used when processing just that item. It allows the
+    /// batch processor to handle each item in isolation.
+    fn create_item_context(&self, item: Image) -> Result<Self, FloxideError> {
+        // Create a new context for a single item
+        let mut ctx = self.clone();
+        ctx.images = Vec::new();  // Clear the batch items
+        ctx.current_image = Some(item);  // Set the current item
+        Ok(ctx)
+    }
+}
+
+/// A simple image processor node that implements the Node trait
+///
+/// This node processes a single image by:
+/// - Resizing it to 80% of its original dimensions
+/// - Converting it to WebP format
+/// - Occasionally failing randomly (15% chance) to demonstrate error handling
 struct SimpleImageProcessor {
     id: NodeId,
 }
 
 impl SimpleImageProcessor {
+    /// Creates a new image processor node with the given ID
+    ///
+    /// Initializes the node with the specified ID.
     fn new(id: &str) -> Self {
         SimpleImageProcessor { id: id.to_string() }
     }
@@ -150,148 +249,174 @@ impl SimpleImageProcessor {
 impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor {
     type Output = Image;
 
+    /// Returns the ID of the node
+    ///
+    /// This method is used to identify the node in the workflow.
     fn id(&self) -> NodeId {
         self.id.clone()
     }
 
+    /// Processes the image using the provided context
+    ///
+    /// This method is called to process a single image using the node.
     async fn process(
         &self,
         ctx: &mut ImageBatchContext,
     ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FloxideError> {
-        // Get the image from the context
-        match ctx.current_image.as_ref() {
-            Some(image) => {
-                // Simulate image processing operations
-                let mut rng = rand::thread_rng();
-                if rng.gen_bool(0.15) {
-                    // 15% chance of failure
-                    return Err(FloxideError::node_execution(
-                        self.id(),
-                        "Random failure during image processing",
-                    ));
-                }
-
-                // Simulate processing (resize and format conversion)
-                let new_width = (image.width as f64 * 0.8) as u32;
-                let new_height = (image.height as f64 * 0.8) as u32;
-                let processed = Image {
-                    id: image.id.clone(),
-                    name: image.name.clone(),
-                    width: new_width,
-                    height: new_height,
-                    format: "webp".to_string(),
-                    data: format!("Processed: {}", image.data),
-                    processing_time_ms: image.processing_time_ms,
-                };
-
-                // Log and return result
-                tracing::info!(
-                    node_id = %self.id(),
-                    "Processed image {}. New dimensions: {}x{}, format: webp",
-                    image.id, new_width, new_height
-                );
-
-                Ok(NodeOutcome::Success(processed))
+        // Get the current image from the context
+        let image = match &ctx.current_image {
+            Some(img) => img.clone(),
+            None => {
+                return Err(FloxideError::node_execution(
+                    "SimpleImageProcessor",
+                    "No image found in context",
+                ))
             }
-            None => Err(FloxideError::node_execution(
-                self.id(),
-                "No image found in context",
-            )),
+        };
+
+        info!(
+            "Processing image: {} ({}x{}, {})",
+            image.name, image.width, image.height, image.format
+        );
+
+        // Simulate a random failure (15% chance)
+        let mut rng = rand::thread_rng();
+        if rng.gen_range(0..100) < 15 {
+            ctx.add_stat("failed");
+            return Err(FloxideError::node_execution(
+                "SimpleImageProcessor",
+                &format!("Failed to process image: {}", image.id),
+            ));
         }
+
+        // Resize the image to 80% of its original size
+        let new_width = (image.width as f32 * 0.8) as u32;
+        let new_height = (image.height as f32 * 0.8) as u32;
+        let resized = image._resize(new_width, new_height).await?;
+
+        // Convert the image to WebP format
+        let converted = resized._convert_format(&ctx.target_format).await?;
+
+        info!(
+            "Successfully processed image: {} -> {}x{}, {}",
+            converted.name, converted.width, converted.height, converted.format
+        );
+
+        ctx.add_stat("processed");
+        Ok(NodeOutcome::Success(converted))
     }
 }
 
-// Process a single image using the SimpleImageProcessor
+/// Process a single image using the SimpleImageProcessor
+///
+/// This function demonstrates how to process a single item using a node.
+/// In a batch processing scenario, this function would be called for each
+/// item in the batch, potentially in parallel.
 async fn process_image(image: Image) -> Result<Image, FloxideError> {
-    // Create a context with just this image
+    // Create a context for this single image
     let mut ctx = ImageBatchContext {
-        images: Vec::new(),
+        images: vec![],
         current_image: Some(image),
-        processed_count: 0,
-        failed_count: 0,
-        _target_format: "webp".to_string(),
+        target_format: "webp".to_string(),
         stats: HashMap::new(),
     };
 
-    // Process the image
-    let processor = SimpleImageProcessor::new("image_processor");
-    match processor.process(&mut ctx).await {
-        Ok(NodeOutcome::Success(image)) => Ok(image),
-        Ok(_) => Err(FloxideError::node_execution(
-            processor.id(),
-            "Unexpected outcome from processor",
+    // Create and use the processor node
+    let processor = SimpleImageProcessor::new("image-processor");
+    let result = processor.process(&mut ctx).await?;
+
+    match result {
+        NodeOutcome::Success(processed_image) => Ok(processed_image),
+        _ => Err(FloxideError::node_execution(
+            "process_image",
+            "Unexpected node outcome",
         )),
-        Err(e) => Err(e),
     }
 }
 
-// Process images in parallel with a given parallelism limit
-async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Image, FloxideError>> {
+/// Process images in parallel with a given parallelism limit
+///
+/// This function demonstrates a key aspect of batch processing: controlled parallelism.
+/// It processes multiple items concurrently while limiting the maximum number of
+/// simultaneous operations to avoid overwhelming system resources.
+///
+/// Key components:
+/// - StreamExt from futures: Provides methods for working with asynchronous streams
+/// - Semaphore from tokio: Controls the maximum number of concurrent operations
+/// - buffer_unordered: Processes items concurrently while maintaining the parallelism limit
+///
+/// The function returns a vector of results, preserving the success or failure
+/// status of each item's processing.
+async fn process_batch(
+    images: Vec<Image>,
+    parallelism: usize,
+) -> Vec<Result<Image, FloxideError>> {
     use futures::stream::{self, StreamExt};
     use tokio::sync::Semaphore;
+    use std::sync::Arc;
 
-    let semaphore = std::sync::Arc::new(Semaphore::new(parallelism));
+    // Create a semaphore to limit concurrency
+    let semaphore = Arc::new(Semaphore::new(parallelism));
 
-    stream::iter(images)
+    // Process all images concurrently with controlled parallelism
+    let results = stream::iter(images)
         .map(|image| {
-            let semaphore = semaphore.clone();
+            let sem = semaphore.clone();
             async move {
-                let _permit = semaphore.acquire().await.unwrap();
+                // Acquire a permit from the semaphore
+                let _permit = sem.acquire().await.unwrap();
+                
+                // Process the image
                 let result = process_image(image).await;
-                drop(_permit);
+                
+                // The permit is automatically released when it goes out of scope
                 result
             }
         })
-        .buffer_unordered(parallelism)
+        .buffer_unordered(parallelism) // Process up to `parallelism` items concurrently
         .collect::<Vec<_>>()
-        .await
+        .await;
+
+    results
 }
 
-fn main() {
-    // Initialize tracing
-    fmt::init();
+/// Main function to demonstrate batch processing
+///
+/// This function:
+/// 1. Sets up logging for the example
+/// 2. Creates a batch of sample images
+/// 3. Processes the batch with controlled parallelism
+/// 4. Collects and displays statistics about the processing
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize the tracing subscriber for logging
+    fmt().with_max_level(Level::INFO).init();
 
-    // Create a batch of images to process
+    info!("Starting batch processing example");
+
+    // Create a batch of sample images
     let mut images = Vec::new();
-    let mut rng = rand::thread_rng();
-    for i in 1..10 {
-        images.push(Image {
-            id: format!("img_{}", i),
-            name: format!("Image {}", i),
-            width: 1920,
-            height: 1080,
-            format: "jpg".to_string(),
-            data: format!("Original image data {}", i),
-            processing_time_ms: rng.gen_range(100..500),
-        });
+    for i in 1..=20 {
+        let name = format!("image_{}.jpg", i);
+        let width = rand::thread_rng().gen_range(800..2000);
+        let height = rand::thread_rng().gen_range(600..1500);
+        images.push(Image::_new(&name, width, height, "jpg"));
     }
 
-    // Set up runtime
-    let rt = tokio::runtime::Runtime::new().unwrap();
+    info!("Created {} sample images", images.len());
 
-    // Execute the batch processing
-    let results = rt.block_on(async { process_batch(images, 4).await });
+    // Process the batch with a parallelism of 4
+    let results = process_batch(images.clone(), 4).await;
 
-    // Print the results
-    let success_count = results.iter().filter(|r| r.is_ok()).count();
-    let error_count = results.len() - success_count;
+    // Create a batch context to track statistics
+    let mut batch_ctx = ImageBatchContext::_new(images, "webp");
 
-    println!("Batch processing completed!");
-    println!("Total items: {}", results.len());
-    println!("Successfully processed: {}", success_count);
-    println!("Failed: {}", error_count);
+    // Update the batch context with the results
+    batch_ctx.update_with_results(&results)?;
 
-    // Print individual results
-    for (i, result) in results.iter().enumerate() {
-        match result {
-            Ok(image) => println!(
-                "Item {}: Successfully processed to {}x{} {}",
-                i + 1,
-                image.width,
-                image.height,
-                image.format
-            ),
-            Err(e) => println!("Item {}: Failed with error: {}", i + 1, e),
-        }
-    }
+    // Print the statistics
+    batch_ctx._print_stats();
+
+    info!("Batch processing example completed");
+
+    Ok(())
 }

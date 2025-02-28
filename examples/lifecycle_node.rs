@@ -1,3 +1,33 @@
+// Lifecycle Node Pattern: A Multi-Phase Node Execution Example
+//
+// This example demonstrates how to implement and use the Lifecycle Node pattern
+// in the Flow Framework. The Lifecycle Node pattern breaks down node execution
+// into three distinct phases: preparation, execution, and post-processing.
+//
+// Key concepts demonstrated:
+// 1. Multi-phase node execution with distinct responsibilities
+// 2. Separation of concerns between validation, processing, and result handling
+// 3. Type-safe data flow between execution phases
+// 4. Error handling at different stages of execution
+// 5. Context updates at appropriate lifecycle phases
+//
+// The example implements a text processing workflow with two nodes:
+// - TextAnalysisNode: Analyzes text to count words and characters
+// - UppercaseNode: Converts text to uppercase
+//
+// Each node follows the lifecycle pattern with three phases:
+// 1. prep: Validates inputs and prepares for execution
+// 2. exec: Performs the main processing logic
+// 3. post: Updates the context with results and determines next action
+//
+// This pattern is particularly useful for complex processing tasks where
+// you want clear separation between input validation, core processing logic,
+// and result handling.
+//
+// This example is designed in accordance with:
+// - ADR-0012: Lifecycle Node Pattern
+// - ADR-0015: Multi-Phase Execution Model
+
 use async_trait::async_trait;
 use floxide_core::{
     lifecycle::LifecycleNodeAdapter, DefaultAction, FloxideError, LifecycleNode, NodeId, Workflow,
@@ -7,16 +37,25 @@ use tracing_subscriber::FmtSubscriber;
 use uuid::Uuid;
 
 /// A simple context for our workflow
+///
+/// This context stores the input text, analysis results, and processing notes.
+/// It's passed between nodes and updated as the workflow progresses.
 #[derive(Debug, Clone)]
 struct TextProcessingContext {
+    /// Original input text to be processed
     input: String,
+    /// Number of words in the input text (set by TextAnalysisNode)
     word_count: Option<usize>,
+    /// Number of characters in the input text (set by TextAnalysisNode)
     character_count: Option<usize>,
+    /// Uppercase version of the input text (set by UppercaseNode)
     uppercase: Option<String>,
+    /// Processing notes and logs from each step
     notes: Vec<String>,
 }
 
 impl TextProcessingContext {
+    /// Creates a new context with the given input text
     fn new(input: &str) -> Self {
         Self {
             input: input.to_string(),
@@ -27,17 +66,27 @@ impl TextProcessingContext {
         }
     }
 
+    /// Adds a processing note to the context
+    ///
+    /// This is used to track the progress and decisions made during workflow execution.
     fn add_note(&mut self, note: &str) {
         self.notes.push(note.to_string());
     }
 }
 
 /// A node that counts words and characters in text
+///
+/// This node demonstrates the Lifecycle Node pattern by implementing
+/// the LifecycleNode trait with three distinct phases:
+/// - prep: Validates that the input text is not empty
+/// - exec: Counts words and characters in the text
+/// - post: Updates the context with the analysis results
 struct TextAnalysisNode {
     id: NodeId,
 }
 
 impl TextAnalysisNode {
+    /// Creates a new TextAnalysisNode with a random UUID
     fn new() -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -46,16 +95,26 @@ impl TextAnalysisNode {
 }
 
 /// Analysis results from the preparation phase
+///
+/// This struct is returned by the prep phase and passed to the exec phase.
+/// It contains the validated text and any metadata needed for execution.
 #[derive(Debug, Clone)]
 struct AnalysisPrep {
+    /// The validated text to be analyzed
     text: String,
+    /// Flag indicating whether the text is valid
     _is_valid: bool,
 }
 
 /// Analysis results from the execution phase
+///
+/// This struct is returned by the exec phase and passed to the post phase.
+/// It contains the analysis results that will be stored in the context.
 #[derive(Debug, Clone)]
 struct AnalysisResult {
+    /// Number of words in the text
     word_count: usize,
+    /// Number of characters in the text
     character_count: usize,
 }
 
@@ -68,6 +127,12 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
         self.id.clone()
     }
 
+    /// Preparation phase: Validates the input text
+    ///
+    /// This phase:
+    /// 1. Checks if the input text is empty
+    /// 2. Returns an error if validation fails
+    /// 3. Otherwise, returns the validated text for processing
     async fn prep(
         &self,
         ctx: &mut TextProcessingContext,
@@ -93,6 +158,10 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
         })
     }
 
+    /// Execution phase: Counts words and characters
+    ///
+    /// This phase takes the validated text from the prep phase
+    /// and counts the number of words and characters.
     async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         info!("Executing text analysis");
 
@@ -111,6 +180,10 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
         })
     }
 
+    /// Post-processing phase: Updates the context with results
+    ///
+    /// This phase updates the context with the analysis results
+    /// and determines the next action to take.
     async fn post(
         &self,
         _prep_result: Self::PrepOutput,
@@ -119,32 +192,37 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for TextAnalysisNode {
     ) -> Result<DefaultAction, FloxideError> {
         info!("Post-processing analysis results");
 
-        // Update the context with the results
+        // Update the context with the analysis results
         ctx.word_count = Some(exec_result.word_count);
         ctx.character_count = Some(exec_result.character_count);
 
+        // Add notes about the analysis
         ctx.add_note(&format!(
-            "Analysis complete: {} words, {} characters",
+            "Text analysis complete: {} words, {} characters",
             exec_result.word_count, exec_result.character_count
         ));
 
-        // Determine the next action based on word count
-        if exec_result.word_count > 10 {
-            ctx.add_note("Text is lengthy, routing to uppercase conversion");
+        // Determine the next action based on the results
+        if exec_result.word_count > 0 {
+            info!("Analysis successful, proceeding to next step");
             Ok(DefaultAction::Next)
         } else {
-            ctx.add_note("Text is short, completing workflow");
+            info!("Analysis found no words, workflow will end");
             Ok(DefaultAction::Next)
         }
     }
 }
 
 /// A node that converts text to uppercase
+///
+/// This node demonstrates another implementation of the Lifecycle Node pattern
+/// with simpler input/output types. It converts the input text to uppercase.
 struct UppercaseNode {
     id: NodeId,
 }
 
 impl UppercaseNode {
+    /// Creates a new UppercaseNode with a random UUID
     fn new() -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -161,28 +239,38 @@ impl LifecycleNode<TextProcessingContext, DefaultAction> for UppercaseNode {
         self.id.clone()
     }
 
+    /// Preparation phase: Extracts the input text
+    ///
+    /// This phase simply extracts the input text from the context
+    /// and passes it to the execution phase.
     async fn prep(
         &self,
         ctx: &mut TextProcessingContext,
     ) -> Result<Self::PrepOutput, FloxideError> {
         info!("Preparing to convert text to uppercase");
-        ctx.add_note("Preparing uppercase conversion");
+        ctx.add_note("Starting uppercase conversion");
         Ok(ctx.input.clone())
     }
 
+    /// Execution phase: Converts text to uppercase
+    ///
+    /// This phase takes the input text and converts it to uppercase.
     async fn exec(&self, prep_result: Self::PrepOutput) -> Result<Self::ExecOutput, FloxideError> {
         info!("Converting text to uppercase");
-        let uppercase = prep_result.to_uppercase();
-        Ok(uppercase)
+        Ok(prep_result.to_uppercase())
     }
 
+    /// Post-processing phase: Updates the context with uppercase text
+    ///
+    /// This phase updates the context with the uppercase text
+    /// and returns the next action to take.
     async fn post(
         &self,
         _prep_result: Self::PrepOutput,
         exec_result: Self::ExecOutput,
         ctx: &mut TextProcessingContext,
     ) -> Result<DefaultAction, FloxideError> {
-        info!("Uppercase conversion complete");
+        info!("Post-processing uppercase conversion");
         ctx.uppercase = Some(exec_result);
         ctx.add_note("Uppercase conversion complete");
         Ok(DefaultAction::Next)

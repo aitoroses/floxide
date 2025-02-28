@@ -1,3 +1,32 @@
+// Order Processing Workflow: A Complete Business Process Example
+//
+// This example demonstrates how to implement a complete order processing workflow
+// using the Flow Framework. It models a realistic business process with multiple
+// stages, error handling, and conditional routing.
+//
+// Key concepts demonstrated:
+// 1. Custom action types for specialized workflow routing
+// 2. Multi-stage business process implementation
+// 3. Error handling and recovery with retry mechanisms
+// 4. State management across workflow stages
+// 5. Conditional execution paths based on business rules
+//
+// The workflow implements a complete order processing system:
+// - Order validation: Checks order details for completeness and validity
+// - Payment processing: Handles payment with retry capability
+// - Order fulfillment: Manages shipping and delivery
+// - Error handling: Provides graceful failure paths and notifications
+//
+// This pattern is particularly useful for:
+// - Business process automation
+// - E-commerce and order management systems
+// - Multi-stage workflows with conditional paths
+// - Processes requiring audit trails and state tracking
+//
+// This example is designed in accordance with:
+// - ADR-0008: Business Process Workflow Pattern
+// - ADR-0011: Error Handling and Recovery Strategy
+
 use async_trait::async_trait;
 use floxide_core::{
     node, ActionType, FloxideError, Node, NodeId, NodeOutcome, RetryNode, Workflow,
@@ -7,13 +36,22 @@ use tracing::{error, info, warn};
 use uuid::Uuid;
 
 /// Custom action type for our order workflow
+///
+/// This enum defines the possible routing actions within the order processing
+/// workflow. Each action represents a different path the workflow can take.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum OrderAction {
+    /// Default action, used when no specific routing is needed
     Default,
+    /// Proceed to the next step in the normal flow
     Next,
+    /// An error occurred that requires special handling
     Error,
+    /// Cancel the order and stop processing
     _CancelOrder,
+    /// Order was successfully processed
     Success,
+    /// Order processing failed
     Failure,
 }
 
@@ -24,6 +62,9 @@ impl Default for OrderAction {
 }
 
 impl ActionType for OrderAction {
+    /// Returns a string representation of the action
+    ///
+    /// This is used for logging and debugging purposes.
     fn name(&self) -> &str {
         match self {
             Self::Default => "default",
@@ -37,41 +78,70 @@ impl ActionType for OrderAction {
 }
 
 /// An item in an order
+///
+/// Represents a product or service that a customer has ordered,
+/// including its name, price, and quantity.
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct OrderItem {
+    /// Name or description of the item
     name: String,
+    /// Price per unit
     price: f64,
+    /// Number of units ordered
     quantity: u32,
 }
 
 /// Possible order statuses
+///
+/// Represents the current state of an order as it moves
+/// through the processing workflow.
 #[derive(Debug, Clone, PartialEq)]
 enum OrderStatus {
+    /// Order has been created but not yet validated
     Created,
+    /// Order has been validated and is ready for payment
     Validated,
+    /// Payment has been processed successfully
     PaymentProcessed,
+    /// Order has been shipped
     Shipped,
+    /// Order has been delivered to the customer
     Delivered,
+    /// Order has been cancelled
     Cancelled,
 }
 
 /// Context for an order processing workflow
+///
+/// This struct maintains the state of an order as it moves through
+/// the processing workflow, including customer details, items,
+/// payment information, and processing history.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct OrderContext {
+    /// Unique identifier for the order
     order_id: String,
+    /// Customer identifier
     customer_id: String,
+    /// Items included in the order
     items: Vec<OrderItem>,
+    /// Total amount of the order
     total_amount: f64,
+    /// Shipping address for delivery
     shipping_address: Option<String>,
+    /// Processing notes and history
     notes: Vec<String>,
+    /// Current status of the order
     status: OrderStatus,
+    /// Number of payment attempts
     payment_attempts: u32,
 }
 
 impl OrderContext {
     /// Create a new order context
+    ///
+    /// Initializes a new order with the given customer ID, items, and
+    /// shipping address. Sets the initial status to Created.
     fn new(customer_id: &str, items: Vec<OrderItem>, shipping_address: Option<String>) -> Self {
         let total = items
             .iter()
@@ -91,11 +161,15 @@ impl OrderContext {
     }
 
     /// Add a note to the order
+    ///
+    /// Records a processing note or event in the order history.
     fn add_note(&mut self, note: &str) {
         self.notes.push(note.to_string());
     }
 
     /// Calculate order subtotal (before tax/shipping)
+    ///
+    /// Computes the total cost of all items in the order.
     fn calculate_subtotal(&self) -> f64 {
         self.items
             .iter()
@@ -104,18 +178,25 @@ impl OrderContext {
     }
 
     /// Update order status
+    ///
+    /// Changes the current status of the order and records the transition.
     fn update_status(&mut self, status: OrderStatus) {
         self.status = status;
     }
 }
 
 /// A node that validates the order
+///
+/// This node checks that the order has all required information
+/// and meets business rules before proceeding to payment.
 #[derive(Debug, Clone)]
 struct ValidateOrderNode {
-    id: NodeId,
+    /// Unique identifier for this node
+    id: String,
 }
 
 impl ValidateOrderNode {
+    /// Creates a new ValidateOrderNode with a random UUID
     fn new() -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -127,10 +208,18 @@ impl ValidateOrderNode {
 impl Node<OrderContext, OrderAction> for ValidateOrderNode {
     type Output = ();
 
+    /// Returns the unique identifier for this node
     fn id(&self) -> NodeId {
         self.id.clone()
     }
 
+    /// Validates the order and determines the next action
+    ///
+    /// This method:
+    /// 1. Checks if the order has items
+    /// 2. Verifies that a shipping address is provided
+    /// 3. Updates the order status if validation passes
+    /// 4. Returns an appropriate action based on validation results
     async fn process(
         &self,
         ctx: &mut OrderContext,
@@ -178,13 +267,18 @@ impl Node<OrderContext, OrderAction> for ValidateOrderNode {
 }
 
 /// A node that processes payment for the order
+///
+/// This node handles payment processing with retry capability.
 #[derive(Debug, Clone)]
 struct ProcessPaymentNode {
-    id: NodeId,
+    /// Unique identifier for this node
+    id: String,
+    /// Whether payment processing should fail (for testing)
     should_fail: bool,
 }
 
 impl ProcessPaymentNode {
+    /// Creates a new ProcessPaymentNode with a random UUID
     fn new(should_fail: bool) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -197,10 +291,19 @@ impl ProcessPaymentNode {
 impl Node<OrderContext, OrderAction> for ProcessPaymentNode {
     type Output = ();
 
+    /// Returns the unique identifier for this node
     fn id(&self) -> NodeId {
         self.id.clone()
     }
 
+    /// Processes payment for the order
+    ///
+    /// This method:
+    /// 1. Increments the payment attempts counter
+    /// 2. Simulates payment processing with a delay
+    /// 3. Returns an error if payment fails (based on should_fail flag)
+    /// 4. Updates the order status if payment succeeds
+    /// 5. Returns an appropriate action based on payment results
     async fn process(
         &self,
         ctx: &mut OrderContext,
@@ -241,12 +344,16 @@ impl Node<OrderContext, OrderAction> for ProcessPaymentNode {
 }
 
 /// A node that ships the order
+///
+/// This node manages shipping and delivery of the order.
 #[derive(Debug, Clone)]
 struct ShipOrderNode {
-    id: NodeId,
+    /// Unique identifier for this node
+    id: String,
 }
 
 impl ShipOrderNode {
+    /// Creates a new ShipOrderNode with a random UUID
     fn new() -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -258,10 +365,18 @@ impl ShipOrderNode {
 impl Node<OrderContext, OrderAction> for ShipOrderNode {
     type Output = ();
 
+    /// Returns the unique identifier for this node
     fn id(&self) -> NodeId {
         self.id.clone()
     }
 
+    /// Ships the order
+    ///
+    /// This method:
+    /// 1. Retrieves the shipping address from the order context
+    /// 2. Updates the order status to Shipped
+    /// 3. Adds a note to the order history
+    /// 4. Returns an appropriate action based on shipping results
     async fn process(
         &self,
         ctx: &mut OrderContext,
@@ -280,12 +395,16 @@ impl Node<OrderContext, OrderAction> for ShipOrderNode {
 }
 
 /// A node that delivers the order
+///
+/// This node manages delivery of the order to the customer.
 #[derive(Debug, Clone)]
 struct DeliverOrderNode {
-    id: NodeId,
+    /// Unique identifier for this node
+    id: String,
 }
 
 impl DeliverOrderNode {
+    /// Creates a new DeliverOrderNode with a random UUID
     fn new() -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -297,10 +416,17 @@ impl DeliverOrderNode {
 impl Node<OrderContext, OrderAction> for DeliverOrderNode {
     type Output = ();
 
+    /// Returns the unique identifier for this node
     fn id(&self) -> NodeId {
         self.id.clone()
     }
 
+    /// Delivers the order
+    ///
+    /// This method:
+    /// 1. Updates the order status to Delivered
+    /// 2. Adds a note to the order history
+    /// 3. Returns an appropriate action based on delivery results
     async fn process(
         &self,
         ctx: &mut OrderContext,
@@ -316,12 +442,16 @@ impl Node<OrderContext, OrderAction> for DeliverOrderNode {
 }
 
 /// A node that cancels the order
+///
+/// This node cancels the order and stops processing.
 #[derive(Debug, Clone)]
 struct CancelOrderNode {
-    id: NodeId,
+    /// Unique identifier for this node
+    id: String,
 }
 
 impl CancelOrderNode {
+    /// Creates a new CancelOrderNode with a random UUID
     fn new() -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
@@ -333,10 +463,17 @@ impl CancelOrderNode {
 impl Node<OrderContext, OrderAction> for CancelOrderNode {
     type Output = ();
 
+    /// Returns the unique identifier for this node
     fn id(&self) -> NodeId {
         self.id.clone()
     }
 
+    /// Cancels the order
+    ///
+    /// This method:
+    /// 1. Updates the order status to Cancelled
+    /// 2. Adds a note to the order history
+    /// 3. Returns an appropriate action based on cancellation results
     async fn process(
         &self,
         ctx: &mut OrderContext,
@@ -352,6 +489,9 @@ impl Node<OrderContext, OrderAction> for CancelOrderNode {
 }
 
 /// Create a notification node with a custom message
+///
+/// This function creates a new node that logs a notification message
+/// and adds it to the order history.
 fn create_notification_node(message: String) -> impl Node<OrderContext, OrderAction, Output = ()> {
     node(move |mut ctx: OrderContext| {
         let msg = message.clone();
@@ -364,6 +504,9 @@ fn create_notification_node(message: String) -> impl Node<OrderContext, OrderAct
 }
 
 /// Create an order processing workflow
+///
+/// This function creates a new workflow that processes an order from
+/// creation to delivery, including payment processing and error handling.
 fn create_order_workflow(should_fail_payment: bool) -> Workflow<OrderContext, OrderAction> {
     // Create all the nodes
     let validate_node = ValidateOrderNode::new();

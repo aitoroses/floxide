@@ -1,3 +1,32 @@
+// Transform Node Pattern: Multi-Stage Data Transformation Example
+//
+// This example demonstrates how to implement and use the Transform Node pattern
+// in the Flow Framework. The Transform Node pattern provides a structured approach
+// to data transformation with distinct preparation, execution, and post-processing
+// phases.
+//
+// Key concepts demonstrated:
+// 1. Three-phase transformation process (prep, exec, post)
+// 2. Type-safe data flow between transformation phases
+// 3. Multiple implementation approaches (struct-based, closure-based)
+// 4. Error handling at different transformation stages
+// 5. Integration with lifecycle nodes and standard workflows
+//
+// The example implements three scenarios:
+// - Text transformation: Simple string processing with validation
+// - Text analysis: Complex transformation with different input/output types
+// - Closure-based transformation: Creating transform nodes using closures
+//
+// Transform nodes are particularly useful for:
+// - Data processing pipelines with validation requirements
+// - Complex transformations that benefit from a multi-stage approach
+// - Scenarios requiring clear separation of concerns
+// - Reusable transformation components
+//
+// This example is designed in accordance with:
+// - ADR-0013: Transform Node Pattern
+// - ADR-0015: Multi-Phase Execution Model
+
 use async_trait::async_trait;
 use floxide_core::{
     lifecycle::LifecycleNodeAdapter, DefaultAction, FloxideError, Node, NodeOutcome, Workflow,
@@ -10,6 +39,9 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 /// Custom error type for our transform nodes
+///
+/// This error type is used throughout the example to represent
+/// errors that can occur during text processing operations.
 #[derive(Debug)]
 struct TextProcessingError(String);
 
@@ -21,7 +53,10 @@ impl fmt::Display for TextProcessingError {
 
 impl Error for TextProcessingError {}
 
-// Make our custom error convertible to FloxideError
+/// Make our custom error convertible to FloxideError
+///
+/// This conversion allows our custom error type to be used
+/// with the framework's error handling mechanisms.
 impl From<TextProcessingError> for FloxideError {
     fn from(err: TextProcessingError) -> Self {
         FloxideError::node_execution("transform_node", &err.0)
@@ -29,10 +64,19 @@ impl From<TextProcessingError> for FloxideError {
 }
 
 /// A struct-based transform node that processes text
+///
+/// This node demonstrates the basic implementation of the TransformNode trait
+/// with a simple text transformation (converting to uppercase).
 struct TextTransformer;
 
 #[async_trait]
 impl TransformNode<String, String, TextProcessingError> for TextTransformer {
+    /// Preparation phase: Validates the input text
+    ///
+    /// This phase:
+    /// 1. Checks if the input text is empty
+    /// 2. Returns an error if validation fails
+    /// 3. Otherwise, returns the validated text for processing
     async fn prep(&self, input: String) -> Result<String, TextProcessingError> {
         // Validation step
         if input.trim().is_empty() {
@@ -49,6 +93,10 @@ impl TransformNode<String, String, TextProcessingError> for TextTransformer {
         Ok(input)
     }
 
+    /// Execution phase: Performs the text transformation
+    ///
+    /// This phase takes the validated text from the prep phase
+    /// and converts it to uppercase.
     async fn exec(&self, input: String) -> Result<String, TextProcessingError> {
         // Main transformation logic
         let result = input.to_uppercase();
@@ -56,6 +104,10 @@ impl TransformNode<String, String, TextProcessingError> for TextTransformer {
         Ok(result)
     }
 
+    /// Post-processing phase: Finalizes the transformed text
+    ///
+    /// This phase takes the transformed text from the exec phase
+    /// and performs any final processing before returning it.
     async fn post(&self, output: String) -> Result<String, TextProcessingError> {
         // Post-processing step
         let result = format!("PROCESSED: {}", output);
@@ -66,18 +118,34 @@ impl TransformNode<String, String, TextProcessingError> for TextTransformer {
 
 /// A more complex example showing text analysis using transform node
 ///
-/// This node counts words and characters in a text input
+/// This node counts words and characters in a text input and
+/// demonstrates transformation between different input and output types.
 struct TextAnalyzer;
 
+/// Statistics about a text string
+///
+/// This struct holds the results of text analysis, including
+/// word count, character count, and whether the text contains numbers.
 #[derive(Debug, Clone)]
 struct TextStats {
+    /// Number of words in the text
     word_count: usize,
-    character_count: usize,
-    has_numbers: bool,
+    /// Number of characters in the text
+    char_count: usize,
+    /// Whether the text contains numeric digits
+    contains_numbers: bool,
+    /// Original text that was analyzed
+    original_text: String,
 }
 
 #[async_trait]
 impl TransformNode<String, TextStats, TextProcessingError> for TextAnalyzer {
+    /// Preparation phase: Validates the input text
+    ///
+    /// This phase:
+    /// 1. Checks if the input text is empty
+    /// 2. Returns an error if validation fails
+    /// 3. Otherwise, returns the validated text for processing
     async fn prep(&self, input: String) -> Result<String, TextProcessingError> {
         // Check if the input is valid
         if input.trim().is_empty() {
@@ -85,31 +153,41 @@ impl TransformNode<String, TextStats, TextProcessingError> for TextAnalyzer {
                 "Input text cannot be empty".to_string(),
             ));
         }
-
         info!("Preparing text analysis for: '{}'", input);
         Ok(input)
     }
 
+    /// Execution phase: Performs the text analysis
+    ///
+    /// This phase takes the validated text from the prep phase
+    /// and counts words, characters, and checks for numbers.
     async fn exec(&self, input: String) -> Result<TextStats, TextProcessingError> {
         // Count words and characters
         let words = input.split_whitespace().count();
         let chars = input.chars().count();
-        let has_numbers = input.chars().any(|c| c.is_numeric());
-
+        
+        // Check if the text contains numbers
+        let contains_numbers = input.chars().any(|c| c.is_numeric());
+        
+        info!(
+            "Analyzed text: {} words, {} characters, contains numbers: {}",
+            words, chars, contains_numbers
+        );
+        
         let stats = TextStats {
             word_count: words,
-            character_count: chars,
-            has_numbers,
+            char_count: chars,
+            contains_numbers,
+            original_text: input.clone(),
         };
-
-        info!(
-            "Analysis results: {} words, {} characters, contains numbers: {}",
-            stats.word_count, stats.character_count, stats.has_numbers
-        );
-
+        
         Ok(stats)
     }
 
+    /// Post-processing phase: Finalizes the analysis results
+    ///
+    /// This phase takes the analysis results from the exec phase
+    /// and performs any final processing before returning it.
     async fn post(&self, output: TextStats) -> Result<TextStats, TextProcessingError> {
         // No modification needed in post-processing
         info!("Finalized text analysis: {:?}", output);
@@ -118,6 +196,9 @@ impl TransformNode<String, TextStats, TextProcessingError> for TextAnalyzer {
 }
 
 /// Example of creating a transform node from closures
+///
+/// This function demonstrates how to create a transform node using closures
+/// instead of implementing the TransformNode trait on a struct.
 fn create_greeting_transformer() -> impl TransformNode<String, String, TextProcessingError> + 'static
 {
     // Use the BoxFuture type from tokio instead of futures
@@ -321,8 +402,9 @@ async fn run_text_analysis_example() -> Result<(), Box<dyn Error>> {
             // to the TextStats from a previous node or from the workflow context
             let stats = TextStats {
                 word_count: ctx.input.split_whitespace().count(),
-                character_count: ctx.input.chars().count(),
-                has_numbers: ctx.input.chars().any(|c| c.is_numeric()),
+                char_count: ctx.input.chars().count(),
+                contains_numbers: ctx.input.chars().any(|c| c.is_numeric()),
+                original_text: ctx.input.clone(),
             };
 
             Ok(NodeOutcome::Success(stats))
@@ -353,8 +435,8 @@ async fn run_text_analysis_example() -> Result<(), Box<dyn Error>> {
 
     println!("Text Analysis Results:");
     println!("- Word count: {}", stats.word_count);
-    println!("- Character count: {}", stats.character_count);
-    println!("- Contains numbers: {}", stats.has_numbers);
+    println!("- Character count: {}", stats.char_count);
+    println!("- Contains numbers: {}", stats.contains_numbers);
 
     Ok(())
 }

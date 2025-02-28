@@ -23,51 +23,30 @@ Floxide transforms complex workflow orchestration into a delightful experience. 
 
 ## 📐 Architectural Decisions
 
-This project follows documented architectural decisions recorded in ADRs (Architectural Decision Records). Each ADR captures the context, decision, and consequences of significant architectural choices. The development is guided by an LLM with rules defined in the `.cursorrules` file.
+Floxide is built on a foundation of carefully considered architectural decisions, each documented in our project documentation. These decisions form the backbone of our design philosophy and guide the evolution of the framework.
 
-Key architectural decisions include:
+### Core Design Philosophy
 
-- [**Core Framework Abstractions**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0003-core-framework-abstractions.md) - Defining the fundamental abstractions like Node, Action, and Workflow with a trait-based approach for type safety and flexibility.
+At the heart of Floxide lies a commitment to **type safety**, **composability**, and **performance**. Our architecture embraces Rust's powerful type system to catch errors at compile time rather than runtime, while providing flexible abstractions that can be composed to create complex workflows.
 
-- [**Project Structure and Crate Organization**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0002-project-structure-and-crate-organization.md) - Organizing the framework as a Cargo workspace with multiple specialized crates for modularity and separation of concerns.
+Key architectural principles include:
 
-- [**Async Runtime Selection**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0004-async-runtime-selection.md) - Choosing Tokio as the primary async runtime for its comprehensive feature set and wide adoption.
+- **Trait-based polymorphism** over inheritance
+- **Ownership-aware design** that leverages Rust's borrowing system
+- **Zero-cost abstractions** that compile to efficient code
+- **Explicit error handling** with rich error types
+- **Async-first approach** with Tokio integration
 
-- [**Node Lifecycle Methods**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0008-node-lifecycle-methods.md) - Implementing a three-phase lifecycle (prep/exec/post) for workflow nodes to provide clear separation of concerns.
+### Documentation Resources
 
-- [**Batch Processing Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0007-batch-processing-implementation.md) - Designing a batch processing system that efficiently handles parallel execution with configurable concurrency limits.
+For detailed information about Floxide's architecture and implementation:
 
-- [**Event-Driven Workflow Pattern**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0009-event-driven-workflow-pattern.md) - Extending the framework with event-driven capabilities for handling asynchronous events.
+- **[API Documentation](https://docs.rs/floxide/latest/floxide/)** - Comprehensive Rust API docs with detailed explanations of types, traits, and functions
+- **[Project Documentation](https://aitoroses.github.io/floxide/)** - User guides, tutorials, and architectural overviews
 
-- [**Reactive Node Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0017-reactive-node-implementation.md) - Creating nodes that can respond to changes in external data sources using a stream-based approach.
+Our architecture is not static—it evolves through a rigorous process of evaluation and refinement. Each new feature or enhancement is preceded by careful design consideration that documents the context, decision, and consequences, ensuring that our architectural integrity remains strong as the framework grows.
 
-- [**Timer Node Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0021-timer-node-implementation.md) - Supporting time-based scheduling for workflow execution with various scheduling patterns.
-
-- [**Long-Running Node Implementation**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0022-longrunning-node-implementation.md) - Enabling workflows to process work incrementally with state persistence between executions.
-
-- [**Simplified Publishing with Maintained Subcrate Structure**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0033-implementing-single-package-with-features.md) - Using cargo-workspaces for version management and publishing.
-
-- [**Script Consolidation for Release Process**](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0034-script-consolidation-for-release-process.md) - Streamlining the release process with consolidated scripts.
-
-## 📦 Release Process
-
-Floxide uses [cargo-workspaces](https://github.com/pksunkara/cargo-workspaces) for version management and publishing. The release process is automated through a GitHub Actions workflow:
-
-**Combined Release Workflow**: The `combined-release.yml` workflow handles the entire release process in one go. It can be triggered manually from the GitHub Actions tab with options for:
-- Bump type (patch, minor, major)
-- Dry run (preview without making changes)
-- Whether to publish to crates.io
-- Tagging options
-
-This workflow combines version bumping, tagging, and publishing into a single, streamlined process.
-
-For local development and testing, you can use the following scripts:
-- `./scripts/release_with_workspaces.sh <version> [--dry-run] [--skip-publish]` - Bump version and optionally publish
-- `./scripts/update_versions.sh` - Update subcrate versions to use workspace inheritance
-- `./scripts/run_ci_locally.sh` - Run CI checks locally
-- `./scripts/serve-docs.sh` - Serve documentation locally
-
-For more details on the release process, see [ADR-0035: Combined Version Bump and Release Workflow](https://github.com/aitoroses/floxide/tree/main/docs/adrs/0035-combined-version-bump-and-release-workflow.md).
+This approach has enabled us to build a framework that is both powerful and flexible, capable of handling everything from simple linear workflows to complex event-driven systems with parallel processing capabilities.
 
 ## 🚀 Quick Start
 
@@ -173,13 +152,14 @@ A basic sequence of nodes executed one after another. This is the foundation of 
 
 ```mermaid
 graph LR
-    A["Process Data"] --> B["Format Output"] --> C["Store Result"]
+    A["TextAnalysisNode"] --> B["UppercaseNode"]
+    A -->|"prep → exec → post"| A
+    B -->|"prep → exec → post"| B
     style A fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
     style B fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
-    style C fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
 ```
 
-**Example:** [lifecycle_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/lifecycle_node.rs)
+**Example:** [lifecycle_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/lifecycle_node.rs) - Demonstrates a workflow with preparation, execution, and post-processing phases.
 
 ### 🌲 Conditional Branching
 
@@ -187,17 +167,21 @@ Workflows that make decisions based on context data or node results, directing f
 
 ```mermaid
 graph TD
-    A["Validate Input"] -->|Valid| B["Process Data"]
-    A -->|Invalid| C["Error Handler"]
-    B -->|Success| D["Format Output"]
-    B -->|Error| C
+    A["ValidateOrderNode"] -->|Valid| B["ProcessPaymentNode"]
+    A -->|Invalid| E["CancelOrderNode"]
+    B -->|Success| C["ShipOrderNode"]
+    B -->|Error| F["NotificationNode"]
+    C --> D["DeliverOrderNode"]
+    F --> B
     style A fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
     style B fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
-    style C fill:#ffcccc,stroke:#e53935,stroke-width:2px,color:black
+    style C fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
     style D fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
+    style E fill:#ffcccc,stroke:#e53935,stroke-width:2px,color:black
+    style F fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
 ```
 
-**Example:** [order_processing.rs](https://github.com/aitoroses/floxide/tree/main/examples/order_processing.rs)
+**Example:** [order_processing.rs](https://github.com/aitoroses/floxide/blob/main/examples/order_processing.rs) - Implements a complete order processing workflow with validation, payment, shipping, and error handling.
 
 ### 🔄 Transform Pipeline
 
@@ -205,15 +189,21 @@ A specialized workflow for data transformation, where each node transforms input
 
 ```mermaid
 graph LR
-    A["Raw Data"] --> B["Validate"] --> C["Transform"] --> D["Format"] --> E["Output"]
+    A["Input"] --> B["TextTransformer"]
+    B --> C["TextAnalyzer"]
+    C --> D["GreetingTransformer"]
+    B -->|"prep → exec → post"| B
+    C -->|"prep → exec → post"| C
+    D -->|"prep → exec → post"| D
     style A fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
     style B fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
     style C fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
     style D fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
-    style E fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
 ```
 
-**Example:** [transform_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/transform_node.rs)
+**Examples:** 
+- [transform_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/transform_node.rs) - Basic implementation of the Transform Node pattern
+- [transform_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/transform_node.rs) - Advanced examples of transform nodes with multiple implementation approaches
 
 ### 🔀 Parallel Batch Processing
 
@@ -221,22 +211,24 @@ Process multiple items concurrently with controlled parallelism, ideal for high-
 
 ```mermaid
 graph TD
-    A["Batch Input"] --> B["Split Batch"]
-    B --> C1["Process Item 1"]
-    B --> C2["Process Item 2"]
-    B --> C3["Process Item 3"]
-    C1 --> D["Aggregate Results"]
+    A["ImageBatchContext"] --> B["Split Batch"]
+    B --> C1["SimpleImageProcessor<br>(Image 1)"]
+    B --> C2["SimpleImageProcessor<br>(Image 2)"]
+    B --> C3["SimpleImageProcessor<br>(Image 3)"]
+    C1 --> D["Update Batch Context"]
     C2 --> D
     C3 --> D
+    D -->|"Statistics"| E["Print Results"]
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
     style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
     style C1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
     style C2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
     style C3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
     style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
+    style E fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
 ```
 
-**Example:** [batch_processing.rs](https://github.com/aitoroses/floxide/tree/main/examples/batch_processing.rs)
+**Example:** [batch_processing.rs](https://github.com/aitoroses/floxide/blob/main/examples/batch_processing.rs) - Demonstrates parallel processing of images with controlled concurrency and resource management.
 
 ### 📡 Event-Driven Flow
 
@@ -244,22 +236,25 @@ Workflows that respond to external events, ideal for building reactive systems t
 
 ```mermaid
 graph TD
-    A["Event Source"] -->|Events| B["Event Classifier"]
-    B -->|Type A| C["Handler A"]
-    B -->|Type B| D["Handler B"]
-    B -->|Type C| E["Handler C"]
-    C --> F["Event Source"]
-    D --> F
-    E --> F
+    A["TemperatureEventSource"] -->|"Events"| B["TemperatureClassifier"]
+    B -->|"Normal"| C["NormalTempHandler"]
+    B -->|"High"| D["HighTempHandler"]
+    B -->|"Low"| E["LowTempHandler"]
+    B -->|"Critical"| F["CriticalTempHandler"]
+    C --> A
+    D --> A
+    E --> A
+    F -->|"Terminate"| G["End Workflow"]
     style A fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
     style B fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
     style C fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
     style D fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
     style E fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
     style F fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
+    style G fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
 ```
 
-**Example:** [event_driven_workflow.rs](https://github.com/aitoroses/floxide/tree/main/examples/event_driven_workflow.rs)
+**Example:** [event_driven_workflow.rs](https://github.com/aitoroses/floxide/blob/main/examples/event_driven_workflow.rs) - Implements a temperature monitoring system that processes events from multiple sensors and triggers appropriate actions.
 
 ### ⏱️ Time-Based Workflows
 
@@ -267,15 +262,20 @@ Workflows that execute based on time schedules, supporting one-time, interval, a
 
 ```mermaid
 graph TD
-    A["Timer Source"] -->|Trigger| B["Scheduled Task"]
-    B --> C["Process Result"]
-    C -->|Reschedule| A
+    A["SimpleTimer<br>(Once)"] -->|"Trigger"| B["CounterContext"]
+    C["IntervalTimer<br>(Every 5s)"] -->|"Trigger"| B
+    D["CronTimer<br>(Schedule)"] -->|"Trigger"| B
+    E["DailyTimer<br>(10:00 AM)"] -->|"Trigger"| B
+    F["WeeklyTimer<br>(Monday)"] -->|"Trigger"| B
     style A fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
     style B fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
     style C fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
+    style D fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
+    style E fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
+    style F fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
 ```
 
-**Example:** [timer_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/timer_node.rs)
+**Example:** [timer_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/timer_node.rs) - Shows how to create and use timer nodes with different scheduling options (one-time, interval, and cron).
 
 ### 🔄 Reactive Workflows
 
@@ -283,17 +283,21 @@ Workflows that react to changes in external data sources, such as files, databas
 
 ```mermaid
 graph TD
-    A["Data Source"] -->|Change| B["Change Detector"]
-    B --> C["Process Change"]
-    C --> D["Update State"]
-    D --> A
+    A["FileWatcherNode"] -->|"File Changed"| B["FileWatchContext"]
+    C["SensorDataNode"] -->|"New Measurement"| D["SensorContext"]
+    B -->|"Record Change"| E["Process Change"]
+    D -->|"Record Measurement"| F["Process Measurement"]
+    E --> A
+    F --> C
     style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
     style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
     style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
     style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
+    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
+    style F fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
 ```
 
-**Example:** [reactive_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/reactive_node.rs)
+**Example:** [reactive_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/reactive_node.rs) - Demonstrates how to build reactive nodes that respond to changes in data sources and trigger appropriate actions.
 
 ### ⏸️ Long-Running Processes
 
@@ -301,17 +305,19 @@ Workflows for processes that can be suspended and resumed, with state persistenc
 
 ```mermaid
 graph TD
-    A["Start Process"] --> B["Execute Step"]
-    B -->|Complete| C["Final Result"]
-    B -->|Suspend| D["Save State"]
-    D -->|Resume| B
+    A["Start Process"] --> B["SimpleLongRunningNode"]
+    B -->|"Execute Step"| C["Checkpoint"]
+    C -->|"Complete"| D["Final Result"]
+    C -->|"Suspend"| E["Save State"]
+    E -->|"Resume"| B
     style A fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
     style B fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
     style C fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
     style D fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
+    style E fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
 ```
 
-**Example:** [longrunning_node.rs](https://github.com/aitoroses/floxide/tree/main/examples/longrunning_node.rs)
+**Example:** [longrunning_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/longrunning_node.rs) - Shows how to implement long-running processes with checkpointing and resumption capabilities.
 
 ### 🤖 Multi-Agent LLM System
 

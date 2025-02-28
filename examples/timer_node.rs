@@ -1,3 +1,32 @@
+// Timer Node Pattern: Scheduled and Time-Based Execution Example
+//
+// This example demonstrates how to implement and use the Timer Node pattern
+// in the Flow Framework. The Timer Node pattern enables scheduled and time-based
+// execution of workflow nodes, making it ideal for:
+//
+// Key concepts demonstrated:
+// 1. One-time scheduled execution at specific times
+// 2. Recurring execution based on various schedule types
+// 3. Integration of timer nodes within standard workflows
+// 4. Different schedule types (once, interval, cron, daily, weekly)
+// 5. Timeout handling and schedule management
+//
+// The example implements four scenarios:
+// - Simple timer: A basic timer that executes once after a delay
+// - Timer workflow: Multiple timers in a dedicated timer workflow
+// - Standard workflow integration: Using timers within standard workflows
+// - Schedule types: Demonstrating different schedule configurations
+//
+// Timer nodes are particularly useful for:
+// - Scheduled batch processing
+// - Periodic data synchronization
+// - Time-based alerts and notifications
+// - Delayed execution of tasks
+//
+// This example is designed in accordance with:
+// - ADR-0016: Timer Node Pattern
+// - ADR-0021: Schedule Management Strategy
+
 use chrono::{Duration as ChronoDuration, Timelike, Utc, Weekday};
 use floxide_core::DefaultAction;
 use floxide_timer::{Schedule, SimpleTimer, TimerActionExt, TimerNode, TimerWorkflow};
@@ -6,13 +35,20 @@ use std::time::Duration;
 use tracing::{info, Level};
 use tracing_subscriber::fmt::format::FmtSpan;
 
+/// Context for counting timer executions
+///
+/// This simple context tracks the number of timer executions
+/// and stores messages from each timer that has executed.
 #[derive(Debug, Clone)]
 struct CounterContext {
+    /// Number of times timers have executed
     count: i32,
+    /// Message from the most recent timer execution
     message: String,
 }
 
 impl CounterContext {
+    /// Creates a new counter context with zero count and empty message
     fn new() -> Self {
         Self {
             count: 0,
@@ -21,6 +57,10 @@ impl CounterContext {
     }
 }
 
+/// Main function that runs all timer node examples
+///
+/// Initializes logging and executes four different examples
+/// demonstrating various aspects of the Timer Node pattern.
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging
@@ -41,7 +81,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Example 1: Simple timer that executes once after a short delay
+/// Example 1: Simple timer that executes once after a short delay
+///
+/// This example demonstrates:
+/// 1. Creating a simple timer with a one-time schedule
+/// 2. Executing the timer and waiting for it to complete
+/// 3. Updating the context when the timer executes
 async fn run_simple_timer_example() -> Result<(), Box<dyn std::error::Error>> {
     info!("Running simple timer example");
 
@@ -70,7 +115,12 @@ async fn run_simple_timer_example() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Example 2: Timer workflow with multiple timers
+/// Example 2: Timer workflow with multiple timers
+///
+/// This example demonstrates:
+/// 1. Creating multiple timer nodes with different schedules
+/// 2. Building a timer workflow with sequential execution
+/// 3. Executing the workflow and tracking the results
 async fn run_timer_workflow_example() -> Result<(), Box<dyn std::error::Error>> {
     info!("Running timer workflow example");
 
@@ -146,7 +196,12 @@ async fn run_timer_workflow_example() -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
-// Example 3: Using a timer node in a standard workflow
+/// Example 3: Using a timer node in a standard workflow
+///
+/// This example demonstrates:
+/// 1. Creating a timer node with an interval schedule
+/// 2. Executing the timer node within a standard workflow
+/// 3. Handling the timer node's completion and retry actions
 async fn run_timer_in_standard_workflow_example() -> Result<(), Box<dyn std::error::Error>> {
     info!("Running timer in standard workflow example");
 
@@ -185,7 +240,11 @@ async fn run_timer_in_standard_workflow_example() -> Result<(), Box<dyn std::err
     Ok(())
 }
 
-// Example 4: Demonstrating different schedule types
+/// Example 4: Demonstrating different schedule types
+///
+/// This example demonstrates:
+/// 1. Creating timers with different schedule types (interval, daily, weekly, monthly)
+/// 2. Executing the timers and tracking their next execution times
 async fn run_different_schedule_types_example() -> Result<(), Box<dyn std::error::Error>> {
     info!("Running different schedule types example");
 
