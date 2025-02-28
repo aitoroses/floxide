@@ -103,11 +103,6 @@ path = "examples/transform_node.rs"
 required-features = ["transform"]
 
 [[example]]
-name = "transform_node"
-path = "examples/transform_node.rs"
-required-features = ["transform"]
-
-[[example]]
 name = "order_processing"
 path = "examples/order_processing.rs"
 required-features = []
