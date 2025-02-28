@@ -9,7 +9,7 @@ description = "Transform node abstractions for the floxide framework"
 publish = true
 
 [dependencies]
-floxide-core = { path = "../floxide-core", version = "=1.0.12" }
+floxide-core = { path = "../floxide-core", version = "=1.1.0" }
 tokio = { workspace = true, features = ["full"] }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
