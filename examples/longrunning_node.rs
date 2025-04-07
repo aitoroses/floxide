@@ -28,7 +28,7 @@
 use chrono::{DateTime, Utc};
 use floxide_core::{DefaultAction, FloxideError};
 use floxide_longrunning::{
-    InMemoryStateStore, LongRunningOutcome, SimpleLongRunningNode, StateStore,
+    InMemoryStateStore, LongRunningNode, LongRunningOutcome, SimpleLongRunningNode,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -91,6 +91,10 @@ struct ProcessState {
     checkpoint_data: HashMap<String, String>,
     /// Timestamp of the last state update
     last_updated: DateTime<Utc>,
+    /// For file processing, track bytes processed per file
+    file_bytes_processed: HashMap<String, usize>,
+    /// Flag to indicate if initialization has been done
+    initialized: bool,
 }
 
 impl ProcessState {
@@ -101,6 +105,8 @@ impl ProcessState {
             total_steps,
             checkpoint_data: HashMap::new(),
             last_updated: Utc::now(),
+            file_bytes_processed: HashMap::new(),
+            initialized: false,
         }
     }
 
@@ -167,11 +173,20 @@ async fn main() -> Result<(), FloxideError> {
     // Initialize the tracing subscriber for logging
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
+    println!("Starting longrunning_node example...");
+
+    // Simple test to verify stdout is working
+    for i in 1..=5 {
+        println!("Test print {}", i);
+    }
+
     // Run the basic example
+    println!("Running basic long-running example");
     info!("Running basic long-running example");
     run_basic_longrunning_example().await?;
 
     // Run the multi-step example
+    println!("\nRunning multi-step process example");
     info!("\nRunning multi-step process example");
     run_multi_step_process_example().await?;
 
@@ -190,19 +205,19 @@ async fn run_basic_longrunning_example() -> Result<(), FloxideError> {
     let mut context = ProcessContext::new(5, "basic-process");
 
     // Create an in-memory state store
-    let state_store = InMemoryStateStore::new();
+    let _state_store = InMemoryStateStore::new();
 
     // Create a long-running node that processes in steps
-    let node = SimpleLongRunningNode::new(
-        "basic-process",
-        |ctx: &mut ProcessContext, state: &mut ProcessState| async move {
+    let node = SimpleLongRunningNode::<_, DefaultAction, _, _, _>::new(
+        |state_opt: Option<ProcessState>, ctx: &mut ProcessContext| {
+            // Initialize or get state
+            let mut state = state_opt.unwrap_or_else(|| ProcessState::new(5));
+
             // Get the current step
             let step = state.current_step;
 
+            println!("Executing step {} of {}", step + 1, state.total_steps);
             info!("Executing step {} of {}", step + 1, state.total_steps);
-
-            // Simulate some work
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
             // Update the context and state
             ctx.increment_step();
@@ -216,46 +231,41 @@ async fn run_basic_longrunning_example() -> Result<(), FloxideError> {
 
             // Check if we're done
             if state.is_complete() {
+                println!("Process complete!");
                 info!("Process complete!");
                 Ok(LongRunningOutcome::Complete(DefaultAction::Next))
             } else {
                 // Simulate suspending after step 2
                 if step == 2 {
+                    println!("Suspending after step 3");
                     info!("Suspending after step 3");
-                    Ok(LongRunningOutcome::Suspend)
-                } else {
-                    Ok(LongRunningOutcome::Continue)
                 }
+                // For all steps, suspend to continue processing
+                Ok(LongRunningOutcome::Suspend(state))
             }
         },
     );
 
-    // Execute the node until it suspends or completes
+    // Execute the node until it completes
     info!("Starting execution");
-    let result = state_store.execute_async(&node, &mut context).await?;
+    let mut state_opt = None;
 
-    match result {
-        LongRunningOutcome::Suspend => {
-            info!("Process suspended after step {}", context.completed_steps);
+    loop {
+        let outcome = node.process(state_opt, &mut context).await?;
 
-            // Resume the process
-            info!("Resuming execution");
-            let resume_result = state_store.execute_async(&node, &mut context).await?;
-
-            match resume_result {
-                LongRunningOutcome::Complete(action) => {
-                    info!("Process completed after resuming with action: {:?}", action);
-                }
-                _ => {
-                    info!("Process still not complete after resuming");
+        match outcome {
+            LongRunningOutcome::Complete(action) => {
+                info!("Process completed with action: {:?}", action);
+                break;
+            }
+            LongRunningOutcome::Suspend(state) => {
+                state_opt = Some(state);
+                // If we're at step 3, pause and show a message
+                if state_opt.as_ref().unwrap().current_step == 3 {
+                    info!("Process suspended after step {}", context.completed_steps);
+                    info!("Resuming execution");
                 }
             }
-        }
-        LongRunningOutcome::Complete(action) => {
-            info!("Process completed in one go with action: {:?}", action);
-        }
-        LongRunningOutcome::Continue => {
-            info!("Process continued but did not complete (unexpected)");
         }
     }
 
@@ -278,17 +288,22 @@ async fn run_multi_step_process_example() -> Result<(), FloxideError> {
     ];
     let mut context = FileProcessingContext::new(files);
 
-    // Create an in-memory state store
-    let state_store = InMemoryStateStore::new();
-
     // Create a long-running node that processes files in chunks
-    let node = SimpleLongRunningNode::new(
+    let node = SimpleLongRunningNode::<_, DefaultAction, _, _, _>::with_id(
         "file-processor",
-        |ctx: &mut FileProcessingContext, state: &mut ProcessState| async move {
+        |state_opt: Option<ProcessState>, ctx: &mut FileProcessingContext| {
+            // Initialize or get state
+            let mut state = state_opt.unwrap_or_else(|| {
+                let mut s = ProcessState::new(0);
+                s.initialized = false;
+                s
+            });
+
             // Initialize state if this is the first run
-            if state.current_step == 0 {
+            if !state.initialized {
                 info!("Initializing file processing");
                 state.total_steps = ctx.files.len() as u32;
+                state.initialized = true;
 
                 // Set up initial file info
                 for (i, file) in ctx.files.iter().enumerate() {
@@ -301,6 +316,7 @@ async fn run_multi_step_process_example() -> Result<(), FloxideError> {
                     };
 
                     ctx.processes.insert(file.clone(), file_info);
+                    state.file_bytes_processed.insert(file.clone(), 0);
 
                     // Add initial checkpoint data
                     state.add_checkpoint_data(
@@ -323,103 +339,99 @@ async fn run_multi_step_process_example() -> Result<(), FloxideError> {
             // Get the file info
             let mut file_info = ctx.processes.get(current_file).unwrap().clone();
 
+            // Get the bytes processed so far
+            let bytes_processed = *state.file_bytes_processed.get(current_file).unwrap_or(&0);
+
             // Simulate processing the file in chunks
             let chunk_size = 250;
-            let mut bytes_processed = file_info.processed_bytes;
+            let new_bytes = std::cmp::min(chunk_size, file_info.file_size - bytes_processed);
+            let new_bytes_processed = bytes_processed + new_bytes;
 
-            while bytes_processed < file_info.file_size {
-                // Process a chunk
-                let new_bytes = std::cmp::min(chunk_size, file_info.file_size - bytes_processed);
-                bytes_processed += new_bytes;
+            // Update file info
+            file_info.processed_bytes = new_bytes_processed;
+            file_info.last_checkpoint = Utc::now();
 
-                // Update file info
-                file_info.processed_bytes = bytes_processed;
-                file_info.last_checkpoint = Utc::now();
+            // Update the context and state
+            ctx.processes.insert(current_file.clone(), file_info.clone());
+            state.file_bytes_processed.insert(current_file.clone(), new_bytes_processed);
 
-                // Update the context
-                ctx.processes
-                    .insert(current_file.clone(), file_info.clone());
+            // Add checkpoint data
+            state.add_checkpoint_data(
+                format!("file_{}_progress", current_file_index),
+                format!(
+                    "Processed {}/{} bytes of {}",
+                    new_bytes_processed, file_info.file_size, current_file
+                ),
+            );
 
-                // Add checkpoint data
-                state.add_checkpoint_data(
-                    format!("file_{}_progress", current_file_index),
-                    format!(
-                        "Processed {}/{} bytes of {}",
-                        bytes_processed, file_info.file_size, current_file
-                    ),
-                );
+            info!(
+                "Progress: {}/{} bytes ({}%)",
+                new_bytes_processed,
+                file_info.file_size,
+                (new_bytes_processed * 100) / file_info.file_size
+            );
 
-                info!(
-                    "Progress: {}/{} bytes ({}%)",
-                    bytes_processed,
-                    file_info.file_size,
-                    (bytes_processed * 100) / file_info.file_size
-                );
-
-                // Simulate work
-                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-
-                // Suspend after processing half of file 1
-                if current_file_index == 0 && bytes_processed == chunk_size * 2 {
-                    info!("Suspending in the middle of file 1");
-                    return Ok(LongRunningOutcome::Suspend);
-                }
+            // Suspend after processing half of file 1
+            if current_file_index == 0 && new_bytes_processed == chunk_size * 2 {
+                info!("Suspending in the middle of file 1");
+                return Ok(LongRunningOutcome::Suspend(state));
             }
 
-            // File is complete
-            info!("Completed processing file: {}", current_file);
+            // Check if file is complete
+            if new_bytes_processed >= file_info.file_size {
+                // File is complete
+                info!("Completed processing file: {}", current_file);
 
-            // Move to the next file
-            state.increment_step();
+                // Move to the next file
+                state.increment_step();
+            }
 
-            // Continue processing
-            Ok(LongRunningOutcome::Continue)
+            // Continue processing by suspending with updated state
+            Ok(LongRunningOutcome::Suspend(state))
         },
     );
 
-    // Execute the node until it suspends or completes
+    // Execute the node until it completes
     info!("Starting file processing");
-    let result = state_store.execute_async(&node, &mut context).await?;
+    let mut state_opt = None;
+    let mut suspended_at_half = false;
 
-    match result {
-        LongRunningOutcome::Suspend => {
-            info!("Processing suspended");
+    loop {
+        let outcome = node.process(state_opt, &mut context).await?;
 
-            // Print current progress
-            for (file, info) in &context.processes {
-                info!(
-                    "File {}: {}/{} bytes ({}%)",
-                    file,
-                    info.processed_bytes,
-                    info.file_size,
-                    (info.processed_bytes * 100) / info.file_size
-                );
+        match outcome {
+            LongRunningOutcome::Complete(action) => {
+                info!("File processing completed with action: {:?}", action);
+                break;
             }
+            LongRunningOutcome::Suspend(state) => {
+                // Check if we're at the suspension point (half of file 1)
+                let current_file_index = state.current_step as usize;
+                if current_file_index == 0 {
+                    let current_file = &context.files[current_file_index];
+                    let bytes_processed = *state.file_bytes_processed.get(current_file).unwrap_or(&0);
 
-            // Resume processing
-            info!("Resuming file processing");
-            let resume_result = state_store.execute_async(&node, &mut context).await?;
+                    if bytes_processed == 500 && !suspended_at_half {
+                        suspended_at_half = true;
+                        info!("Processing suspended");
 
-            match resume_result {
-                LongRunningOutcome::Complete(action) => {
-                    info!(
-                        "File processing completed after resuming with action: {:?}",
-                        action
-                    );
+                        // Print current progress
+                        for (file, info) in &context.processes {
+                            info!(
+                                "File {}: {}/{} bytes ({}%)",
+                                file,
+                                info.processed_bytes,
+                                info.file_size,
+                                (info.processed_bytes * 100) / info.file_size
+                            );
+                        }
+
+                        info!("Resuming file processing");
+                    }
                 }
-                _ => {
-                    info!("File processing still not complete after resuming");
-                }
+
+                state_opt = Some(state);
             }
-        }
-        LongRunningOutcome::Complete(action) => {
-            info!(
-                "File processing completed in one go with action: {:?}",
-                action
-            );
-        }
-        LongRunningOutcome::Continue => {
-            info!("File processing continued but did not complete (unexpected)");
         }
     }
 
@@ -436,81 +448,4 @@ async fn run_multi_step_process_example() -> Result<(), FloxideError> {
     }
 
     Ok(())
-}
-
-// Extension trait to make examples more readable
-trait StateStoreExt {
-    /// Executes a long-running node asynchronously until it suspends or completes
-    ///
-    /// This helper method simplifies the execution of long-running nodes by handling
-    /// the initialization, execution, and result processing in a single method call.
-    async fn execute_async<N, C, O>(
-        &self,
-        node: &N,
-        ctx: &mut C,
-    ) -> Result<LongRunningOutcome<O, N::State>, FloxideError>
-    where
-        N: SimpleLongRunningNode<C, DefaultAction, Output = O>,
-        O: Clone + Send + Sync + 'static,
-        C: Clone + Send + Sync + 'static,
-        N::State: Clone + Send + Sync + 'static;
-}
-
-impl<S: StateStore> StateStoreExt for S {
-    async fn execute_async<N, C, O>(
-        &self,
-        node: &N,
-        ctx: &mut C,
-    ) -> Result<LongRunningOutcome<O, N::State>, FloxideError>
-    where
-        N: SimpleLongRunningNode<C, DefaultAction, Output = O>,
-        O: Clone + Send + Sync + 'static,
-        C: Clone + Send + Sync + 'static,
-        N::State: Clone + Send + Sync + 'static,
-    {
-        // Get or initialize the node state
-        let mut state = match self.get_state::<N::State>(node.id()).await? {
-            Some(state) => {
-                info!(
-                    "Resuming from existing state at step {}",
-                    state.current_step
-                );
-                state
-            }
-            None => {
-                info!("Initializing new state");
-                let state = N::State::new(0);
-                self.save_state(node.id(), &state).await?;
-                state
-            }
-        };
-
-        // Execute the node
-        let mut outcome = node.execute(ctx, &mut state).await?;
-
-        // Continue execution until suspended or completed
-        loop {
-            match &outcome {
-                LongRunningOutcome::Continue => {
-                    // Save the state
-                    self.save_state(node.id(), &state).await?;
-
-                    // Continue execution
-                    outcome = node.execute(ctx, &mut state).await?;
-                }
-                LongRunningOutcome::Suspend => {
-                    // Save the state and return
-                    self.save_state(node.id(), &state).await?;
-                    break;
-                }
-                LongRunningOutcome::Complete(_) => {
-                    // Clear the state and return
-                    self.clear_state(node.id()).await?;
-                    break;
-                }
-            }
-        }
-
-        Ok(outcome)
-    }
 }
