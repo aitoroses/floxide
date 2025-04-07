@@ -122,7 +122,7 @@ struct OrderContext {
     /// Unique identifier for the order
     order_id: String,
     /// Customer identifier
-    customer_id: String,
+    _customer_id: String,
     /// Items included in the order
     items: Vec<OrderItem>,
     /// Total amount of the order
@@ -150,7 +150,7 @@ impl OrderContext {
 
         Self {
             order_id: Uuid::new_v4().to_string(),
-            customer_id: customer_id.to_string(),
+            _customer_id: customer_id.to_string(),
             items,
             total_amount: total,
             shipping_address,
