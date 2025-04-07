@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>ADR-0004: Async Runtime Selection - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../../contributing/" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Contributing</span>
+                    </a>
+                    <meta property="position" content="1">
+                </li>
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="2">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Getting Started</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/installation/">Installation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/quick-start/">Quick Start</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/error-handling/">Error Handling</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/overview/">Overview</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/nodes/">Nodes</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/workflows/">Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/cyclic-workflows/">Cyclic Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/actions/">Actions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/contexts/">Contexts</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Guides</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/event_driven_architecture/">Event-Driven Architecture</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/using-mermaid-diagrams/">Using Mermaid Diagrams</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Examples</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/basic-workflow/">Basic Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/event-driven-workflow/">Event-Driven Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/timer-node/">Timer Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/reactive-node/">Reactive Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/transform-node/">Transform Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/longrunning-node/">Long-Running Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/batch-processing/">Batch Processing</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Architecture</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/adr-process/">ADR Process</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/core-framework-abstractions/">Core Framework Abstractions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/project-structure/">Project Structure</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/async-runtime-selection/">Async Runtime Selection</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/node-lifecycle-methods/">Node Lifecycle Methods</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/event-driven-workflow-pattern/">Event-Driven Workflow Pattern</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/reactive-node-implementation/">Reactive Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/timer-node-implementation/">Timer Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/longrunning-node-implementation/">Long-Running Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/transform-node-implementation/">Transform Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/batch-processing-implementation/">Batch Processing Implementation</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">API Reference</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-core/">floxide-core</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-transform/">floxide-transform</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-event/">floxide-event</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-timer/">floxide-timer</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-reactive/">floxide-reactive</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-longrunning/">floxide-longrunning</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-batch/">floxide-batch</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../contributing/">Contributing</a>
+        
+    
+    
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#adr-0004-async-runtime-selection">ADR-0004: Async Runtime Selection</a></li>
+        <li><a href="#status">Status</a></li><li><a href="#date">Date</a></li><li><a href="#context">Context</a></li><li><a href="#decision">Decision</a></li><li><a href="#consequences">Consequences</a></li><li><a href="#alternatives-considered">Alternatives Considered</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="adr-0004-async-runtime-selection">ADR-0004: Async Runtime Selection<a class="headerlink" href="#adr-0004-async-runtime-selection" title="Permanent link">&para;</a></h1>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted</p>
+<h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
+<p>2025-02-27</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>The floxide framework is designed around asynchronous operations to efficiently handle workflow execution. In Rust, async operations require an explicit runtime to execute futures.</p>
+<p>There are several viable async runtimes available in the Rust ecosystem, each with different trade-offs:</p>
+<ol>
+<li><a href="https://tokio.rs/">Tokio</a>: Full-featured, production-ready, widely adopted</li>
+<li><a href="https://async.rs/">async-std</a>: Similar to the standard library, focused on ergonomics</li>
+<li><a href="https://github.com/smol-rs/smol">smol</a>: Small and simple runtime</li>
+<li>Custom runtimes: Roll-our-own or specialized solutions</li>
+</ol>
+<p>We need to select an appropriate async runtime that will support the framework's execution model, particularly for parallel node execution and orchestration.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>We will use <strong>Tokio</strong> as the primary async runtime for the floxide framework implementation, with full feature set enabled. Additionally, we will use the <code>async_trait</code> crate for trait methods that return futures.</p>
+<h3 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Core Runtime Usage</strong>:</li>
+</ol>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="c1">// In floxide-transform crate</span>
+</span><span id="__span-0-2"><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">run_flow</span><span class="o">&lt;</span><span class="n">S</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="o">&gt;</span><span class="p">(</span><span class="n">flow</span><span class="p">:</span><span class="w"> </span><span class="nc">F</span><span class="p">,</span><span class="w"> </span><span class="n">shared_state</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">S</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span>
+</span><span id="__span-0-3"><span class="k">where</span>
+</span><span id="__span-0-4"><span class="w">    </span><span class="n">F</span><span class="p">:</span><span class="w"> </span><span class="nc">BaseNode</span><span class="o">&lt;</span><span class="n">S</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-0-5"><span class="p">{</span>
+</span><span id="__span-0-6"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">rt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tokio</span><span class="p">::</span><span class="n">runtime</span><span class="p">::</span><span class="n">Runtime</span><span class="p">::</span><span class="n">new</span><span class="p">()</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-0-7"><span class="w">    </span><span class="n">rt</span><span class="p">.</span><span class="n">block_on</span><span class="p">(</span><span class="k">async</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-8"><span class="w">        </span><span class="n">flow</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">shared_state</span><span class="p">).</span><span class="k">await</span>
+</span><span id="__span-0-9"><span class="w">    </span><span class="p">})</span>
+</span><span id="__span-0-10"><span class="p">}</span>
+</span></code></pre></div>
+<ol>
+<li><strong>Async Trait Implementation</strong>:</li>
+</ol>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="k">use</span><span class="w"> </span><span class="n">async_trait</span><span class="p">::</span><span class="n">async_trait</span><span class="p">;</span>
+</span><span id="__span-1-2">
+</span><span id="__span-1-3"><span class="cp">#[async_trait]</span>
+</span><span id="__span-1-4"><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultAction</span><span class="o">&gt;</span>
+</span><span id="__span-1-5"><span class="k">where</span>
+</span><span id="__span-1-6"><span class="w">    </span><span class="n">A</span><span class="p">:</span><span class="w"> </span><span class="nc">ActionType</span><span class="p">,</span>
+</span><span id="__span-1-7"><span class="p">{</span>
+</span><span id="__span-1-8"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">Output</span><span class="p">;</span>
+</span><span id="__span-1-9">
+</span><span id="__span-1-10"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">Context</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">NodeOutcome</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">Output</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-1-11"><span class="p">}</span>
+</span></code></pre></div>
+<ol>
+<li><strong>Parallelism for BatchFlow</strong>:</li>
+</ol>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="c1">// In BatchFlow implementation</span>
+</span><span id="__span-2-2"><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">exec_core</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">prep_results</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">I</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">handles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Vec</span><span class="p">::</span><span class="n">with_capacity</span><span class="p">(</span><span class="n">prep_results</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span id="__span-2-4">
+</span><span id="__span-2-5"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="n">item</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">prep_results</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-6"><span class="w">        </span><span class="c1">// Create a cloned shared state for each parallel execution</span>
+</span><span id="__span-2-7"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">state_clone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="cm">/* clone shared state */</span><span class="p">;</span>
+</span><span id="__span-2-8"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">start_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">flow</span><span class="p">.</span><span class="n">get_start_node</span><span class="p">()</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-2-9">
+</span><span id="__span-2-10"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tokio</span><span class="p">::</span><span class="n">spawn</span><span class="p">(</span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-11"><span class="w">            </span><span class="n">start_node</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">state_clone</span><span class="p">).</span><span class="k">await</span>
+</span><span id="__span-2-12"><span class="w">        </span><span class="p">});</span>
+</span><span id="__span-2-13">
+</span><span id="__span-2-14"><span class="w">        </span><span class="n">handles</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">handle</span><span class="p">);</span>
+</span><span id="__span-2-15"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-16">
+</span><span id="__span-2-17"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">results</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Vec</span><span class="p">::</span><span class="n">with_capacity</span><span class="p">(</span><span class="n">handles</span><span class="p">.</span><span class="n">len</span><span class="p">());</span>
+</span><span id="__span-2-18"><span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="n">handle</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">handles</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-19"><span class="w">        </span><span class="n">results</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="n">handle</span><span class="p">.</span><span class="k">await</span><span class="p">.</span><span class="n">unwrap_or_else</span><span class="p">(</span><span class="o">|</span><span class="n">e</span><span class="o">|</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">FloxideError</span><span class="p">::</span><span class="n">JoinError</span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">to_string</span><span class="p">()))));</span>
+</span><span id="__span-2-20"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-21">
+</span><span id="__span-2-22"><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</span><span id="__span-2-23"><span class="p">}</span>
+</span></code></pre></div>
+<ol>
+<li><strong>Configurable Runtime Options</strong>:</li>
+</ol>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">FloxideRuntimeConfig</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><span class="w">    </span><span class="n">worker_threads</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="kt">usize</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-3-3"><span class="w">    </span><span class="n">thread_name_prefix</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-3-4"><span class="w">    </span><span class="n">thread_stack_size</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="kt">usize</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-3-5"><span class="p">}</span>
+</span><span id="__span-3-6">
+</span><span id="__span-3-7"><span class="k">impl</span><span class="w"> </span><span class="nb">Default</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">FloxideRuntimeConfig</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-8"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">default</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-9"><span class="w">        </span><span class="bp">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-10"><span class="w">            </span><span class="n">worker_threads</span><span class="p">:</span><span class="w"> </span><span class="nb">None</span><span class="p">,</span><span class="w"> </span><span class="c1">// Use Tokio default</span>
+</span><span id="__span-3-11"><span class="w">            </span><span class="n">thread_name_prefix</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;floxide-worker-&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">(),</span>
+</span><span id="__span-3-12"><span class="w">            </span><span class="n">thread_stack_size</span><span class="p">:</span><span class="w"> </span><span class="nb">None</span><span class="p">,</span><span class="w"> </span><span class="c1">// Use Tokio default</span>
+</span><span id="__span-3-13"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-3-14"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-15"><span class="p">}</span>
+</span><span id="__span-3-16">
+</span><span id="__span-3-17"><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">create_runtime</span><span class="p">(</span><span class="n">config</span><span class="p">:</span><span class="w"> </span><span class="nc">FloxideRuntimeConfig</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">tokio</span><span class="p">::</span><span class="n">runtime</span><span class="p">::</span><span class="n">Runtime</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-18"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">rt_builder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tokio</span><span class="p">::</span><span class="n">runtime</span><span class="p">::</span><span class="n">Builder</span><span class="p">::</span><span class="n">new_multi_thread</span><span class="p">();</span>
+</span><span id="__span-3-19">
+</span><span id="__span-3-20"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">threads</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">config</span><span class="p">.</span><span class="n">worker_threads</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-21"><span class="w">        </span><span class="n">rt_builder</span><span class="p">.</span><span class="n">worker_threads</span><span class="p">(</span><span class="n">threads</span><span class="p">);</span>
+</span><span id="__span-3-22"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-23">
+</span><span id="__span-3-24"><span class="w">    </span><span class="n">rt_builder</span><span class="p">.</span><span class="n">thread_name</span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">thread_name_prefix</span><span class="p">);</span>
+</span><span id="__span-3-25">
+</span><span id="__span-3-26"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">stack_size</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">config</span><span class="p">.</span><span class="n">thread_stack_size</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-27"><span class="w">        </span><span class="n">rt_builder</span><span class="p">.</span><span class="n">thread_stack_size</span><span class="p">(</span><span class="n">stack_size</span><span class="p">);</span>
+</span><span id="__span-3-28"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-29">
+</span><span id="__span-3-30"><span class="w">    </span><span class="n">rt_builder</span><span class="p">.</span><span class="n">enable_all</span><span class="p">()</span>
+</span><span id="__span-3-31"><span class="w">        </span><span class="p">.</span><span class="n">build</span><span class="p">()</span>
+</span><span id="__span-3-32"><span class="w">        </span><span class="p">.</span><span class="n">map_err</span><span class="p">(</span><span class="o">|</span><span class="n">e</span><span class="o">|</span><span class="w"> </span><span class="n">FloxideError</span><span class="p">::</span><span class="n">RuntimeCreationError</span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">to_string</span><span class="p">()))</span>
+</span><span id="__span-3-33"><span class="p">}</span>
+</span></code></pre></div>
+<ol>
+<li><strong>Abstraction Layer</strong>:</li>
+<li>We will create a runtime abstraction layer in the <code>floxide-transform</code> crate</li>
+<li>This will allow for potential future runtime switching</li>
+<li>The public API will remain stable even if the underlying runtime changes</li>
+</ol>
+<h3 id="feature-flags">Feature Flags<a class="headerlink" href="#feature-flags" title="Permanent link">&para;</a></h3>
+<p>We will use feature flags to allow custom runtime configuration:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><span class="c1"># In floxide-transform/Cargo.toml</span>
+</span><span id="__span-4-2"><span class="k">[features]</span>
+</span><span id="__span-4-3"><span class="n">default</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;tokio-full&quot;</span><span class="p">]</span>
+</span><span id="__span-4-4"><span class="n">tokio-full</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;tokio/full&quot;</span><span class="p">]</span>
+</span><span id="__span-4-5"><span class="n">tokio-minimal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;tokio/rt&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;tokio/sync&quot;</span><span class="p">]</span>
+</span><span id="__span-4-6"><span class="n">custom-runtime</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+</span><span id="__span-4-7">
+</span><span id="__span-4-8"><span class="k">[dependencies]</span>
+</span><span id="__span-4-9"><span class="n">tokio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">version</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">&quot;1.36&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">features</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;full&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-4-10"><span class="n">async-trait</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.77&quot;</span>
+</span></code></pre></div>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<h3 id="positive">Positive<a class="headerlink" href="#positive" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Ecosystem Compatibility</strong>: Tokio is the most widely used async runtime in Rust, providing compatibility with a large ecosystem of libraries</li>
+<li><strong>Production-Ready</strong>: Tokio is battle-tested and used in many production environments</li>
+<li><strong>Feature-Rich</strong>: Includes timers, I/O utilities, and synchronization primitives that will be useful for the framework</li>
+<li><strong>Active Maintenance</strong>: Actively developed and maintained</li>
+<li><strong>Scalability</strong>: Well-suited for high-performance, concurrent workloads</li>
+<li><strong>Async Trait Support</strong>: Using <code>async_trait</code> simplifies writing async methods in traits</li>
+</ol>
+<h3 id="negative">Negative<a class="headerlink" href="#negative" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Runtime Dependency</strong>: Creates a dependency on a specific runtime</li>
+<li><strong>Binary Size</strong>: Tokio with full features adds to the binary size of applications using the framework</li>
+<li><strong>Learning Curve</strong>: Tokio has its own patterns and concepts to learn</li>
+<li><strong>Opinionated</strong>: Some design decisions in Tokio may not align perfectly with all use cases</li>
+<li><strong>Macro Overhead</strong>: <code>async_trait</code> adds some runtime overhead compared to native async traits (which aren't stable yet)</li>
+</ol>
+<h2 id="alternatives-considered">Alternatives Considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
+<h3 id="1-async-std">1. async-std<a class="headerlink" href="#1-async-std" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>Familiar API that mirrors the standard library</li>
+<li>Good documentation</li>
+<li>Focuses on ergonomics</li>
+<li><strong>Cons</strong>:</li>
+<li>Less widely adopted than Tokio</li>
+<li>Smaller ecosystem of compatible libraries</li>
+<li>Some performance differences compared to Tokio</li>
+</ul>
+<h3 id="2-smol">2. smol<a class="headerlink" href="#2-smol" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>Minimal footprint</li>
+<li>Simple API</li>
+<li>Lightweight</li>
+<li><strong>Cons</strong>:</li>
+<li>Less feature-rich</li>
+<li>Smaller ecosystem</li>
+<li>Less battle-tested in large-scale production environments</li>
+</ul>
+<h3 id="3-runtime-agnostic-design">3. Runtime Agnostic Design<a class="headerlink" href="#3-runtime-agnostic-design" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>Maximum flexibility for consumers</li>
+<li>No runtime dependency</li>
+<li><strong>Cons</strong>:</li>
+<li>Significantly more complex implementation</li>
+<li>Would require extensive abstraction layers</li>
+<li>Would limit the use of runtime-specific features</li>
+</ul>
+<h3 id="4-allow-pluggable-runtimes">4. Allow Pluggable Runtimes<a class="headerlink" href="#4-allow-pluggable-runtimes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>Flexibility for different environments</li>
+<li>Could adapt to special requirements</li>
+<li><strong>Cons</strong>:</li>
+<li>Increased maintenance burden</li>
+<li>More complex API</li>
+<li>Testing complexity increases exponentially</li>
+</ul>
+<h3 id="5-wait-for-native-async-traits">5. Wait for native async traits<a class="headerlink" href="#5-wait-for-native-async-traits" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>No need for <code>async_trait</code> macro</li>
+<li>Better performance</li>
+<li>More idiomatic Rust</li>
+<li><strong>Cons</strong>:</li>
+<li>Feature is not stable yet</li>
+<li>Would delay development</li>
+<li>Migration cost when the feature stabilizes</li>
+</ul>
+<p>We chose Tokio with full features and <code>async_trait</code> because it provides the best balance of features, ecosystem compatibility, and production readiness. The abstraction layer will help mitigate some of the downsides by allowing for potential future changes without disrupting the API.</p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

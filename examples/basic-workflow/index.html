@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Basic Workflow - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../../contributing/" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Contributing</span>
+                    </a>
+                    <meta property="position" content="1">
+                </li>
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="2">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Getting Started</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/installation/">Installation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/quick-start/">Quick Start</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/error-handling/">Error Handling</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/overview/">Overview</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/nodes/">Nodes</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/workflows/">Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/cyclic-workflows/">Cyclic Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/actions/">Actions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/contexts/">Contexts</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Guides</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/event_driven_architecture/">Event-Driven Architecture</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/using-mermaid-diagrams/">Using Mermaid Diagrams</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Examples</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Basic Workflow</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../event-driven-workflow/">Event-Driven Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../timer-node/">Timer Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../reactive-node/">Reactive Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../transform-node/">Transform Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../longrunning-node/">Long-Running Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../batch-processing/">Batch Processing</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Architecture</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/adr-process/">ADR Process</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/core-framework-abstractions/">Core Framework Abstractions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/project-structure/">Project Structure</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/async-runtime-selection/">Async Runtime Selection</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/node-lifecycle-methods/">Node Lifecycle Methods</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/event-driven-workflow-pattern/">Event-Driven Workflow Pattern</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/reactive-node-implementation/">Reactive Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/timer-node-implementation/">Timer Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/longrunning-node-implementation/">Long-Running Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/transform-node-implementation/">Transform Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/batch-processing-implementation/">Batch Processing Implementation</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">API Reference</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-core/">floxide-core</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-transform/">floxide-transform</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-event/">floxide-event</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-timer/">floxide-timer</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-reactive/">floxide-reactive</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-longrunning/">floxide-longrunning</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-batch/">floxide-batch</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../contributing/">Contributing</a>
+        
+    
+    
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#basic-workflow-example">Basic Workflow Example</a></li>
+        <li><a href="#overview">Overview</a></li><li><a href="#prerequisites">Prerequisites</a></li><li><a href="#implementation">Implementation</a></li><li><a href="#key-concepts-demonstrated">Key Concepts Demonstrated</a></li><li><a href="#next-steps">Next Steps</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="basic-workflow-example">Basic Workflow Example<a class="headerlink" href="#basic-workflow-example" title="Permanent link">&para;</a></h1>
+<p>This example demonstrates how to create a simple workflow using the Floxide framework, showcasing proper node lifecycle management and error handling.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>In this example, we'll create a workflow that processes text data through multiple stages:</p>
+<ol>
+<li>Input validation and preparation</li>
+<li>Text transformation (uppercase)</li>
+<li>Analysis (character count)</li>
+<li>Summary generation</li>
+</ol>
+<p>The example demonstrates:
+- Three-phase node lifecycle (prep, exec, post)
+- Proper error handling and recovery
+- Type-safe context management
+- Node composition patterns</p>
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<p>Before running this example, make sure you have the Floxide framework installed. See the <a href="../../getting-started/installation/">Installation Guide</a> for details.</p>
+<h2 id="implementation">Implementation<a class="headerlink" href="#implementation" title="Permanent link">&para;</a></h2>
+<p>First, let's define our context and error types:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::{</span><span class="n">lifecycle_node</span><span class="p">,</span><span class="w"> </span><span class="n">LifecycleNode</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="p">};</span>
+</span><span id="__span-0-2"><span class="k">use</span><span class="w"> </span><span class="n">thiserror</span><span class="p">::</span><span class="n">Error</span><span class="p">;</span>
+</span><span id="__span-0-3">
+</span><span id="__span-0-4"><span class="cp">#[derive(Debug, Clone)]</span>
+</span><span id="__span-0-5"><span class="k">struct</span><span class="w"> </span><span class="nc">TextContext</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-6"><span class="w">    </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-0-7"><span class="w">    </span><span class="n">uppercase</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-0-8"><span class="w">    </span><span class="n">char_count</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="kt">usize</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-0-9"><span class="w">    </span><span class="n">summary</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-0-10"><span class="p">}</span>
+</span><span id="__span-0-11">
+</span><span id="__span-0-12"><span class="k">impl</span><span class="w"> </span><span class="n">TextContext</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-13"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">new</span><span class="p">(</span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-14"><span class="w">        </span><span class="bp">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-15"><span class="w">            </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">input</span><span class="p">.</span><span class="n">to_string</span><span class="p">(),</span>
+</span><span id="__span-0-16"><span class="w">            </span><span class="n">uppercase</span><span class="p">:</span><span class="w"> </span><span class="nb">None</span><span class="p">,</span>
+</span><span id="__span-0-17"><span class="w">            </span><span class="n">char_count</span><span class="p">:</span><span class="w"> </span><span class="nb">None</span><span class="p">,</span>
+</span><span id="__span-0-18"><span class="w">            </span><span class="n">summary</span><span class="p">:</span><span class="w"> </span><span class="nb">None</span><span class="p">,</span>
+</span><span id="__span-0-19"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-0-20"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-21"><span class="p">}</span>
+</span><span id="__span-0-22">
+</span><span id="__span-0-23"><span class="cp">#[derive(Debug, Error)]</span>
+</span><span id="__span-0-24"><span class="k">enum</span><span class="w"> </span><span class="nc">TextProcessingError</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-25"><span class="w">    </span><span class="cp">#[error(</span><span class="s">&quot;Input text is empty&quot;</span><span class="cp">)]</span>
+</span><span id="__span-0-26"><span class="w">    </span><span class="n">EmptyInput</span><span class="p">,</span>
+</span><span id="__span-0-27"><span class="w">    </span><span class="cp">#[error(</span><span class="s">&quot;Input exceeds maximum length of {0} characters&quot;</span><span class="cp">)]</span>
+</span><span id="__span-0-28"><span class="w">    </span><span class="n">InputTooLong</span><span class="p">(</span><span class="kt">usize</span><span class="p">),</span>
+</span><span id="__span-0-29"><span class="w">    </span><span class="cp">#[error(</span><span class="s">&quot;Processing failed: {0}&quot;</span><span class="cp">)]</span>
+</span><span id="__span-0-30"><span class="w">    </span><span class="n">ProcessingError</span><span class="p">(</span><span class="nb">String</span><span class="p">),</span>
+</span><span id="__span-0-31"><span class="p">}</span>
+</span><span id="__span-0-32">
+</span><span id="__span-0-33"><span class="k">impl</span><span class="w"> </span><span class="nb">From</span><span class="o">&lt;</span><span class="n">TextProcessingError</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">FloxideError</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-34"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">from</span><span class="p">(</span><span class="n">e</span><span class="p">:</span><span class="w"> </span><span class="nc">TextProcessingError</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-35"><span class="w">        </span><span class="n">FloxideError</span><span class="p">::</span><span class="n">Other</span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">to_string</span><span class="p">())</span>
+</span><span id="__span-0-36"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-37"><span class="p">}</span>
+</span></code></pre></div>
+<p>Now, let's create our nodes using the three-phase lifecycle:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="c1">// Node that validates and prepares text</span>
+</span><span id="__span-1-2"><span class="k">struct</span><span class="w"> </span><span class="nc">ValidatorNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><span class="w">    </span><span class="n">max_length</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span>
+</span><span id="__span-1-4"><span class="p">}</span>
+</span><span id="__span-1-5">
+</span><span id="__span-1-6"><span class="cp">#[async_trait]</span>
+</span><span id="__span-1-7"><span class="k">impl</span><span class="w"> </span><span class="n">LifecycleNode</span><span class="o">&lt;</span><span class="n">TextContext</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">ValidatorNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-8"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">PrepOutput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-1-9"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">ExecOutput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-1-10">
+</span><span id="__span-1-11"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">id</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">NodeId</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-12"><span class="w">        </span><span class="n">NodeId</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;validator&quot;</span><span class="p">)</span>
+</span><span id="__span-1-13"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-14">
+</span><span id="__span-1-15"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">prep</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">TextContext</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">PrepOutput</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-16"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">input</span><span class="p">.</span><span class="n">is_empty</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-17"><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">TextProcessingError</span><span class="p">::</span><span class="n">EmptyInput</span><span class="p">.</span><span class="n">into</span><span class="p">());</span>
+</span><span id="__span-1-18"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-19"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">input</span><span class="p">.</span><span class="n">clone</span><span class="p">())</span>
+</span><span id="__span-1-20"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-21">
+</span><span id="__span-1-22"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">exec</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">PrepOutput</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">ExecOutput</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-23"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="n">input</span><span class="p">.</span><span class="n">len</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">max_length</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-24"><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">TextProcessingError</span><span class="p">::</span><span class="n">InputTooLong</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">max_length</span><span class="p">).</span><span class="n">into</span><span class="p">());</span>
+</span><span id="__span-1-25"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-26"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
+</span><span id="__span-1-27"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-28">
+</span><span id="__span-1-29"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">post</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">ExecOutput</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">DefaultAction</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-30"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">)</span>
+</span><span id="__span-1-31"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-32"><span class="p">}</span>
+</span><span id="__span-1-33">
+</span><span id="__span-1-34"><span class="c1">// Node that converts text to uppercase with retry logic</span>
+</span><span id="__span-1-35"><span class="k">struct</span><span class="w"> </span><span class="nc">UppercaseNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-36"><span class="w">    </span><span class="n">retry_count</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span>
+</span><span id="__span-1-37"><span class="p">}</span>
+</span><span id="__span-1-38">
+</span><span id="__span-1-39"><span class="cp">#[async_trait]</span>
+</span><span id="__span-1-40"><span class="k">impl</span><span class="w"> </span><span class="n">LifecycleNode</span><span class="o">&lt;</span><span class="n">TextContext</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">UppercaseNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-41"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">PrepOutput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-1-42"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">ExecOutput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-1-43">
+</span><span id="__span-1-44"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">id</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">NodeId</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-45"><span class="w">        </span><span class="n">NodeId</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;uppercase&quot;</span><span class="p">)</span>
+</span><span id="__span-1-46"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-47">
+</span><span id="__span-1-48"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">prep</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">TextContext</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">PrepOutput</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-49"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">ctx</span><span class="p">.</span><span class="n">input</span><span class="p">.</span><span class="n">clone</span><span class="p">())</span>
+</span><span id="__span-1-50"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-51">
+</span><span id="__span-1-52"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">exec</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">PrepOutput</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">ExecOutput</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-53"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">attempts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span><span id="__span-1-54"><span class="w">        </span><span class="k">loop</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-55"><span class="w">            </span><span class="k">match</span><span class="w"> </span><span class="n">try_uppercase</span><span class="p">(</span><span class="o">&amp;</span><span class="n">input</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-56"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-57"><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="nb">Ok</span><span class="p">(</span><span class="n">result</span><span class="p">);</span>
+</span><span id="__span-1-58"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-1-59"><span class="w">                </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">attempts</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">retry_count</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-60"><span class="w">                    </span><span class="n">attempts</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-1-61"><span class="w">                    </span><span class="n">tracing</span><span class="p">::</span><span class="n">warn</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;Uppercase conversion failed, attempt {}/{}: {}&quot;</span><span class="p">,</span><span class="w"> </span>
+</span><span id="__span-1-62"><span class="w">                        </span><span class="n">attempts</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">retry_count</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">);</span>
+</span><span id="__span-1-63"><span class="w">                    </span><span class="n">tokio</span><span class="p">::</span><span class="n">time</span><span class="p">::</span><span class="n">sleep</span><span class="p">(</span><span class="n">std</span><span class="p">::</span><span class="n">time</span><span class="p">::</span><span class="n">Duration</span><span class="p">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">100</span><span class="p">)).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-1-64"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-1-65"><span class="w">                </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-66"><span class="w">                    </span><span class="k">return</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">TextProcessingError</span><span class="p">::</span><span class="n">ProcessingError</span><span class="p">(</span>
+</span><span id="__span-1-67"><span class="w">                        </span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;Failed after {} retries: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">retry_count</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">)</span>
+</span><span id="__span-1-68"><span class="w">                    </span><span class="p">).</span><span class="n">into</span><span class="p">());</span>
+</span><span id="__span-1-69"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-1-70"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-1-71"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-72"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-73">
+</span><span id="__span-1-74"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">post</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">ExecOutput</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">DefaultAction</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-75"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">)</span>
+</span><span id="__span-1-76"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-77"><span class="p">}</span>
+</span><span id="__span-1-78">
+</span><span id="__span-1-79"><span class="c1">// Node that counts characters with validation</span>
+</span><span id="__span-1-80"><span class="k">struct</span><span class="w"> </span><span class="nc">CounterNode</span><span class="p">;</span>
+</span><span id="__span-1-81">
+</span><span id="__span-1-82"><span class="cp">#[async_trait]</span>
+</span><span id="__span-1-83"><span class="k">impl</span><span class="w"> </span><span class="n">LifecycleNode</span><span class="o">&lt;</span><span class="n">TextContext</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">CounterNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-84"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">PrepOutput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-1-85"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">ExecOutput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">usize</span><span class="p">;</span>
+</span><span id="__span-1-86">
+</span><span id="__span-1-87"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">id</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">NodeId</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-88"><span class="w">        </span><span class="n">NodeId</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;counter&quot;</span><span class="p">)</span>
+</span><span id="__span-1-89"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-90">
+</span><span id="__span-1-91"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">prep</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">TextContext</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">PrepOutput</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-92"><span class="w">        </span><span class="n">ctx</span><span class="p">.</span><span class="n">uppercase</span><span class="p">.</span><span class="n">clone</span><span class="p">().</span><span class="n">ok_or_else</span><span class="p">(</span><span class="o">||</span><span class="w"> </span>
+</span><span id="__span-1-93"><span class="w">            </span><span class="n">TextProcessingError</span><span class="p">::</span><span class="n">ProcessingError</span><span class="p">(</span><span class="s">&quot;No uppercase text available&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">()).</span><span class="n">into</span><span class="p">()</span>
+</span><span id="__span-1-94"><span class="w">        </span><span class="p">)</span>
+</span><span id="__span-1-95"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-96">
+</span><span id="__span-1-97"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">exec</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">PrepOutput</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">ExecOutput</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-98"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">input</span><span class="p">.</span><span class="n">chars</span><span class="p">().</span><span class="n">count</span><span class="p">())</span>
+</span><span id="__span-1-99"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-100">
+</span><span id="__span-1-101"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">post</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">ExecOutput</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">DefaultAction</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-102"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">)</span>
+</span><span id="__span-1-103"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-104"><span class="p">}</span>
+</span><span id="__span-1-105">
+</span><span id="__span-1-106"><span class="c1">// Node that generates a summary</span>
+</span><span id="__span-1-107"><span class="k">struct</span><span class="w"> </span><span class="nc">SummaryNode</span><span class="p">;</span>
+</span><span id="__span-1-108">
+</span><span id="__span-1-109"><span class="cp">#[async_trait]</span>
+</span><span id="__span-1-110"><span class="k">impl</span><span class="w"> </span><span class="n">LifecycleNode</span><span class="o">&lt;</span><span class="n">TextContext</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">SummaryNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-111"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">PrepOutput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="kt">usize</span><span class="p">);</span>
+</span><span id="__span-1-112"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">ExecOutput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-1-113">
+</span><span id="__span-1-114"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">id</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">NodeId</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-115"><span class="w">        </span><span class="n">NodeId</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;summary&quot;</span><span class="p">)</span>
+</span><span id="__span-1-116"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-117">
+</span><span id="__span-1-118"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">prep</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">TextContext</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">PrepOutput</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-119"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">uppercase</span><span class="p">.</span><span class="n">clone</span><span class="p">().</span><span class="n">ok_or_else</span><span class="p">(</span><span class="o">||</span><span class="w"> </span>
+</span><span id="__span-1-120"><span class="w">            </span><span class="n">TextProcessingError</span><span class="p">::</span><span class="n">ProcessingError</span><span class="p">(</span><span class="s">&quot;No uppercase text available&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">())</span>
+</span><span id="__span-1-121"><span class="w">        </span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-1-122"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">char_count</span><span class="p">.</span><span class="n">ok_or_else</span><span class="p">(</span><span class="o">||</span><span class="w"> </span>
+</span><span id="__span-1-123"><span class="w">            </span><span class="n">TextProcessingError</span><span class="p">::</span><span class="n">ProcessingError</span><span class="p">(</span><span class="s">&quot;No character count available&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">())</span>
+</span><span id="__span-1-124"><span class="w">        </span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-1-125"><span class="w">        </span><span class="nb">Ok</span><span class="p">((</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">))</span>
+</span><span id="__span-1-126"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-127">
+</span><span id="__span-1-128"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">exec</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">):</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">PrepOutput</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">ExecOutput</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-129"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;Processed text with {} characters: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">))</span>
+</span><span id="__span-1-130"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-131">
+</span><span id="__span-1-132"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">post</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">summary</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">ExecOutput</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">DefaultAction</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-133"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Complete</span><span class="p">)</span>
+</span><span id="__span-1-134"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-135"><span class="p">}</span>
+</span><span id="__span-1-136">
+</span><span id="__span-1-137"><span class="c1">// Helper function that could fail</span>
+</span><span id="__span-1-138"><span class="k">fn</span><span class="w"> </span><span class="nf">try_uppercase</span><span class="p">(</span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="n">TextProcessingError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-139"><span class="w">    </span><span class="c1">// Simulate potential failures</span>
+</span><span id="__span-1-140"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">rand</span><span class="p">::</span><span class="n">random</span><span class="p">::</span><span class="o">&lt;</span><span class="kt">f32</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mf">0.2</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-141"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">TextProcessingError</span><span class="p">::</span><span class="n">ProcessingError</span><span class="p">(</span>
+</span><span id="__span-1-142"><span class="w">            </span><span class="s">&quot;Random processing failure&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">()</span>
+</span><span id="__span-1-143"><span class="w">        </span><span class="p">));</span>
+</span><span id="__span-1-144"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-145"><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">input</span><span class="p">.</span><span class="n">to_uppercase</span><span class="p">())</span>
+</span><span id="__span-1-146"><span class="p">}</span>
+</span></code></pre></div>
+<p>Now let's create and run the workflow:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">Workflow</span><span class="p">;</span>
+</span><span id="__span-2-2">
+</span><span id="__span-2-3"><span class="cp">#[tokio::main]</span>
+</span><span id="__span-2-4"><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-5"><span class="w">    </span><span class="c1">// Initialize tracing</span>
+</span><span id="__span-2-6"><span class="w">    </span><span class="n">tracing_subscriber</span><span class="p">::</span><span class="n">fmt</span><span class="p">::</span><span class="n">init</span><span class="p">();</span>
+</span><span id="__span-2-7">
+</span><span id="__span-2-8"><span class="w">    </span><span class="c1">// Create context</span>
+</span><span id="__span-2-9"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">context</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TextContext</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;Hello, Floxide!&quot;</span><span class="p">);</span>
+</span><span id="__span-2-10">
+</span><span id="__span-2-11"><span class="w">    </span><span class="c1">// Create nodes</span>
+</span><span id="__span-2-12"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">validator</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ValidatorNode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">max_length</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-2-13"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">uppercase</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UppercaseNode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">retry_count</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-2-14"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">counter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CounterNode</span><span class="p">;</span>
+</span><span id="__span-2-15"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">summary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SummaryNode</span><span class="p">;</span>
+</span><span id="__span-2-16">
+</span><span id="__span-2-17"><span class="w">    </span><span class="c1">// Create workflow</span>
+</span><span id="__span-2-18"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">workflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Workflow</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">validator</span><span class="p">)</span>
+</span><span id="__span-2-19"><span class="w">        </span><span class="p">.</span><span class="n">then</span><span class="p">(</span><span class="n">uppercase</span><span class="p">)</span>
+</span><span id="__span-2-20"><span class="w">        </span><span class="p">.</span><span class="n">then</span><span class="p">(</span><span class="n">counter</span><span class="p">)</span>
+</span><span id="__span-2-21"><span class="w">        </span><span class="p">.</span><span class="n">then</span><span class="p">(</span><span class="n">summary</span><span class="p">);</span>
+</span><span id="__span-2-22">
+</span><span id="__span-2-23"><span class="w">    </span><span class="c1">// Run workflow</span>
+</span><span id="__span-2-24"><span class="w">    </span><span class="k">match</span><span class="w"> </span><span class="n">workflow</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">context</span><span class="p">).</span><span class="k">await</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-25"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-26"><span class="w">            </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Workflow completed successfully!&quot;</span><span class="p">);</span>
+</span><span id="__span-2-27"><span class="w">            </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Summary: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">.</span><span class="n">summary</span><span class="p">.</span><span class="n">unwrap_or_default</span><span class="p">());</span>
+</span><span id="__span-2-28"><span class="w">            </span><span class="nb">Ok</span><span class="p">(())</span>
+</span><span id="__span-2-29"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-30"><span class="w">        </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-31"><span class="w">            </span><span class="fm">eprintln!</span><span class="p">(</span><span class="s">&quot;Workflow failed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">e</span><span class="p">);</span>
+</span><span id="__span-2-32"><span class="w">            </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+</span><span id="__span-2-33"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-34"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-35"><span class="p">}</span>
+</span></code></pre></div>
+<h2 id="key-concepts-demonstrated">Key Concepts Demonstrated<a class="headerlink" href="#key-concepts-demonstrated" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Node Lifecycle</strong></li>
+<li>Preparation phase for validation and setup</li>
+<li>Execution phase with retry logic</li>
+<li>
+<p>Post-processing phase for routing decisions</p>
+</li>
+<li>
+<p><strong>Error Handling</strong></p>
+</li>
+<li>Custom error types</li>
+<li>Proper error propagation</li>
+<li>
+<p>Retry mechanisms for transient failures</p>
+</li>
+<li>
+<p><strong>Type Safety</strong></p>
+</li>
+<li>Strongly typed context</li>
+<li>Type-safe node outputs</li>
+<li>
+<p>Safe error handling</p>
+</li>
+<li>
+<p><strong>Best Practices</strong></p>
+</li>
+<li>Clear separation of concerns</li>
+<li>Proper logging and observability</li>
+<li>Resource cleanup</li>
+<li>Error recovery strategies</li>
+</ol>
+<h2 id="next-steps">Next Steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Explore more complex workflow patterns in the <a href="../../core-concepts/workflows/">Workflow Patterns</a> guide</li>
+<li>Learn about error handling in the <a href="../../getting-started/error-handling/">Error Handling Guide</a></li>
+<li>Check out the <a href="../event-driven-workflow/">Event-Driven Workflow</a> example for handling events</li>
+<li>See the <a href="../batch-processing/">Batch Processing</a> example for handling collections of items</li>
+</ol>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

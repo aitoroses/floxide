@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Cyclic Workflows - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../../contributing/" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Contributing</span>
+                    </a>
+                    <meta property="position" content="1">
+                </li>
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="2">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Getting Started</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/installation/">Installation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/quick-start/">Quick Start</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/error-handling/">Error Handling</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../overview/">Overview</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../nodes/">Nodes</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../workflows/">Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Cyclic Workflows</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../actions/">Actions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../contexts/">Contexts</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Guides</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/event_driven_architecture/">Event-Driven Architecture</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/using-mermaid-diagrams/">Using Mermaid Diagrams</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Examples</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/basic-workflow/">Basic Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/event-driven-workflow/">Event-Driven Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/timer-node/">Timer Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/reactive-node/">Reactive Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/transform-node/">Transform Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/longrunning-node/">Long-Running Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/batch-processing/">Batch Processing</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Architecture</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/adr-process/">ADR Process</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/core-framework-abstractions/">Core Framework Abstractions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/project-structure/">Project Structure</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/async-runtime-selection/">Async Runtime Selection</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/node-lifecycle-methods/">Node Lifecycle Methods</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/event-driven-workflow-pattern/">Event-Driven Workflow Pattern</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/reactive-node-implementation/">Reactive Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/timer-node-implementation/">Timer Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/longrunning-node-implementation/">Long-Running Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/transform-node-implementation/">Transform Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/batch-processing-implementation/">Batch Processing Implementation</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">API Reference</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-core/">floxide-core</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-transform/">floxide-transform</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-event/">floxide-event</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-timer/">floxide-timer</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-reactive/">floxide-reactive</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-longrunning/">floxide-longrunning</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-batch/">floxide-batch</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../contributing/">Contributing</a>
+        
+    
+    
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#cyclic-workflows">Cyclic Workflows</a></li>
+        <li><a href="#overview">Overview</a></li><li><a href="#enabling-cyclic-workflows">Enabling Cyclic Workflows</a></li><li><a href="#preventing-infinite-loops">Preventing Infinite Loops</a></li><li><a href="#example-retry-loop">Example: Retry Loop</a></li><li><a href="#best-practices">Best Practices</a></li><li><a href="#troubleshooting">Troubleshooting</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="cyclic-workflows">Cyclic Workflows<a class="headerlink" href="#cyclic-workflows" title="Permanent link">&para;</a></h1>
+<p>Floxide supports cyclic workflows as an optional feature. This document explains how to use cyclic workflows, when they are appropriate, and how to avoid common pitfalls.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>By default, Floxide prevents cycles in workflows to avoid infinite loops. When a node is visited more than once during workflow execution, a <code>WorkflowCycleDetected</code> error is returned.</p>
+<p>However, there are legitimate use cases for cyclic workflows, such as:</p>
+<ul>
+<li>Retry loops</li>
+<li>Polling mechanisms</li>
+<li>State machines with loops</li>
+<li>Iterative processing</li>
+</ul>
+<h2 id="enabling-cyclic-workflows">Enabling Cyclic Workflows<a class="headerlink" href="#enabling-cyclic-workflows" title="Permanent link">&para;</a></h2>
+<p>To enable cycles in your workflow, use the <code>allow_cycles</code> method:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">workflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Workflow</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">start_node</span><span class="p">)</span>
+</span><span id="__span-0-2"><span class="w">    </span><span class="p">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">process_node</span><span class="p">)</span>
+</span><span id="__span-0-3"><span class="w">    </span><span class="p">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">check_node</span><span class="p">)</span>
+</span><span id="__span-0-4"><span class="w">    </span><span class="p">.</span><span class="n">set_default_route</span><span class="p">(</span><span class="o">&amp;</span><span class="n">start_id</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">process_id</span><span class="p">)</span>
+</span><span id="__span-0-5"><span class="w">    </span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="o">&amp;</span><span class="n">process_id</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">check_id</span><span class="p">)</span>
+</span><span id="__span-0-6"><span class="w">    </span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="o">&amp;</span><span class="n">check_id</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">process_id</span><span class="p">)</span><span class="w"> </span><span class="c1">// Create a cycle</span>
+</span><span id="__span-0-7"><span class="w">    </span><span class="p">.</span><span class="n">allow_cycles</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span><span class="w"> </span><span class="c1">// Enable cycles</span>
+</span></code></pre></div>
+<h2 id="preventing-infinite-loops">Preventing Infinite Loops<a class="headerlink" href="#preventing-infinite-loops" title="Permanent link">&para;</a></h2>
+<p>When cycles are allowed, you should implement one of these safeguards to prevent infinite loops:</p>
+<h3 id="1-set-a-cycle-limit">1. Set a Cycle Limit<a class="headerlink" href="#1-set-a-cycle-limit" title="Permanent link">&para;</a></h3>
+<p>You can set a maximum number of times a node can be visited:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="n">workflow</span><span class="p">.</span><span class="n">set_cycle_limit</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span><span class="w"> </span><span class="c1">// Limit each node to 10 visits</span>
+</span></code></pre></div>
+<p>If a node is visited more than the specified limit, a <code>WorkflowCycleDetected</code> error will be returned.</p>
+<h3 id="2-implement-a-conditional-exit">2. Implement a Conditional Exit<a class="headerlink" href="#2-implement-a-conditional-exit" title="Permanent link">&para;</a></h3>
+<p>A better approach is to implement a conditional exit in your node logic:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="kd">let</span><span class="w"> </span><span class="n">loop_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">closure</span><span class="p">::</span><span class="n">node</span><span class="p">(</span><span class="o">|</span><span class="k">mut</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="nc">MyContext</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-2"><span class="w">    </span><span class="n">ctx</span><span class="p">.</span><span class="n">iteration_count</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-2-3">
+</span><span id="__span-2-4"><span class="w">    </span><span class="c1">// Process data</span>
+</span><span id="__span-2-5"><span class="w">    </span><span class="c1">// ...</span>
+</span><span id="__span-2-6">
+</span><span id="__span-2-7"><span class="w">    </span><span class="c1">// Check exit condition</span>
+</span><span id="__span-2-8"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">is_complete</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">iteration_count</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-9"><span class="w">        </span><span class="c1">// Exit the loop</span>
+</span><span id="__span-2-10"><span class="w">        </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">RouteToAction</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Complete</span><span class="p">)))</span>
+</span><span id="__span-2-11"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-12"><span class="w">        </span><span class="c1">// Continue the loop</span>
+</span><span id="__span-2-13"><span class="w">        </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">RouteToAction</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">)))</span>
+</span><span id="__span-2-14"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-15"><span class="p">});</span>
+</span></code></pre></div>
+<h2 id="example-retry-loop">Example: Retry Loop<a class="headerlink" href="#example-retry-loop" title="Permanent link">&para;</a></h2>
+<p>Here's a complete example of a workflow with a retry loop:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::{</span><span class="n">closure</span><span class="p">::</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">Workflow</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">};</span>
+</span><span id="__span-3-2">
+</span><span id="__span-3-3"><span class="c1">// Define context</span>
+</span><span id="__span-3-4"><span class="cp">#[derive(Clone)]</span>
+</span><span id="__span-3-5"><span class="k">struct</span><span class="w"> </span><span class="nc">RetryContext</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-6"><span class="w">    </span><span class="n">data</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-3-7"><span class="w">    </span><span class="n">attempts</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span>
+</span><span id="__span-3-8"><span class="w">    </span><span class="n">max_attempts</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span>
+</span><span id="__span-3-9"><span class="w">    </span><span class="n">success</span><span class="p">:</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span>
+</span><span id="__span-3-10"><span class="p">}</span>
+</span><span id="__span-3-11">
+</span><span id="__span-3-12"><span class="c1">// Create nodes</span>
+</span><span id="__span-3-13"><span class="kd">let</span><span class="w"> </span><span class="n">start_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node</span><span class="p">(</span><span class="o">|</span><span class="k">mut</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="nc">RetryContext</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-14"><span class="w">    </span><span class="n">ctx</span><span class="p">.</span><span class="n">attempts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+</span><span id="__span-3-15"><span class="w">    </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">Success</span><span class="p">(())))</span>
+</span><span id="__span-3-16"><span class="p">});</span>
+</span><span id="__span-3-17">
+</span><span id="__span-3-18"><span class="kd">let</span><span class="w"> </span><span class="n">process_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node</span><span class="p">(</span><span class="o">|</span><span class="k">mut</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="nc">RetryContext</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-19"><span class="w">    </span><span class="n">ctx</span><span class="p">.</span><span class="n">attempts</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-3-20">
+</span><span id="__span-3-21"><span class="w">    </span><span class="c1">// Simulate processing that might fail</span>
+</span><span id="__span-3-22"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">attempts</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-23"><span class="w">        </span><span class="c1">// Simulate failure</span>
+</span><span id="__span-3-24"><span class="w">        </span><span class="n">ctx</span><span class="p">.</span><span class="n">success</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span><span class="p">;</span>
+</span><span id="__span-3-25"><span class="w">        </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">RouteToAction</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Error</span><span class="p">)))</span>
+</span><span id="__span-3-26"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-27"><span class="w">        </span><span class="c1">// Simulate success</span>
+</span><span id="__span-3-28"><span class="w">        </span><span class="n">ctx</span><span class="p">.</span><span class="n">success</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">;</span>
+</span><span id="__span-3-29"><span class="w">        </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">RouteToAction</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">)))</span>
+</span><span id="__span-3-30"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-31"><span class="p">});</span>
+</span><span id="__span-3-32">
+</span><span id="__span-3-33"><span class="kd">let</span><span class="w"> </span><span class="n">check_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node</span><span class="p">(</span><span class="o">|</span><span class="k">mut</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="nc">RetryContext</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-34"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">success</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-35"><span class="w">        </span><span class="c1">// Processing succeeded, continue to end</span>
+</span><span id="__span-3-36"><span class="w">        </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">RouteToAction</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">)))</span>
+</span><span id="__span-3-37"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">attempts</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">max_attempts</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-38"><span class="w">        </span><span class="c1">// Retry</span>
+</span><span id="__span-3-39"><span class="w">        </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">RouteToAction</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Error</span><span class="p">)))</span>
+</span><span id="__span-3-40"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-41"><span class="w">        </span><span class="c1">// Too many attempts, give up</span>
+</span><span id="__span-3-42"><span class="w">        </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">RouteToAction</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">)))</span>
+</span><span id="__span-3-43"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-44"><span class="p">});</span>
+</span><span id="__span-3-45">
+</span><span id="__span-3-46"><span class="kd">let</span><span class="w"> </span><span class="n">end_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node</span><span class="p">(</span><span class="o">|</span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="nc">RetryContext</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-47"><span class="w">    </span><span class="nb">Ok</span><span class="p">((</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">Success</span><span class="p">(())))</span>
+</span><span id="__span-3-48"><span class="p">});</span>
+</span><span id="__span-3-49">
+</span><span id="__span-3-50"><span class="c1">// Build workflow</span>
+</span><span id="__span-3-51"><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">workflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Workflow</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">start_node</span><span class="p">);</span>
+</span><span id="__span-3-52"><span class="kd">let</span><span class="w"> </span><span class="n">start_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">workflow</span><span class="p">.</span><span class="n">start_node</span><span class="p">.</span><span class="n">clone</span><span class="p">();</span>
+</span><span id="__span-3-53"><span class="kd">let</span><span class="w"> </span><span class="n">process_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">process_node</span><span class="p">.</span><span class="n">id</span><span class="p">();</span>
+</span><span id="__span-3-54"><span class="kd">let</span><span class="w"> </span><span class="n">check_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">check_node</span><span class="p">.</span><span class="n">id</span><span class="p">();</span>
+</span><span id="__span-3-55"><span class="kd">let</span><span class="w"> </span><span class="n">end_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">end_node</span><span class="p">.</span><span class="n">id</span><span class="p">();</span>
+</span><span id="__span-3-56">
+</span><span id="__span-3-57"><span class="n">workflow</span>
+</span><span id="__span-3-58"><span class="w">    </span><span class="p">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">process_node</span><span class="p">)</span>
+</span><span id="__span-3-59"><span class="w">    </span><span class="p">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">check_node</span><span class="p">)</span>
+</span><span id="__span-3-60"><span class="w">    </span><span class="p">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">end_node</span><span class="p">)</span>
+</span><span id="__span-3-61"><span class="w">    </span><span class="p">.</span><span class="n">set_default_route</span><span class="p">(</span><span class="o">&amp;</span><span class="n">start_id</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">process_id</span><span class="p">)</span>
+</span><span id="__span-3-62"><span class="w">    </span><span class="p">.</span><span class="n">set_default_route</span><span class="p">(</span><span class="o">&amp;</span><span class="n">process_id</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">check_id</span><span class="p">)</span>
+</span><span id="__span-3-63"><span class="w">    </span><span class="p">.</span><span class="n">set_default_route</span><span class="p">(</span><span class="o">&amp;</span><span class="n">check_id</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">end_id</span><span class="p">)</span>
+</span><span id="__span-3-64"><span class="w">    </span><span class="p">.</span><span class="n">connect</span><span class="p">(</span><span class="o">&amp;</span><span class="n">check_id</span><span class="p">,</span><span class="w"> </span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">process_id</span><span class="p">)</span><span class="w"> </span><span class="c1">// Create a cycle for retry</span>
+</span><span id="__span-3-65"><span class="w">    </span><span class="p">.</span><span class="n">allow_cycles</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span><span class="w"> </span><span class="c1">// Enable cycles</span>
+</span></code></pre></div>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p><strong>Always have an exit condition</strong>: Every cyclic workflow should have a clear exit condition to prevent infinite loops.</p>
+</li>
+<li>
+<p><strong>Use cycle limits as a safety net</strong>: Set a reasonable cycle limit as a fallback safety mechanism.</p>
+</li>
+<li>
+<p><strong>Track iteration counts</strong>: Include an iteration counter in your context to help with debugging and to implement exit conditions.</p>
+</li>
+<li>
+<p><strong>Consider performance implications</strong>: Be mindful of the performance impact of loops, especially for long-running workflows.</p>
+</li>
+<li>
+<p><strong>Log cycle iterations</strong>: Add logging to help debug cyclic workflows.</p>
+</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<p>If you encounter a <code>WorkflowCycleDetected</code> error:</p>
+<ol>
+<li>Check if cycles are enabled with <code>allow_cycles(true)</code></li>
+<li>Verify that your cycle limit isn't too low</li>
+<li>Ensure your exit conditions are working correctly</li>
+<li>Add logging to track the state during each iteration</li>
+</ol>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

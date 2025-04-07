@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Transform Node - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../../contributing/" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Contributing</span>
+                    </a>
+                    <meta property="position" content="1">
+                </li>
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="2">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Getting Started</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/installation/">Installation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/quick-start/">Quick Start</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/error-handling/">Error Handling</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/overview/">Overview</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/nodes/">Nodes</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/workflows/">Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/cyclic-workflows/">Cyclic Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/actions/">Actions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/contexts/">Contexts</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Guides</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/event_driven_architecture/">Event-Driven Architecture</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/using-mermaid-diagrams/">Using Mermaid Diagrams</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Examples</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../basic-workflow/">Basic Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../event-driven-workflow/">Event-Driven Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../timer-node/">Timer Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../reactive-node/">Reactive Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Transform Node</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../longrunning-node/">Long-Running Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../batch-processing/">Batch Processing</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Architecture</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/adr-process/">ADR Process</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/core-framework-abstractions/">Core Framework Abstractions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/project-structure/">Project Structure</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/async-runtime-selection/">Async Runtime Selection</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/node-lifecycle-methods/">Node Lifecycle Methods</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/event-driven-workflow-pattern/">Event-Driven Workflow Pattern</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/reactive-node-implementation/">Reactive Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/timer-node-implementation/">Timer Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/longrunning-node-implementation/">Long-Running Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/transform-node-implementation/">Transform Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/batch-processing-implementation/">Batch Processing Implementation</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">API Reference</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-core/">floxide-core</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-transform/">floxide-transform</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-event/">floxide-event</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-timer/">floxide-timer</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-reactive/">floxide-reactive</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-longrunning/">floxide-longrunning</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-batch/">floxide-batch</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../contributing/">Contributing</a>
+        
+    
+    
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#transform-node-example">Transform Node Example</a></li>
+        <li><a href="#overview">Overview</a></li><li><a href="#implementation">Implementation</a></li><li><a href="#advanced-usage">Advanced Usage</a></li><li><a href="#best-practices">Best Practices</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="transform-node-example">Transform Node Example<a class="headerlink" href="#transform-node-example" title="Permanent link">&para;</a></h1>
+<p>This example demonstrates how to use transform nodes in the Floxide framework for functional data transformations with explicit input and output types.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>Transform nodes enable:
+- Functional programming style with explicit input/output types
+- Direct error types specific to the node
+- Three-phase transformation lifecycle (prep, exec, post)
+- Easy composition of transformations</p>
+<h2 id="implementation">Implementation<a class="headerlink" href="#implementation" title="Permanent link">&para;</a></h2>
+<p>Let's create a data processing pipeline that validates, transforms, and enriches JSON data:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="k">use</span><span class="w"> </span><span class="n">async_trait</span><span class="p">::</span><span class="n">async_trait</span><span class="p">;</span>
+</span><span id="__span-0-2"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::{</span><span class="n">DefaultAction</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="p">};</span>
+</span><span id="__span-0-3"><span class="k">use</span><span class="w"> </span><span class="n">floxide_transform</span><span class="p">::{</span><span class="n">TransformNode</span><span class="p">,</span><span class="w"> </span><span class="n">TransformContext</span><span class="p">,</span><span class="w"> </span><span class="n">to_lifecycle_node</span><span class="p">};</span>
+</span><span id="__span-0-4"><span class="k">use</span><span class="w"> </span><span class="n">serde_json</span><span class="p">::{</span><span class="n">Value</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">JsonValue</span><span class="p">,</span><span class="w"> </span><span class="n">json</span><span class="p">};</span>
+</span><span id="__span-0-5"><span class="k">use</span><span class="w"> </span><span class="n">thiserror</span><span class="p">::</span><span class="n">Error</span><span class="p">;</span>
+</span><span id="__span-0-6">
+</span><span id="__span-0-7"><span class="c1">// Custom error type</span>
+</span><span id="__span-0-8"><span class="cp">#[derive(Debug, Error)]</span>
+</span><span id="__span-0-9"><span class="k">enum</span><span class="w"> </span><span class="nc">DataTransformError</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-10"><span class="w">    </span><span class="cp">#[error(</span><span class="s">&quot;Validation failed: {0}&quot;</span><span class="cp">)]</span>
+</span><span id="__span-0-11"><span class="w">    </span><span class="n">ValidationError</span><span class="p">(</span><span class="nb">String</span><span class="p">),</span>
+</span><span id="__span-0-12"><span class="w">    </span><span class="cp">#[error(</span><span class="s">&quot;Transform failed: {0}&quot;</span><span class="cp">)]</span>
+</span><span id="__span-0-13"><span class="w">    </span><span class="n">TransformError</span><span class="p">(</span><span class="nb">String</span><span class="p">),</span>
+</span><span id="__span-0-14"><span class="w">    </span><span class="cp">#[error(</span><span class="s">&quot;JSON error: {0}&quot;</span><span class="cp">)]</span>
+</span><span id="__span-0-15"><span class="w">    </span><span class="n">JsonError</span><span class="p">(</span><span class="cp">#[from]</span><span class="w"> </span><span class="n">serde_json</span><span class="p">::</span><span class="n">Error</span><span class="p">),</span>
+</span><span id="__span-0-16"><span class="p">}</span>
+</span><span id="__span-0-17">
+</span><span id="__span-0-18"><span class="c1">// A transform node that validates and enriches user data</span>
+</span><span id="__span-0-19"><span class="k">struct</span><span class="w"> </span><span class="nc">UserDataTransformer</span><span class="p">;</span>
+</span><span id="__span-0-20">
+</span><span id="__span-0-21"><span class="cp">#[async_trait]</span>
+</span><span id="__span-0-22"><span class="k">impl</span><span class="w"> </span><span class="n">TransformNode</span><span class="o">&lt;</span><span class="n">JsonValue</span><span class="p">,</span><span class="w"> </span><span class="n">JsonValue</span><span class="p">,</span><span class="w"> </span><span class="n">DataTransformError</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">UserDataTransformer</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-23"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">prep</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">JsonValue</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">JsonValue</span><span class="p">,</span><span class="w"> </span><span class="n">DataTransformError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-24"><span class="w">        </span><span class="c1">// Validate required fields</span>
+</span><span id="__span-0-25"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="n">input</span><span class="p">.</span><span class="n">is_object</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-26"><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">DataTransformError</span><span class="p">::</span><span class="n">ValidationError</span><span class="p">(</span><span class="s">&quot;Input must be an object&quot;</span><span class="p">.</span><span class="n">into</span><span class="p">()));</span>
+</span><span id="__span-0-27"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-0-28">
+</span><span id="__span-0-29"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="p">.</span><span class="n">as_object</span><span class="p">().</span><span class="n">unwrap</span><span class="p">();</span>
+</span><span id="__span-0-30"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="o">!</span><span class="n">obj</span><span class="p">.</span><span class="n">contains_key</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">obj</span><span class="p">.</span><span class="n">contains_key</span><span class="p">(</span><span class="s">&quot;email&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-31"><span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">DataTransformError</span><span class="p">::</span><span class="n">ValidationError</span><span class="p">(</span><span class="s">&quot;Missing required fields&quot;</span><span class="p">.</span><span class="n">into</span><span class="p">()));</span>
+</span><span id="__span-0-32"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-0-33">
+</span><span id="__span-0-34"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
+</span><span id="__span-0-35"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-36">
+</span><span id="__span-0-37"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">exec</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">JsonValue</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">JsonValue</span><span class="p">,</span><span class="w"> </span><span class="n">DataTransformError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-38"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="p">.</span><span class="n">as_object</span><span class="p">().</span><span class="n">unwrap</span><span class="p">().</span><span class="n">clone</span><span class="p">();</span>
+</span><span id="__span-0-39"><span class="w">        </span>
+</span><span id="__span-0-40"><span class="w">        </span><span class="c1">// Transform name to uppercase</span>
+</span><span id="__span-0-41"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">obj</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-42"><span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">uppercase_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">name</span><span class="p">.</span><span class="n">as_str</span><span class="p">()</span>
+</span><span id="__span-0-43"><span class="w">                </span><span class="p">.</span><span class="n">ok_or_else</span><span class="p">(</span><span class="o">||</span><span class="w"> </span><span class="n">DataTransformError</span><span class="p">::</span><span class="n">TransformError</span><span class="p">(</span><span class="s">&quot;Invalid name format&quot;</span><span class="p">.</span><span class="n">into</span><span class="p">()))</span><span class="o">?</span>
+</span><span id="__span-0-44"><span class="w">                </span><span class="p">.</span><span class="n">to_uppercase</span><span class="p">();</span>
+</span><span id="__span-0-45"><span class="w">            </span><span class="n">obj</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">.</span><span class="n">into</span><span class="p">(),</span><span class="w"> </span><span class="n">json</span><span class="o">!</span><span class="p">(</span><span class="n">uppercase_name</span><span class="p">));</span>
+</span><span id="__span-0-46"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-0-47">
+</span><span id="__span-0-48"><span class="w">        </span><span class="c1">// Add metadata</span>
+</span><span id="__span-0-49"><span class="w">        </span><span class="n">obj</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="s">&quot;processed_at&quot;</span><span class="p">.</span><span class="n">into</span><span class="p">(),</span><span class="w"> </span><span class="n">json</span><span class="o">!</span><span class="p">(</span><span class="n">chrono</span><span class="p">::</span><span class="n">Utc</span><span class="p">::</span><span class="n">now</span><span class="p">().</span><span class="n">to_rfc3339</span><span class="p">()));</span>
+</span><span id="__span-0-50"><span class="w">        </span><span class="n">obj</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="s">&quot;version&quot;</span><span class="p">.</span><span class="n">into</span><span class="p">(),</span><span class="w"> </span><span class="n">json</span><span class="o">!</span><span class="p">(</span><span class="s">&quot;1.0.0&quot;</span><span class="p">));</span>
+</span><span id="__span-0-51">
+</span><span id="__span-0-52"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">JsonValue</span><span class="p">::</span><span class="n">Object</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+</span><span id="__span-0-53"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-54">
+</span><span id="__span-0-55"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">post</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">:</span><span class="w"> </span><span class="nc">JsonValue</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">JsonValue</span><span class="p">,</span><span class="w"> </span><span class="n">DataTransformError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-56"><span class="w">        </span><span class="c1">// Add a summary field</span>
+</span><span id="__span-0-57"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">output</span><span class="p">.</span><span class="n">as_object</span><span class="p">().</span><span class="n">unwrap</span><span class="p">().</span><span class="n">clone</span><span class="p">();</span>
+</span><span id="__span-0-58"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">summary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="fm">format!</span><span class="p">(</span>
+</span><span id="__span-0-59"><span class="w">            </span><span class="s">&quot;Processed user data for: {}&quot;</span><span class="p">,</span>
+</span><span id="__span-0-60"><span class="w">            </span><span class="n">obj</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">).</span><span class="n">and_then</span><span class="p">(</span><span class="o">|</span><span class="n">n</span><span class="o">|</span><span class="w"> </span><span class="n">n</span><span class="p">.</span><span class="n">as_str</span><span class="p">()).</span><span class="n">unwrap_or</span><span class="p">(</span><span class="s">&quot;unknown&quot;</span><span class="p">)</span>
+</span><span id="__span-0-61"><span class="w">        </span><span class="p">);</span>
+</span><span id="__span-0-62"><span class="w">        </span><span class="n">obj</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="s">&quot;summary&quot;</span><span class="p">.</span><span class="n">into</span><span class="p">(),</span><span class="w"> </span><span class="n">json</span><span class="o">!</span><span class="p">(</span><span class="n">summary</span><span class="p">));</span>
+</span><span id="__span-0-63">
+</span><span id="__span-0-64"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">JsonValue</span><span class="p">::</span><span class="n">Object</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
+</span><span id="__span-0-65"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-66"><span class="p">}</span>
+</span><span id="__span-0-67">
+</span><span id="__span-0-68"><span class="c1">// Example usage</span>
+</span><span id="__span-0-69"><span class="cp">#[tokio::main]</span>
+</span><span id="__span-0-70"><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-71"><span class="w">    </span><span class="c1">// Create input data</span>
+</span><span id="__span-0-72"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">input_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">json</span><span class="o">!</span><span class="p">({</span>
+</span><span id="__span-0-73"><span class="w">        </span><span class="s">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;John Doe&quot;</span><span class="p">,</span>
+</span><span id="__span-0-74"><span class="w">        </span><span class="s">&quot;email&quot;</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;john@example.com&quot;</span><span class="p">,</span>
+</span><span id="__span-0-75"><span class="w">        </span><span class="s">&quot;age&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span>
+</span><span id="__span-0-76"><span class="w">    </span><span class="p">});</span>
+</span><span id="__span-0-77">
+</span><span id="__span-0-78"><span class="w">    </span><span class="c1">// Create transform node and convert to lifecycle node</span>
+</span><span id="__span-0-79"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">transformer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UserDataTransformer</span><span class="p">;</span>
+</span><span id="__span-0-80"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">lifecycle_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">to_lifecycle_node</span><span class="p">(</span><span class="n">transformer</span><span class="p">);</span>
+</span><span id="__span-0-81">
+</span><span id="__span-0-82"><span class="w">    </span><span class="c1">// Create context with input data</span>
+</span><span id="__span-0-83"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TransformContext</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">input_data</span><span class="p">);</span>
+</span><span id="__span-0-84">
+</span><span id="__span-0-85"><span class="w">    </span><span class="c1">// Process the data through all phases</span>
+</span><span id="__span-0-86"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">prep_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lifecycle_node</span><span class="p">.</span><span class="n">prep</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">ctx</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-0-87"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">exec_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lifecycle_node</span><span class="p">.</span><span class="n">exec</span><span class="p">(</span><span class="n">prep_result</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-0-88"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">_action</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lifecycle_node</span><span class="p">.</span><span class="n">post</span><span class="p">(</span><span class="n">prep_result</span><span class="p">,</span><span class="w"> </span><span class="n">exec_result</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">ctx</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-0-89">
+</span><span id="__span-0-90"><span class="w">    </span><span class="c1">// Access the transformed data from the context</span>
+</span><span id="__span-0-91"><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Transformed data: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">serde_json</span><span class="p">::</span><span class="n">to_string_pretty</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ctx</span><span class="p">.</span><span class="n">input</span><span class="p">)</span><span class="o">?</span><span class="p">);</span>
+</span><span id="__span-0-92">
+</span><span id="__span-0-93"><span class="w">    </span><span class="nb">Ok</span><span class="p">(())</span>
+</span><span id="__span-0-94"><span class="p">}</span>
+</span></code></pre></div>
+<h2 id="advanced-usage">Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permanent link">&para;</a></h2>
+<h3 id="composing-transform-nodes">Composing Transform Nodes<a class="headerlink" href="#composing-transform-nodes" title="Permanent link">&para;</a></h3>
+<p>Transform nodes can be easily composed into pipelines:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="c1">// Create a pipeline of transform nodes</span>
+</span><span id="__span-1-2"><span class="kd">let</span><span class="w"> </span><span class="n">pipeline</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">to_lifecycle_node</span><span class="p">(</span>
+</span><span id="__span-1-3"><span class="w">    </span><span class="n">ValidatorNode</span>
+</span><span id="__span-1-4"><span class="w">        </span><span class="p">.</span><span class="n">and_then</span><span class="p">(</span><span class="n">TransformerNode</span><span class="p">)</span>
+</span><span id="__span-1-5"><span class="w">        </span><span class="p">.</span><span class="n">and_then</span><span class="p">(</span><span class="n">EnricherNode</span><span class="p">)</span>
+</span><span id="__span-1-6"><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="using-helper-functions">Using Helper Functions<a class="headerlink" href="#using-helper-functions" title="Permanent link">&para;</a></h3>
+<p>The framework provides helper functions for simpler transformations:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_transform</span><span class="p">::</span><span class="n">transform_node</span><span class="p">;</span>
+</span><span id="__span-2-2">
+</span><span id="__span-2-3"><span class="c1">// Create a simple transform node using closures</span>
+</span><span id="__span-2-4"><span class="kd">let</span><span class="w"> </span><span class="n">simple_transformer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">transform_node</span><span class="p">(</span>
+</span><span id="__span-2-5"><span class="w">    </span><span class="c1">// Prep function</span>
+</span><span id="__span-2-6"><span class="w">    </span><span class="o">|</span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-7"><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="n">input</span><span class="p">.</span><span class="n">is_empty</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-8"><span class="w">            </span><span class="nb">Err</span><span class="p">(</span><span class="n">DataTransformError</span><span class="p">::</span><span class="n">ValidationError</span><span class="p">(</span><span class="s">&quot;Empty input&quot;</span><span class="p">.</span><span class="n">into</span><span class="p">()))</span>
+</span><span id="__span-2-9"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-10"><span class="w">            </span><span class="nb">Ok</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
+</span><span id="__span-2-11"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-12"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-2-13"><span class="w">    </span><span class="c1">// Exec function</span>
+</span><span id="__span-2-14"><span class="w">    </span><span class="o">|</span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-15"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">input</span><span class="p">.</span><span class="n">to_uppercase</span><span class="p">())</span>
+</span><span id="__span-2-16"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-2-17"><span class="w">    </span><span class="c1">// Post function</span>
+</span><span id="__span-2-18"><span class="w">    </span><span class="o">|</span><span class="n">output</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-19"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;Processed: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">))</span>
+</span><span id="__span-2-20"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-2-21"><span class="p">);</span>
+</span></code></pre></div>
+<h3 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h3>
+<p>Transform nodes support custom error types for better error handling:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="c1">// Create a transform node with robust error handling</span>
+</span><span id="__span-3-2"><span class="kd">let</span><span class="w"> </span><span class="n">robust_transformer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">transform_node</span><span class="p">(</span>
+</span><span id="__span-3-3"><span class="w">    </span><span class="o">|</span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">JsonValue</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-4"><span class="w">        </span><span class="k">match</span><span class="w"> </span><span class="n">validate_input</span><span class="p">(</span><span class="o">&amp;</span><span class="n">input</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-5"><span class="w">            </span><span class="nb">Ok</span><span class="p">(</span><span class="n">valid_input</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="nb">Ok</span><span class="p">(</span><span class="n">valid_input</span><span class="p">),</span>
+</span><span id="__span-3-6"><span class="w">            </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">DataTransformError</span><span class="p">::</span><span class="n">ValidationError</span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">to_string</span><span class="p">())),</span>
+</span><span id="__span-3-7"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-3-8"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-3-9"><span class="w">    </span><span class="o">|</span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">JsonValue</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-10"><span class="w">        </span><span class="n">transform_data</span><span class="p">(</span><span class="o">&amp;</span><span class="n">input</span><span class="p">)</span>
+</span><span id="__span-3-11"><span class="w">            </span><span class="p">.</span><span class="n">map_err</span><span class="p">(</span><span class="o">|</span><span class="n">e</span><span class="o">|</span><span class="w"> </span><span class="n">DataTransformError</span><span class="p">::</span><span class="n">TransformError</span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">to_string</span><span class="p">()))</span>
+</span><span id="__span-3-12"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-3-13"><span class="w">    </span><span class="o">|</span><span class="n">output</span><span class="p">:</span><span class="w"> </span><span class="nc">JsonValue</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-14"><span class="w">        </span><span class="n">enrich_data</span><span class="p">(</span><span class="o">&amp;</span><span class="n">output</span><span class="p">)</span>
+</span><span id="__span-3-15"><span class="w">            </span><span class="p">.</span><span class="n">map_err</span><span class="p">(</span><span class="o">|</span><span class="n">e</span><span class="o">|</span><span class="w"> </span><span class="n">DataTransformError</span><span class="p">::</span><span class="n">TransformError</span><span class="p">(</span><span class="n">e</span><span class="p">.</span><span class="n">to_string</span><span class="p">()))</span>
+</span><span id="__span-3-16"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-3-17"><span class="p">);</span>
+</span></code></pre></div>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Use Custom Error Types</strong>: Define specific error types for your transformations to provide clear error handling.</li>
+<li><strong>Validate Early</strong>: Use the <code>prep</code> phase to validate input data before processing.</li>
+<li><strong>Keep Transformations Pure</strong>: Avoid side effects in transform nodes when possible.</li>
+<li><strong>Compose Nodes</strong>: Break complex transformations into smaller, composable nodes.</li>
+<li><strong>Add Context</strong>: Use the post phase to add metadata about the transformation process.</li>
+</ol>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

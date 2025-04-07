@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>floxide-timer - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../../contributing/" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Contributing</span>
+                    </a>
+                    <meta property="position" content="1">
+                </li>
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="2">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Getting Started</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/installation/">Installation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/quick-start/">Quick Start</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/error-handling/">Error Handling</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/overview/">Overview</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/nodes/">Nodes</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/workflows/">Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/cyclic-workflows/">Cyclic Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/actions/">Actions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/contexts/">Contexts</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Guides</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/event_driven_architecture/">Event-Driven Architecture</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/using-mermaid-diagrams/">Using Mermaid Diagrams</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Examples</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/basic-workflow/">Basic Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/event-driven-workflow/">Event-Driven Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/timer-node/">Timer Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/reactive-node/">Reactive Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/transform-node/">Transform Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/longrunning-node/">Long-Running Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/batch-processing/">Batch Processing</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Architecture</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/adr-process/">ADR Process</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/core-framework-abstractions/">Core Framework Abstractions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/project-structure/">Project Structure</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/async-runtime-selection/">Async Runtime Selection</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/node-lifecycle-methods/">Node Lifecycle Methods</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/event-driven-workflow-pattern/">Event-Driven Workflow Pattern</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/reactive-node-implementation/">Reactive Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/timer-node-implementation/">Timer Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/longrunning-node-implementation/">Long-Running Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/transform-node-implementation/">Transform Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/batch-processing-implementation/">Batch Processing Implementation</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">API Reference</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../floxide-core/">floxide-core</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../floxide-transform/">floxide-transform</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../floxide-event/">floxide-event</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">floxide-timer</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../floxide-reactive/">floxide-reactive</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../floxide-longrunning/">floxide-longrunning</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../floxide-batch/">floxide-batch</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../contributing/">Contributing</a>
+        
+    
+    
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#floxide-timer-api-reference">floxide-timer API Reference</a></li>
+        <li><a href="#core-types">Core Types</a></li><li><a href="#built-in-implementations">Built-in Implementations</a></li><li><a href="#usage-examples">Usage Examples</a></li><li><a href="#best-practices">Best Practices</a></li><li><a href="#see-also">See Also</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="floxide-timer-api-reference">floxide-timer API Reference<a class="headerlink" href="#floxide-timer-api-reference" title="Permanent link">&para;</a></h1>
+<p>The <code>floxide-timer</code> crate provides time-based workflow capabilities through the <code>TimerNode</code> trait and various schedule implementations, as defined in <a href="../../adrs/0021-timer-node-implementation/">ADR-0021</a>.</p>
+<h2 id="core-types">Core Types<a class="headerlink" href="#core-types" title="Permanent link">&para;</a></h2>
+<h3 id="schedule">Schedule<a class="headerlink" href="#schedule" title="Permanent link">&para;</a></h3>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">Schedule</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-2"><span class="w">    </span><span class="sd">/// Execute once at a specific time</span>
+</span><span id="__span-0-3"><span class="w">    </span><span class="n">Once</span><span class="p">(</span><span class="n">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">),</span>
+</span><span id="__span-0-4"><span class="w">    </span><span class="sd">/// Execute repeatedly at fixed intervals</span>
+</span><span id="__span-0-5"><span class="w">    </span><span class="n">Interval</span><span class="p">(</span><span class="n">Duration</span><span class="p">),</span>
+</span><span id="__span-0-6"><span class="w">    </span><span class="sd">/// Execute daily at a specified hour and minute</span>
+</span><span id="__span-0-7"><span class="w">    </span><span class="n">Daily</span><span class="p">(</span><span class="kt">u32</span><span class="p">,</span><span class="w"> </span><span class="kt">u32</span><span class="p">),</span>
+</span><span id="__span-0-8"><span class="w">    </span><span class="sd">/// Execute weekly on a specified day and time</span>
+</span><span id="__span-0-9"><span class="w">    </span><span class="n">Weekly</span><span class="p">(</span><span class="n">Weekday</span><span class="p">,</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span><span class="w"> </span><span class="kt">u32</span><span class="p">),</span>
+</span><span id="__span-0-10"><span class="w">    </span><span class="sd">/// Execute monthly on a specified day and time</span>
+</span><span id="__span-0-11"><span class="w">    </span><span class="n">Monthly</span><span class="p">(</span><span class="kt">u32</span><span class="p">,</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span><span class="w"> </span><span class="kt">u32</span><span class="p">),</span>
+</span><span id="__span-0-12"><span class="w">    </span><span class="sd">/// Execute according to a cron expression (future)</span>
+</span><span id="__span-0-13"><span class="w">    </span><span class="n">Cron</span><span class="p">(</span><span class="nb">String</span><span class="p">),</span>
+</span><span id="__span-0-14"><span class="p">}</span>
+</span></code></pre></div>
+<p>The <code>Schedule</code> enum defines when a timer node should execute, supporting:
+- One-time execution at specific times
+- Fixed interval execution
+- Daily/Weekly/Monthly scheduling
+- Future support for cron expressions</p>
+<h3 id="timernode">TimerNode<a class="headerlink" href="#timernode" title="Permanent link">&para;</a></h3>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="cp">#[async_trait]</span>
+</span><span id="__span-1-2"><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">TimerNode</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Action</span><span class="o">&gt;</span><span class="p">:</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><span class="w">    </span><span class="sd">/// Get the node&#39;s schedule</span>
+</span><span id="__span-1-4"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">schedule</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Schedule</span><span class="p">;</span>
+</span><span id="__span-1-5"><span class="w">    </span>
+</span><span id="__span-1-6"><span class="w">    </span><span class="sd">/// Execute when the schedule triggers</span>
+</span><span id="__span-1-7"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">execute_on_schedule</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">Context</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">Action</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-1-8"><span class="w">    </span>
+</span><span id="__span-1-9"><span class="w">    </span><span class="sd">/// Get the node&#39;s unique identifier</span>
+</span><span id="__span-1-10"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">id</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">;</span>
+</span><span id="__span-1-11"><span class="p">}</span>
+</span></code></pre></div>
+<p>The <code>TimerNode</code> trait is the core abstraction for timer-based execution.</p>
+<h2 id="built-in-implementations">Built-in Implementations<a class="headerlink" href="#built-in-implementations" title="Permanent link">&para;</a></h2>
+<h3 id="simpletimer">SimpleTimer<a class="headerlink" href="#simpletimer" title="Permanent link">&para;</a></h3>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">SimpleTimer</span><span class="o">&lt;</span><span class="n">F</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-2"><span class="w">    </span><span class="n">schedule</span><span class="p">:</span><span class="w"> </span><span class="nc">Schedule</span><span class="p">,</span>
+</span><span id="__span-2-3"><span class="w">    </span><span class="n">action</span><span class="p">:</span><span class="w"> </span><span class="nc">F</span><span class="p">,</span>
+</span><span id="__span-2-4"><span class="w">    </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-2-5"><span class="p">}</span>
+</span><span id="__span-2-6">
+</span><span id="__span-2-7"><span class="k">impl</span><span class="o">&lt;</span><span class="n">F</span><span class="o">&gt;</span><span class="w"> </span><span class="n">SimpleTimer</span><span class="o">&lt;</span><span class="n">F</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-8"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">new</span><span class="p">(</span><span class="n">schedule</span><span class="p">:</span><span class="w"> </span><span class="nc">Schedule</span><span class="p">,</span><span class="w"> </span><span class="n">action</span><span class="p">:</span><span class="w"> </span><span class="nc">F</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="p">;</span>
+</span><span id="__span-2-9"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">with_id</span><span class="p">(</span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nc">impl</span><span class="w"> </span><span class="nb">Into</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">schedule</span><span class="p">:</span><span class="w"> </span><span class="nc">Schedule</span><span class="p">,</span><span class="w"> </span><span class="n">action</span><span class="p">:</span><span class="w"> </span><span class="nc">F</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="p">;</span>
+</span><span id="__span-2-10"><span class="p">}</span>
+</span></code></pre></div>
+<p>A basic timer implementation that executes a function based on a schedule:
+- Configurable execution schedule
+- Custom action function
+- Optional custom node identity</p>
+<h3 id="timerworkflow">TimerWorkflow<a class="headerlink" href="#timerworkflow" title="Permanent link">&para;</a></h3>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">TimerWorkflow</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Action</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><span class="w">    </span><span class="n">nodes</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="n">NodeId</span><span class="p">,</span><span class="w"> </span><span class="n">Arc</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="n">TimerNode</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Action</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+</span><span id="__span-3-3"><span class="w">    </span><span class="n">routes</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="p">(</span><span class="n">NodeId</span><span class="p">,</span><span class="w"> </span><span class="n">Action</span><span class="p">),</span><span class="w"> </span><span class="n">NodeId</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-3-4"><span class="w">    </span><span class="n">termination_action</span><span class="p">:</span><span class="w"> </span><span class="nc">Action</span><span class="p">,</span>
+</span><span id="__span-3-5"><span class="p">}</span>
+</span></code></pre></div>
+<p>Orchestrates execution of multiple timer nodes:
+- Node routing based on actions
+- Workflow-level termination conditions
+- Execution state management</p>
+<h3 id="timernodeadapter">TimerNodeAdapter<a class="headerlink" href="#timernodeadapter" title="Permanent link">&para;</a></h3>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">TimerNodeAdapter</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Action</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-2"><span class="w">    </span><span class="n">node</span><span class="p">:</span><span class="w"> </span><span class="nc">Arc</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="n">TimerNode</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Action</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+</span><span id="__span-4-3"><span class="w">    </span><span class="n">execute_immediately</span><span class="p">:</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span>
+</span><span id="__span-4-4"><span class="w">    </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-4-5"><span class="p">}</span>
+</span></code></pre></div>
+<p>Adapts a <code>TimerNode</code> to be used as a standard <code>Node</code>:
+- Optional immediate execution
+- Schedule-based processing
+- Standard node interface compatibility</p>
+<h3 id="nestedtimerworkflow">NestedTimerWorkflow<a class="headerlink" href="#nestedtimerworkflow" title="Permanent link">&para;</a></h3>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-5-1"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">NestedTimerWorkflow</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Action</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-2"><span class="w">    </span><span class="n">workflow</span><span class="p">:</span><span class="w"> </span><span class="nc">Arc</span><span class="o">&lt;</span><span class="n">TimerWorkflow</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Action</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+</span><span id="__span-5-3"><span class="w">    </span><span class="n">complete_action</span><span class="p">:</span><span class="w"> </span><span class="nc">Action</span><span class="p">,</span>
+</span><span id="__span-5-4"><span class="w">    </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-5-5"><span class="p">}</span>
+</span></code></pre></div>
+<p>Allows using a timer workflow as a standard node:
+- Workflow nesting
+- Completion action configuration
+- Workflow isolation</p>
+<h2 id="usage-examples">Usage Examples<a class="headerlink" href="#usage-examples" title="Permanent link">&para;</a></h2>
+<h3 id="simple-timer">Simple Timer<a class="headerlink" href="#simple-timer" title="Permanent link">&para;</a></h3>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-6-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_timer</span><span class="p">::{</span><span class="n">SimpleTimer</span><span class="p">,</span><span class="w"> </span><span class="n">Schedule</span><span class="p">};</span>
+</span><span id="__span-6-2"><span class="k">use</span><span class="w"> </span><span class="n">chrono</span><span class="p">::{</span><span class="n">Utc</span><span class="p">,</span><span class="w"> </span><span class="n">Duration</span><span class="p">};</span>
+</span><span id="__span-6-3">
+</span><span id="__span-6-4"><span class="c1">// Create a timer that runs every minute</span>
+</span><span id="__span-6-5"><span class="kd">let</span><span class="w"> </span><span class="n">timer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SimpleTimer</span><span class="p">::</span><span class="n">new</span><span class="p">(</span>
+</span><span id="__span-6-6"><span class="w">    </span><span class="n">Schedule</span><span class="p">::</span><span class="n">Interval</span><span class="p">(</span><span class="n">Duration</span><span class="p">::</span><span class="n">minutes</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span>
+</span><span id="__span-6-7"><span class="w">    </span><span class="o">|</span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">Context</span><span class="o">|</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-8"><span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Timer executed at: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Utc</span><span class="p">::</span><span class="n">now</span><span class="p">());</span>
+</span><span id="__span-6-9"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">)</span>
+</span><span id="__span-6-10"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-6-11"><span class="p">);</span>
+</span><span id="__span-6-12">
+</span><span id="__span-6-13"><span class="c1">// Use in a workflow</span>
+</span><span id="__span-6-14"><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">workflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Workflow</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">timer</span><span class="p">);</span>
+</span><span id="__span-6-15"><span class="n">workflow</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">context</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+</span></code></pre></div>
+<h3 id="timer-workflow">Timer Workflow<a class="headerlink" href="#timer-workflow" title="Permanent link">&para;</a></h3>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-7-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_timer</span><span class="p">::</span><span class="n">TimerWorkflow</span><span class="p">;</span>
+</span><span id="__span-7-2">
+</span><span id="__span-7-3"><span class="c1">// Create nodes</span>
+</span><span id="__span-7-4"><span class="kd">let</span><span class="w"> </span><span class="n">daily_report</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">SimpleTimer</span><span class="p">::</span><span class="n">new</span><span class="p">(</span>
+</span><span id="__span-7-5"><span class="w">    </span><span class="n">Schedule</span><span class="p">::</span><span class="n">Daily</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="c1">// 9:00 AM</span>
+</span><span id="__span-7-6"><span class="w">    </span><span class="n">generate_daily_report</span>
+</span><span id="__span-7-7"><span class="p">));</span>
+</span><span id="__span-7-8">
+</span><span id="__span-7-9"><span class="kd">let</span><span class="w"> </span><span class="n">weekly_cleanup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Arc</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">SimpleTimer</span><span class="p">::</span><span class="n">new</span><span class="p">(</span>
+</span><span id="__span-7-10"><span class="w">    </span><span class="n">Schedule</span><span class="p">::</span><span class="n">Weekly</span><span class="p">(</span><span class="n">Weekday</span><span class="p">::</span><span class="n">Sun</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">),</span><span class="w"> </span><span class="c1">// Sunday midnight</span>
+</span><span id="__span-7-11"><span class="w">    </span><span class="n">perform_weekly_cleanup</span>
+</span><span id="__span-7-12"><span class="p">));</span>
+</span><span id="__span-7-13">
+</span><span id="__span-7-14"><span class="c1">// Create workflow</span>
+</span><span id="__span-7-15"><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">workflow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TimerWorkflow</span><span class="p">::</span><span class="n">new</span><span class="p">(</span>
+</span><span id="__span-7-16"><span class="w">    </span><span class="n">daily_report</span><span class="p">.</span><span class="n">clone</span><span class="p">(),</span>
+</span><span id="__span-7-17"><span class="w">    </span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Stop</span>
+</span><span id="__span-7-18"><span class="p">);</span>
+</span><span id="__span-7-19">
+</span><span id="__span-7-20"><span class="c1">// Add nodes and routes</span>
+</span><span id="__span-7-21"><span class="n">workflow</span><span class="p">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">weekly_cleanup</span><span class="p">.</span><span class="n">clone</span><span class="p">());</span>
+</span><span id="__span-7-22"><span class="n">workflow</span><span class="p">.</span><span class="n">set_route</span><span class="p">(</span>
+</span><span id="__span-7-23"><span class="w">    </span><span class="o">&amp;</span><span class="n">daily_report</span><span class="p">.</span><span class="n">id</span><span class="p">(),</span>
+</span><span id="__span-7-24"><span class="w">    </span><span class="n">DefaultAction</span><span class="p">::</span><span class="n">Next</span><span class="p">,</span>
+</span><span id="__span-7-25"><span class="w">    </span><span class="o">&amp;</span><span class="n">weekly_cleanup</span><span class="p">.</span><span class="n">id</span><span class="p">()</span>
+</span><span id="__span-7-26"><span class="p">);</span>
+</span><span id="__span-7-27">
+</span><span id="__span-7-28"><span class="c1">// Execute</span>
+</span><span id="__span-7-29"><span class="n">workflow</span><span class="p">.</span><span class="n">execute</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="n">context</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span></code></pre></div>
+<h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Schedule Configuration</strong></li>
+<li>Choose appropriate intervals for your use case</li>
+<li>Consider timezone implications</li>
+<li>Handle daylight savings time</li>
+<li>
+<p>Use UTC for consistency</p>
+</li>
+<li>
+<p><strong>Resource Management</strong></p>
+</li>
+<li>Clean up timers when done</li>
+<li>Handle cancellation properly</li>
+<li>Monitor system load</li>
+<li>
+<p>Consider resource limits</p>
+</li>
+<li>
+<p><strong>Error Handling</strong></p>
+</li>
+<li>Handle missed executions</li>
+<li>Implement retry logic</li>
+<li>Log timing issues</li>
+<li>
+<p>Handle edge cases</p>
+</li>
+<li>
+<p><strong>Testing</strong></p>
+</li>
+<li>Test schedule calculations</li>
+<li>Verify timer behavior</li>
+<li>Check workflow routing</li>
+<li>Test error scenarios</li>
+</ol>
+<h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../../adrs/0021-timer-node-implementation/">ADR-0021: Timer Node Implementation</a></li>
+<li><a href="../../examples/timer-node/">Timer Node Example</a></li>
+<li><a href="../../guides/event_driven_architecture/">Event-Driven Architecture</a></li>
+</ul>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>ADR-0006: Workflow Observability - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../../contributing/" class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Contributing</span>
+                    </a>
+                    <meta property="position" content="1">
+                </li>
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="2">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Getting Started</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/installation/">Installation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/quick-start/">Quick Start</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../getting-started/error-handling/">Error Handling</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/overview/">Overview</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/nodes/">Nodes</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/workflows/">Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/cyclic-workflows/">Cyclic Workflows</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/actions/">Actions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/contexts/">Contexts</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Guides</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/event_driven_architecture/">Event-Driven Architecture</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../guides/using-mermaid-diagrams/">Using Mermaid Diagrams</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Examples</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/basic-workflow/">Basic Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/event-driven-workflow/">Event-Driven Workflow</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/timer-node/">Timer Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/reactive-node/">Reactive Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/transform-node/">Transform Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/longrunning-node/">Long-Running Node</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../examples/batch-processing/">Batch Processing</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Architecture</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/adr-process/">ADR Process</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/core-framework-abstractions/">Core Framework Abstractions</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/project-structure/">Project Structure</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/async-runtime-selection/">Async Runtime Selection</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/node-lifecycle-methods/">Node Lifecycle Methods</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/event-driven-workflow-pattern/">Event-Driven Workflow Pattern</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/reactive-node-implementation/">Reactive Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/timer-node-implementation/">Timer Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/longrunning-node-implementation/">Long-Running Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/transform-node-implementation/">Transform Node Implementation</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../architecture/batch-processing-implementation/">Batch Processing Implementation</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">API Reference</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-core/">floxide-core</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-transform/">floxide-transform</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-event/">floxide-event</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-timer/">floxide-timer</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-reactive/">floxide-reactive</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-longrunning/">floxide-longrunning</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../api/floxide-batch/">floxide-batch</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../contributing/">Contributing</a>
+        
+    
+    
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#adr-0006-workflow-observability">ADR-0006: Workflow Observability</a></li>
+        <li><a href="#status">Status</a></li><li><a href="#date">Date</a></li><li><a href="#context">Context</a></li><li><a href="#decision">Decision</a></li><li><a href="#consequences">Consequences</a></li><li><a href="#alternatives-considered">Alternatives Considered</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="adr-0006-workflow-observability">ADR-0006: Workflow Observability<a class="headerlink" href="#adr-0006-workflow-observability" title="Permanent link">&para;</a></h1>
+<h2 id="status">Status<a class="headerlink" href="#status" title="Permanent link">&para;</a></h2>
+<p>Accepted</p>
+<h2 id="date">Date<a class="headerlink" href="#date" title="Permanent link">&para;</a></h2>
+<p>2025-02-27</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>Observability is crucial for workflow systems, especially for complex workflows or in production environments. Users need visibility into:</p>
+<ol>
+<li>What is happening during workflow execution</li>
+<li>Where a workflow is in its execution lifecycle</li>
+<li>How long individual steps are taking</li>
+<li>What errors occurred and why</li>
+<li>The overall performance characteristics of workflows</li>
+</ol>
+<p>A comprehensive observability system is essential for:</p>
+<ul>
+<li>Debugging workflow issues</li>
+<li>Monitoring production workflows</li>
+<li>Understanding performance bottlenecks</li>
+<li>Auditing workflow execution</li>
+<li>Visualizing workflow execution</li>
+<li>Alerting on workflow failures or delays</li>
+</ul>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>We will implement an observability system for the floxide framework with OpenTelemetry as the primary integration point, complemented by additional observability mechanisms.</p>
+<h3 id="1-opentelemetry-as-primary-observability-solution">1. OpenTelemetry as Primary Observability Solution<a class="headerlink" href="#1-opentelemetry-as-primary-observability-solution" title="Permanent link">&para;</a></h3>
+<p>OpenTelemetry will be the main framework for observability:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="sd">/// Core OpenTelemetry integration for the floxide framework</span>
+</span><span id="__span-0-2"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">FloxideOtel</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-3"><span class="w">    </span><span class="n">tracer</span><span class="p">:</span><span class="w"> </span><span class="nc">opentelemetry</span><span class="p">::</span><span class="n">trace</span><span class="p">::</span><span class="n">Tracer</span><span class="p">,</span>
+</span><span id="__span-0-4"><span class="w">    </span><span class="n">meter</span><span class="p">:</span><span class="w"> </span><span class="nc">opentelemetry</span><span class="p">::</span><span class="n">metrics</span><span class="p">::</span><span class="n">Meter</span><span class="p">,</span>
+</span><span id="__span-0-5"><span class="w">    </span><span class="n">attributes</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-0-6"><span class="p">}</span>
+</span><span id="__span-0-7">
+</span><span id="__span-0-8"><span class="k">impl</span><span class="w"> </span><span class="n">FloxideOtel</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-9"><span class="w">    </span><span class="sd">/// Create a new OpenTelemetry integration with the default configuration</span>
+</span><span id="__span-0-10"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">new</span><span class="p">(</span><span class="n">service_name</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-11"><span class="w">        </span><span class="c1">// Set up OpenTelemetry with appropriate exporters</span>
+</span><span id="__span-0-12"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">tracer_provider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">opentelemetry_sdk</span><span class="p">::</span><span class="n">trace</span><span class="p">::</span><span class="n">TracerProvider</span><span class="p">::</span><span class="n">builder</span><span class="p">()</span>
+</span><span id="__span-0-13"><span class="w">            </span><span class="p">.</span><span class="n">with_simple_processor</span><span class="p">(</span><span class="n">opentelemetry_sdk</span><span class="p">::</span><span class="n">trace</span><span class="p">::</span><span class="n">BatchSpanProcessor</span><span class="p">::</span><span class="n">new</span><span class="p">(</span>
+</span><span id="__span-0-14"><span class="w">                </span><span class="n">opentelemetry_otlp</span><span class="p">::</span><span class="n">new_exporter</span><span class="p">()</span>
+</span><span id="__span-0-15"><span class="w">                    </span><span class="p">.</span><span class="n">tonic</span><span class="p">()</span>
+</span><span id="__span-0-16"><span class="w">                    </span><span class="p">.</span><span class="n">build</span><span class="p">()</span><span class="o">?</span><span class="p">,</span>
+</span><span id="__span-0-17"><span class="w">            </span><span class="p">))</span>
+</span><span id="__span-0-18"><span class="w">            </span><span class="p">.</span><span class="n">build</span><span class="p">();</span>
+</span><span id="__span-0-19">
+</span><span id="__span-0-20"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">tracer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tracer_provider</span><span class="p">.</span><span class="n">tracer</span><span class="p">(</span><span class="n">service_name</span><span class="p">);</span>
+</span><span id="__span-0-21">
+</span><span id="__span-0-22"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">meter_provider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">opentelemetry_sdk</span><span class="p">::</span><span class="n">metrics</span><span class="p">::</span><span class="n">MeterProvider</span><span class="p">::</span><span class="n">builder</span><span class="p">()</span>
+</span><span id="__span-0-23"><span class="w">            </span><span class="p">.</span><span class="n">with_reader</span><span class="p">(</span>
+</span><span id="__span-0-24"><span class="w">                </span><span class="n">opentelemetry_sdk</span><span class="p">::</span><span class="n">metrics</span><span class="p">::</span><span class="n">reader</span><span class="p">::</span><span class="n">Builder</span><span class="p">::</span><span class="n">default</span><span class="p">()</span>
+</span><span id="__span-0-25"><span class="w">                    </span><span class="p">.</span><span class="n">with_exporter</span><span class="p">(</span>
+</span><span id="__span-0-26"><span class="w">                        </span><span class="n">opentelemetry_otlp</span><span class="p">::</span><span class="n">new_exporter</span><span class="p">()</span>
+</span><span id="__span-0-27"><span class="w">                            </span><span class="p">.</span><span class="n">tonic</span><span class="p">()</span>
+</span><span id="__span-0-28"><span class="w">                            </span><span class="p">.</span><span class="n">build</span><span class="p">()</span><span class="o">?</span><span class="p">,</span>
+</span><span id="__span-0-29"><span class="w">                    </span><span class="p">)</span>
+</span><span id="__span-0-30"><span class="w">                    </span><span class="p">.</span><span class="n">build</span><span class="p">(),</span>
+</span><span id="__span-0-31"><span class="w">            </span><span class="p">)</span>
+</span><span id="__span-0-32"><span class="w">            </span><span class="p">.</span><span class="n">build</span><span class="p">();</span>
+</span><span id="__span-0-33">
+</span><span id="__span-0-34"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">meter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">meter_provider</span><span class="p">.</span><span class="n">meter</span><span class="p">(</span><span class="n">service_name</span><span class="p">);</span>
+</span><span id="__span-0-35">
+</span><span id="__span-0-36"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="bp">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-37"><span class="w">            </span><span class="n">tracer</span><span class="p">,</span>
+</span><span id="__span-0-38"><span class="w">            </span><span class="n">meter</span><span class="p">,</span>
+</span><span id="__span-0-39"><span class="w">            </span><span class="n">attributes</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="p">::</span><span class="n">new</span><span class="p">(),</span>
+</span><span id="__span-0-40"><span class="w">        </span><span class="p">})</span>
+</span><span id="__span-0-41"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-42">
+</span><span id="__span-0-43"><span class="w">    </span><span class="sd">/// Add a common attribute to all spans and metrics</span>
+</span><span id="__span-0-44"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">with_attribute</span><span class="p">(</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-45"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">attributes</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">key</span><span class="p">.</span><span class="n">to_string</span><span class="p">(),</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="n">to_string</span><span class="p">());</span>
+</span><span id="__span-0-46"><span class="w">        </span><span class="bp">self</span>
+</span><span id="__span-0-47"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-48"><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="2-event-emission-system">2. Event Emission System<a class="headerlink" href="#2-event-emission-system" title="Permanent link">&para;</a></h3>
+<p>The core of our observability design will be event emission that integrates with OpenTelemetry:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="sd">/// Events emitted during workflow execution</span>
+</span><span id="__span-1-2"><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-1-3"><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">WorkflowEvent</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultAction</span><span class="o">&gt;</span>
+</span><span id="__span-1-4"><span class="k">where</span>
+</span><span id="__span-1-5"><span class="w">    </span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">,</span>
+</span><span id="__span-1-6"><span class="w">    </span><span class="n">A</span><span class="p">:</span><span class="w"> </span><span class="nc">ActionType</span><span class="p">,</span>
+</span><span id="__span-1-7"><span class="p">{</span>
+</span><span id="__span-1-8"><span class="w">    </span><span class="sd">/// Workflow execution started</span>
+</span><span id="__span-1-9"><span class="w">    </span><span class="n">WorkflowStarted</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-10"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-11"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-12"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-13"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-14">
+</span><span id="__span-1-15"><span class="w">    </span><span class="sd">/// Workflow execution completed</span>
+</span><span id="__span-1-16"><span class="w">    </span><span class="n">WorkflowCompleted</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-17"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-18"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-19"><span class="w">        </span><span class="n">execution_time_ms</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="p">,</span>
+</span><span id="__span-1-20"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-21"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-22">
+</span><span id="__span-1-23"><span class="w">    </span><span class="sd">/// Workflow execution failed</span>
+</span><span id="__span-1-24"><span class="w">    </span><span class="n">WorkflowFailed</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-25"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-26"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-27"><span class="w">        </span><span class="n">error</span><span class="p">:</span><span class="w"> </span><span class="nc">FloxideError</span><span class="p">,</span>
+</span><span id="__span-1-28"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-29"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-30">
+</span><span id="__span-1-31"><span class="w">    </span><span class="sd">/// Node processing started</span>
+</span><span id="__span-1-32"><span class="w">    </span><span class="n">NodeStarted</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-33"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-34"><span class="w">        </span><span class="n">node_id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-1-35"><span class="w">        </span><span class="n">node_type</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-36"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-37"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-38"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-39">
+</span><span id="__span-1-40"><span class="w">    </span><span class="sd">/// Node processing completed</span>
+</span><span id="__span-1-41"><span class="w">    </span><span class="n">NodeCompleted</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-42"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-43"><span class="w">        </span><span class="n">node_id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-1-44"><span class="w">        </span><span class="n">node_type</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-45"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-46"><span class="w">        </span><span class="n">execution_time_ms</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="p">,</span>
+</span><span id="__span-1-47"><span class="w">        </span><span class="n">outcome</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeOutcomeType</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-48"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-49"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-50">
+</span><span id="__span-1-51"><span class="w">    </span><span class="sd">/// Node processing failed</span>
+</span><span id="__span-1-52"><span class="w">    </span><span class="n">NodeFailed</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-53"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-54"><span class="w">        </span><span class="n">node_id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-1-55"><span class="w">        </span><span class="n">node_type</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-56"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-57"><span class="w">        </span><span class="n">error</span><span class="p">:</span><span class="w"> </span><span class="nc">FloxideError</span><span class="p">,</span>
+</span><span id="__span-1-58"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-59"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-60">
+</span><span id="__span-1-61"><span class="w">    </span><span class="sd">/// Transition between nodes</span>
+</span><span id="__span-1-62"><span class="w">    </span><span class="n">Transition</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-63"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-64"><span class="w">        </span><span class="n">from_node_id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-1-65"><span class="w">        </span><span class="n">to_node_id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-1-66"><span class="w">        </span><span class="n">action</span><span class="p">:</span><span class="w"> </span><span class="nc">A</span><span class="p">,</span>
+</span><span id="__span-1-67"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-68"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-69"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-70">
+</span><span id="__span-1-71"><span class="w">    </span><span class="sd">/// Retry attempt occurred</span>
+</span><span id="__span-1-72"><span class="w">    </span><span class="n">RetryAttempt</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-73"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-74"><span class="w">        </span><span class="n">node_id</span><span class="p">:</span><span class="w"> </span><span class="nc">NodeId</span><span class="p">,</span>
+</span><span id="__span-1-75"><span class="w">        </span><span class="n">attempt_number</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span>
+</span><span id="__span-1-76"><span class="w">        </span><span class="n">reason</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-77"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-78"><span class="w">        </span><span class="n">backoff_ms</span><span class="p">:</span><span class="w"> </span><span class="kt">u64</span><span class="p">,</span>
+</span><span id="__span-1-79"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-80"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-81">
+</span><span id="__span-1-82"><span class="w">    </span><span class="sd">/// Checkpoint created</span>
+</span><span id="__span-1-83"><span class="w">    </span><span class="n">CheckpointCreated</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-84"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-85"><span class="w">        </span><span class="n">checkpoint_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-86"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-87"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-88"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-89">
+</span><span id="__span-1-90"><span class="w">    </span><span class="sd">/// Custom application event</span>
+</span><span id="__span-1-91"><span class="w">    </span><span class="n">Custom</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-92"><span class="w">        </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-93"><span class="w">        </span><span class="n">event_type</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-94"><span class="w">        </span><span class="n">payload</span><span class="p">:</span><span class="w"> </span><span class="nc">Value</span><span class="p">,</span>
+</span><span id="__span-1-95"><span class="w">        </span><span class="n">timestamp</span><span class="p">:</span><span class="w"> </span><span class="nc">DateTime</span><span class="o">&lt;</span><span class="n">Utc</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-96"><span class="w">        </span><span class="n">metadata</span><span class="p">:</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-97"><span class="w">    </span><span class="p">},</span>
+</span><span id="__span-1-98"><span class="p">}</span>
+</span><span id="__span-1-99">
+</span><span id="__span-1-100"><span class="sd">/// Type of node outcome for events (without the actual output value)</span>
+</span><span id="__span-1-101"><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-1-102"><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">NodeOutcomeType</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span>
+</span><span id="__span-1-103"><span class="k">where</span>
+</span><span id="__span-1-104"><span class="w">    </span><span class="n">A</span><span class="p">:</span><span class="w"> </span><span class="nc">ActionType</span><span class="p">,</span>
+</span><span id="__span-1-105"><span class="p">{</span>
+</span><span id="__span-1-106"><span class="w">    </span><span class="sd">/// Node completed</span>
+</span><span id="__span-1-107"><span class="w">    </span><span class="n">Complete</span><span class="p">,</span>
+</span><span id="__span-1-108"><span class="w">    </span><span class="sd">/// Node transitioned with the specified action</span>
+</span><span id="__span-1-109"><span class="w">    </span><span class="n">Transition</span><span class="p">(</span><span class="n">A</span><span class="p">),</span>
+</span><span id="__span-1-110"><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="3-opentelemetry-observer-implementation">3. OpenTelemetry Observer Implementation<a class="headerlink" href="#3-opentelemetry-observer-implementation" title="Permanent link">&para;</a></h3>
+<p>The primary observer implementation will use OpenTelemetry:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="sd">/// Observer that emits events to OpenTelemetry</span>
+</span><span id="__span-2-2"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">OpenTelemetryObserver</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-3"><span class="w">    </span><span class="n">otel</span><span class="p">:</span><span class="w"> </span><span class="nc">FloxideOtel</span><span class="p">,</span>
+</span><span id="__span-2-4"><span class="p">}</span>
+</span><span id="__span-2-5">
+</span><span id="__span-2-6"><span class="k">impl</span><span class="w"> </span><span class="n">OpenTelemetryObserver</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-7"><span class="w">    </span><span class="sd">/// Create a new OpenTelemetry observer</span>
+</span><span id="__span-2-8"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">new</span><span class="p">(</span><span class="n">otel</span><span class="p">:</span><span class="w"> </span><span class="nc">FloxideOtel</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-9"><span class="w">        </span><span class="bp">Self</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">otel</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-10"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-11"><span class="p">}</span>
+</span><span id="__span-2-12">
+</span><span id="__span-2-13"><span class="cp">#[async_trait]</span>
+</span><span id="__span-2-14"><span class="k">impl</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="n">WorkflowObserver</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">OpenTelemetryObserver</span>
+</span><span id="__span-2-15"><span class="k">where</span>
+</span><span id="__span-2-16"><span class="w">    </span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">,</span>
+</span><span id="__span-2-17"><span class="w">    </span><span class="n">A</span><span class="p">:</span><span class="w"> </span><span class="nc">ActionType</span><span class="p">,</span>
+</span><span id="__span-2-18"><span class="p">{</span>
+</span><span id="__span-2-19"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">on_event</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">event</span><span class="p">:</span><span class="w"> </span><span class="nc">WorkflowEvent</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-20"><span class="w">        </span><span class="k">match</span><span class="w"> </span><span class="o">&amp;</span><span class="n">event</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-21"><span class="w">            </span><span class="n">WorkflowEvent</span><span class="p">::</span><span class="n">WorkflowStarted</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">workflow_id</span><span class="p">,</span><span class="w"> </span><span class="n">metadata</span><span class="p">,</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-22"><span class="w">                </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">span</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">otel</span><span class="p">.</span><span class="n">tracer</span>
+</span><span id="__span-2-23"><span class="w">                    </span><span class="p">.</span><span class="n">span_builder</span><span class="p">(</span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;workflow:{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">workflow_id</span><span class="p">))</span>
+</span><span id="__span-2-24"><span class="w">                    </span><span class="p">.</span><span class="n">with_kind</span><span class="p">(</span><span class="n">SpanKind</span><span class="p">::</span><span class="n">Internal</span><span class="p">)</span>
+</span><span id="__span-2-25"><span class="w">                    </span><span class="p">.</span><span class="n">start</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">.</span><span class="n">otel</span><span class="p">.</span><span class="n">tracer</span><span class="p">);</span>
+</span><span id="__span-2-26">
+</span><span id="__span-2-27"><span class="w">                </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-28"><span class="w">                    </span><span class="n">span</span><span class="p">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">.</span><span class="n">clone</span><span class="p">(),</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="n">clone</span><span class="p">()));</span>
+</span><span id="__span-2-29"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-2-30">
+</span><span id="__span-2-31"><span class="w">                </span><span class="c1">// Set workflow ID as a global context for child spans</span>
+</span><span id="__span-2-32"><span class="w">                </span><span class="kd">let</span><span class="w"> </span><span class="n">cx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Context</span><span class="p">::</span><span class="n">current_with_span</span><span class="p">(</span><span class="n">span</span><span class="p">);</span>
+</span><span id="__span-2-33"><span class="w">                </span><span class="n">cx</span><span class="p">.</span><span class="n">attach</span><span class="p">();</span>
+</span><span id="__span-2-34"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-2-35">
+</span><span id="__span-2-36"><span class="w">            </span><span class="c1">// Handle other event types with appropriate spans and metrics</span>
+</span><span id="__span-2-37"><span class="w">            </span><span class="c1">// ...</span>
+</span><span id="__span-2-38"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-39">
+</span><span id="__span-2-40"><span class="w">        </span><span class="nb">Ok</span><span class="p">(())</span>
+</span><span id="__span-2-41"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-42"><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="4-additional-observer-implementations">4. Additional Observer Implementations<a class="headerlink" href="#4-additional-observer-implementations" title="Permanent link">&para;</a></h3>
+<p>We'll also provide complementary observers for specific use cases:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="sd">/// Observer that logs events using the tracing crate</span>
+</span><span id="__span-3-2"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">TracingObserver</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-3"><span class="w">    </span><span class="n">min_level</span><span class="p">:</span><span class="w"> </span><span class="nc">Level</span><span class="p">,</span>
+</span><span id="__span-3-4"><span class="p">}</span>
+</span><span id="__span-3-5">
+</span><span id="__span-3-6"><span class="sd">/// In-memory observer for testing or UI visualization</span>
+</span><span id="__span-3-7"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">InMemoryObserver</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-8"><span class="w">    </span><span class="n">events</span><span class="p">:</span><span class="w"> </span><span class="nc">RwLock</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">WorkflowEvent</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+</span><span id="__span-3-9"><span class="w">    </span><span class="n">max_events</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span>
+</span><span id="__span-3-10"><span class="p">}</span>
+</span><span id="__span-3-11">
+</span><span id="__span-3-12"><span class="sd">/// Observer that publishes events to a channel</span>
+</span><span id="__span-3-13"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">ChannelObserver</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DefaultAction</span><span class="o">&gt;</span>
+</span><span id="__span-3-14"><span class="k">where</span>
+</span><span id="__span-3-15"><span class="w">    </span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">,</span>
+</span><span id="__span-3-16"><span class="w">    </span><span class="n">A</span><span class="p">:</span><span class="w"> </span><span class="nc">ActionType</span><span class="p">,</span>
+</span><span id="__span-3-17"><span class="p">{</span>
+</span><span id="__span-3-18"><span class="w">    </span><span class="n">sender</span><span class="p">:</span><span class="w"> </span><span class="nc">mpsc</span><span class="p">::</span><span class="n">Sender</span><span class="o">&lt;</span><span class="n">WorkflowEvent</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+</span><span id="__span-3-19"><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="5-observer-registry-with-opentelemetry-default">5. Observer Registry with OpenTelemetry Default<a class="headerlink" href="#5-observer-registry-with-opentelemetry-default" title="Permanent link">&para;</a></h3>
+<p>The workflow will have a registry of observers with OpenTelemetry as the default:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><span class="k">impl</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Workflow</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span>
+</span><span id="__span-4-2"><span class="k">where</span>
+</span><span id="__span-4-3"><span class="w">    </span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">,</span>
+</span><span id="__span-4-4"><span class="w">    </span><span class="n">A</span><span class="p">:</span><span class="w"> </span><span class="nc">ActionType</span><span class="p">,</span>
+</span><span id="__span-4-5"><span class="p">{</span>
+</span><span id="__span-4-6"><span class="w">    </span><span class="sd">/// Add OpenTelemetry observability to this workflow</span>
+</span><span id="__span-4-7"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">with_opentelemetry</span><span class="p">(</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">service_name</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-8"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">otel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FloxideOtel</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">service_name</span><span class="p">)</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-4-9"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">observers</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="nb">Box</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">OpenTelemetryObserver</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">otel</span><span class="p">)));</span>
+</span><span id="__span-4-10"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</span><span id="__span-4-11"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-12">
+</span><span id="__span-4-13"><span class="w">    </span><span class="sd">/// Add a custom observer to this workflow</span>
+</span><span id="__span-4-14"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">add_observer</span><span class="o">&lt;</span><span class="n">O</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="k">mut</span><span class="w"> </span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">observer</span><span class="p">:</span><span class="w"> </span><span class="nc">O</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="bp">Self</span>
+</span><span id="__span-4-15"><span class="w">    </span><span class="k">where</span>
+</span><span id="__span-4-16"><span class="w">        </span><span class="n">O</span><span class="p">:</span><span class="w"> </span><span class="nc">WorkflowObserver</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">,</span>
+</span><span id="__span-4-17"><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-4-18"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">observers</span><span class="p">.</span><span class="n">push</span><span class="p">(</span><span class="nb">Box</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">observer</span><span class="p">));</span>
+</span><span id="__span-4-19"><span class="w">        </span><span class="bp">self</span>
+</span><span id="__span-4-20"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-21"><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="6-distributed-tracing-with-opentelemetry">6. Distributed Tracing with OpenTelemetry<a class="headerlink" href="#6-distributed-tracing-with-opentelemetry" title="Permanent link">&para;</a></h3>
+<p>We'll implement specific tracing support for workflow execution:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-5-1"><span class="k">impl</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Workflow</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span>
+</span><span id="__span-5-2"><span class="k">where</span>
+</span><span id="__span-5-3"><span class="w">    </span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">,</span>
+</span><span id="__span-5-4"><span class="w">    </span><span class="n">A</span><span class="p">:</span><span class="w"> </span><span class="nc">ActionType</span><span class="p">,</span>
+</span><span id="__span-5-5"><span class="p">{</span>
+</span><span id="__span-5-6"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">execute_with_tracing</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">C</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-7"><span class="w">        </span><span class="c1">// Create a workflow execution span</span>
+</span><span id="__span-5-8"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">tracer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">opentelemetry</span><span class="p">::</span><span class="n">global</span><span class="p">::</span><span class="n">tracer</span><span class="p">(</span><span class="s">&quot;floxide&quot;</span><span class="p">);</span>
+</span><span id="__span-5-9"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">workflow_span</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tracer</span><span class="p">.</span><span class="n">start</span><span class="p">(</span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;workflow:{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">id</span><span class="p">()));</span>
+</span><span id="__span-5-10"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">cx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Context</span><span class="p">::</span><span class="n">current_with_span</span><span class="p">(</span><span class="n">workflow_span</span><span class="p">);</span>
+</span><span id="__span-5-11">
+</span><span id="__span-5-12"><span class="w">        </span><span class="c1">// Set the current context for propagation</span>
+</span><span id="__span-5-13"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">_guard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cx</span><span class="p">.</span><span class="n">attach</span><span class="p">();</span>
+</span><span id="__span-5-14">
+</span><span id="__span-5-15"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Instant</span><span class="p">::</span><span class="n">now</span><span class="p">();</span>
+</span><span id="__span-5-16">
+</span><span id="__span-5-17"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="n">observer</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">.</span><span class="n">observers</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-18"><span class="w">            </span><span class="n">observer</span><span class="p">.</span><span class="n">on_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-5-19"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-5-20">
+</span><span id="__span-5-21"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">execute_internal</span><span class="p">(</span><span class="n">ctx</span><span class="p">).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-5-22">
+</span><span id="__span-5-23"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">execution_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">start</span><span class="p">.</span><span class="n">elapsed</span><span class="p">().</span><span class="n">as_millis</span><span class="p">()</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">u64</span><span class="p">;</span>
+</span><span id="__span-5-24">
+</span><span id="__span-5-25"><span class="w">        </span><span class="c1">// Record metrics</span>
+</span><span id="__span-5-26"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">meter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">opentelemetry</span><span class="p">::</span><span class="n">global</span><span class="p">::</span><span class="n">meter</span><span class="p">(</span><span class="s">&quot;floxide&quot;</span><span class="p">);</span>
+</span><span id="__span-5-27"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">workflow_duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">meter</span>
+</span><span id="__span-5-28"><span class="w">            </span><span class="p">.</span><span class="n">f64_histogram</span><span class="p">(</span><span class="s">&quot;workflow.duration&quot;</span><span class="p">)</span>
+</span><span id="__span-5-29"><span class="w">            </span><span class="p">.</span><span class="n">with_description</span><span class="p">(</span><span class="s">&quot;Workflow execution duration in milliseconds&quot;</span><span class="p">)</span>
+</span><span id="__span-5-30"><span class="w">            </span><span class="p">.</span><span class="n">init</span><span class="p">();</span>
+</span><span id="__span-5-31">
+</span><span id="__span-5-32"><span class="w">        </span><span class="n">workflow_duration</span><span class="p">.</span><span class="n">record</span><span class="p">(</span>
+</span><span id="__span-5-33"><span class="w">            </span><span class="n">execution_time</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">f64</span><span class="p">,</span>
+</span><span id="__span-5-34"><span class="w">            </span><span class="o">&amp;</span><span class="p">[</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;workflow_id&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">id</span><span class="p">().</span><span class="n">to_string</span><span class="p">())],</span>
+</span><span id="__span-5-35"><span class="w">        </span><span class="p">);</span>
+</span><span id="__span-5-36">
+</span><span id="__span-5-37"><span class="w">        </span><span class="k">match</span><span class="w"> </span><span class="o">&amp;</span><span class="n">result</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-38"><span class="w">            </span><span class="nb">Ok</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-39"><span class="w">                </span><span class="n">workflow_span</span><span class="p">.</span><span class="n">set_status</span><span class="p">(</span><span class="n">Status</span><span class="p">::</span><span class="nb">Ok</span><span class="p">);</span>
+</span><span id="__span-5-40"><span class="w">                </span><span class="k">for</span><span class="w"> </span><span class="n">observer</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">.</span><span class="n">observers</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-41"><span class="w">                    </span><span class="n">observer</span><span class="p">.</span><span class="n">on_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">execution_time</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-5-42"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-5-43"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-5-44"><span class="w">            </span><span class="nb">Err</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-45"><span class="w">                </span><span class="n">workflow_span</span><span class="p">.</span><span class="n">set_status</span><span class="p">(</span><span class="n">Status</span><span class="p">::</span><span class="n">Error</span><span class="p">);</span>
+</span><span id="__span-5-46"><span class="w">                </span><span class="n">workflow_span</span><span class="p">.</span><span class="n">record_error</span><span class="p">(</span><span class="n">err</span><span class="p">);</span>
+</span><span id="__span-5-47"><span class="w">                </span><span class="k">for</span><span class="w"> </span><span class="n">observer</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">.</span><span class="n">observers</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-5-48"><span class="w">                    </span><span class="n">observer</span><span class="p">.</span><span class="n">on_failure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">err</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-5-49"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-5-50"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-5-51"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-5-52">
+</span><span id="__span-5-53"><span class="w">        </span><span class="n">result</span>
+</span><span id="__span-5-54"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-5-55"><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="7-opentelemetry-based-visualization">7. OpenTelemetry-Based Visualization<a class="headerlink" href="#7-opentelemetry-based-visualization" title="Permanent link">&para;</a></h3>
+<p>We'll leverage OpenTelemetry for visualization capabilities:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-6-1"><span class="sd">/// Generate a visualization of workflow execution using OpenTelemetry spans</span>
+</span><span id="__span-6-2"><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">generate_workflow_visualization</span><span class="p">(</span>
+</span><span id="__span-6-3"><span class="w">    </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span>
+</span><span id="__span-6-4"><span class="w">    </span><span class="n">trace_exporter_endpoint</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span>
+</span><span id="__span-6-5"><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-6"><span class="w">    </span><span class="c1">// Query OpenTelemetry backend for the trace data</span>
+</span><span id="__span-6-7"><span class="w">    </span><span class="c1">// and generate visualization</span>
+</span><span id="__span-6-8"><span class="w">    </span><span class="c1">// ...</span>
+</span><span id="__span-6-9"><span class="p">}</span>
+</span></code></pre></div>
+<h3 id="8-context-aware-logging-with-opentelemetry-integration">8. Context-Aware Logging with OpenTelemetry Integration<a class="headerlink" href="#8-context-aware-logging-with-opentelemetry-integration" title="Permanent link">&para;</a></h3>
+<p>We'll enhance nodes with OpenTelemetry-integrated logging capabilities:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-7-1"><span class="sd">/// Extension trait for context to add observability capabilities</span>
+</span><span id="__span-7-2"><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">ObservableContext</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-3"><span class="w">    </span><span class="sd">/// Get a context identifier for observability</span>
+</span><span id="__span-7-4"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">context_id</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-7-5">
+</span><span id="__span-7-6"><span class="w">    </span><span class="sd">/// Get additional context attributes for OpenTelemetry</span>
+</span><span id="__span-7-7"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">otel_attributes</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="nb">String</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-8"><span class="w">        </span><span class="n">HashMap</span><span class="p">::</span><span class="n">new</span><span class="p">()</span>
+</span><span id="__span-7-9"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-7-10"><span class="p">}</span>
+</span><span id="__span-7-11">
+</span><span id="__span-7-12"><span class="sd">/// OpenTelemetry instrumentation for nodes</span>
+</span><span id="__span-7-13"><span class="k">impl</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span>
+</span><span id="__span-7-14"><span class="k">for</span><span class="w"> </span><span class="n">OtelNodeWrapper</span><span class="o">&lt;</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span>
+</span><span id="__span-7-15"><span class="k">where</span>
+</span><span id="__span-7-16"><span class="w">    </span><span class="n">N</span><span class="p">:</span><span class="w"> </span><span class="nc">Node</span><span class="o">&lt;</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-7-17"><span class="w">    </span><span class="n">Context</span><span class="p">:</span><span class="w"> </span><span class="nc">ObservableContext</span><span class="p">,</span>
+</span><span id="__span-7-18"><span class="w">    </span><span class="n">A</span><span class="p">:</span><span class="w"> </span><span class="nc">ActionType</span><span class="p">,</span>
+</span><span id="__span-7-19"><span class="p">{</span>
+</span><span id="__span-7-20"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">Output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">N</span><span class="p">::</span><span class="n">Output</span><span class="p">;</span>
+</span><span id="__span-7-21">
+</span><span id="__span-7-22"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">Context</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">NodeOutcome</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">Output</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-23"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">context_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">context_id</span><span class="p">();</span>
+</span><span id="__span-7-24"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">attributes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">otel_attributes</span><span class="p">();</span>
+</span><span id="__span-7-25">
+</span><span id="__span-7-26"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">tracer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">opentelemetry</span><span class="p">::</span><span class="n">global</span><span class="p">::</span><span class="n">tracer</span><span class="p">(</span><span class="s">&quot;floxide&quot;</span><span class="p">);</span>
+</span><span id="__span-7-27"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">span_builder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tracer</span><span class="p">.</span><span class="n">span_builder</span><span class="p">(</span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;node:{}&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">node_type</span><span class="p">));</span>
+</span><span id="__span-7-28">
+</span><span id="__span-7-29"><span class="w">        </span><span class="c1">// Add attributes to the span</span>
+</span><span id="__span-7-30"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">value</span><span class="p">)</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">&amp;</span><span class="n">attributes</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-31"><span class="w">            </span><span class="n">span_builder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">span_builder</span><span class="p">.</span><span class="n">with_attribute</span><span class="p">(</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">.</span><span class="n">clone</span><span class="p">(),</span><span class="w"> </span><span class="n">value</span><span class="p">.</span><span class="n">clone</span><span class="p">()));</span>
+</span><span id="__span-7-32"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-7-33">
+</span><span id="__span-7-34"><span class="w">        </span><span class="n">span_builder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">span_builder</span><span class="p">.</span><span class="n">with_attribute</span><span class="p">(</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;context_id&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">context_id</span><span class="p">.</span><span class="n">clone</span><span class="p">()));</span>
+</span><span id="__span-7-35"><span class="w">        </span><span class="n">span_builder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">span_builder</span><span class="p">.</span><span class="n">with_attribute</span><span class="p">(</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;node_type&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">node_type</span><span class="p">.</span><span class="n">clone</span><span class="p">()));</span>
+</span><span id="__span-7-36">
+</span><span id="__span-7-37"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">span</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">span_builder</span><span class="p">.</span><span class="n">start</span><span class="p">(</span><span class="o">&amp;</span><span class="n">tracer</span><span class="p">);</span>
+</span><span id="__span-7-38"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">cx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Context</span><span class="p">::</span><span class="n">current_with_span</span><span class="p">(</span><span class="n">span</span><span class="p">);</span>
+</span><span id="__span-7-39"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">_guard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cx</span><span class="p">.</span><span class="n">attach</span><span class="p">();</span>
+</span><span id="__span-7-40">
+</span><span id="__span-7-41"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Instant</span><span class="p">::</span><span class="n">now</span><span class="p">();</span>
+</span><span id="__span-7-42"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">inner</span><span class="p">.</span><span class="n">process</span><span class="p">(</span><span class="n">ctx</span><span class="p">).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-7-43"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">start</span><span class="p">.</span><span class="n">elapsed</span><span class="p">();</span>
+</span><span id="__span-7-44">
+</span><span id="__span-7-45"><span class="w">        </span><span class="c1">// Record node execution metrics</span>
+</span><span id="__span-7-46"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">meter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">opentelemetry</span><span class="p">::</span><span class="n">global</span><span class="p">::</span><span class="n">meter</span><span class="p">(</span><span class="s">&quot;floxide&quot;</span><span class="p">);</span>
+</span><span id="__span-7-47"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">node_duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">meter</span>
+</span><span id="__span-7-48"><span class="w">            </span><span class="p">.</span><span class="n">f64_histogram</span><span class="p">(</span><span class="s">&quot;node.duration&quot;</span><span class="p">)</span>
+</span><span id="__span-7-49"><span class="w">            </span><span class="p">.</span><span class="n">with_description</span><span class="p">(</span><span class="s">&quot;Node execution duration in milliseconds&quot;</span><span class="p">)</span>
+</span><span id="__span-7-50"><span class="w">            </span><span class="p">.</span><span class="n">init</span><span class="p">();</span>
+</span><span id="__span-7-51">
+</span><span id="__span-7-52"><span class="w">        </span><span class="n">node_duration</span><span class="p">.</span><span class="n">record</span><span class="p">(</span>
+</span><span id="__span-7-53"><span class="w">            </span><span class="n">duration</span><span class="p">.</span><span class="n">as_millis</span><span class="p">()</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">f64</span><span class="p">,</span>
+</span><span id="__span-7-54"><span class="w">            </span><span class="o">&amp;</span><span class="p">[</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;node_type&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">node_type</span><span class="p">.</span><span class="n">clone</span><span class="p">())],</span>
+</span><span id="__span-7-55"><span class="w">        </span><span class="p">);</span>
+</span><span id="__span-7-56">
+</span><span id="__span-7-57"><span class="w">        </span><span class="k">match</span><span class="w"> </span><span class="o">&amp;</span><span class="n">result</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-58"><span class="w">            </span><span class="nb">Ok</span><span class="p">(</span><span class="n">outcome</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-59"><span class="w">                </span><span class="kd">let</span><span class="w"> </span><span class="n">outcome_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">match</span><span class="w"> </span><span class="n">outcome</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-60"><span class="w">                    </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">Complete</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s">&quot;complete&quot;</span><span class="p">,</span>
+</span><span id="__span-7-61"><span class="w">                    </span><span class="n">NodeOutcome</span><span class="p">::</span><span class="n">Transition</span><span class="p">(</span><span class="n">action</span><span class="p">,</span><span class="w"> </span><span class="n">_</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-62"><span class="w">                        </span><span class="n">span</span><span class="p">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;transition_action&quot;</span><span class="p">,</span><span class="w"> </span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;{:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">action</span><span class="p">)));</span>
+</span><span id="__span-7-63"><span class="w">                        </span><span class="s">&quot;transition&quot;</span>
+</span><span id="__span-7-64"><span class="w">                    </span><span class="p">}</span>
+</span><span id="__span-7-65"><span class="w">                </span><span class="p">};</span>
+</span><span id="__span-7-66">
+</span><span id="__span-7-67"><span class="w">                </span><span class="n">span</span><span class="p">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;outcome&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">outcome_type</span><span class="p">.</span><span class="n">to_string</span><span class="p">()));</span>
+</span><span id="__span-7-68"><span class="w">                </span><span class="n">span</span><span class="p">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;duration_ms&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">duration</span><span class="p">.</span><span class="n">as_millis</span><span class="p">()</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">i64</span><span class="p">));</span>
+</span><span id="__span-7-69"><span class="w">                </span><span class="n">span</span><span class="p">.</span><span class="n">set_status</span><span class="p">(</span><span class="n">Status</span><span class="p">::</span><span class="nb">Ok</span><span class="p">);</span>
+</span><span id="__span-7-70"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-7-71"><span class="w">            </span><span class="nb">Err</span><span class="p">(</span><span class="n">err</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-72"><span class="w">                </span><span class="n">span</span><span class="p">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="n">KeyValue</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="s">&quot;duration_ms&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">duration</span><span class="p">.</span><span class="n">as_millis</span><span class="p">()</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="kt">i64</span><span class="p">));</span>
+</span><span id="__span-7-73"><span class="w">                </span><span class="n">span</span><span class="p">.</span><span class="n">set_status</span><span class="p">(</span><span class="n">Status</span><span class="p">::</span><span class="n">Error</span><span class="p">);</span>
+</span><span id="__span-7-74"><span class="w">                </span><span class="n">span</span><span class="p">.</span><span class="n">record_error</span><span class="p">(</span><span class="n">err</span><span class="p">);</span>
+</span><span id="__span-7-75"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-7-76"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-7-77">
+</span><span id="__span-7-78"><span class="w">        </span><span class="n">result</span>
+</span><span id="__span-7-79"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-7-80"><span class="p">}</span>
+</span></code></pre></div>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<h3 id="positive">Positive<a class="headerlink" href="#positive" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Complete Observability</strong>: OpenTelemetry provides a comprehensive solution for traces, metrics, and logs</li>
+<li><strong>Standard Integration</strong>: Follows industry standards for observability</li>
+<li><strong>Ecosystem Compatibility</strong>: OpenTelemetry supports many backends (Jaeger, Prometheus, etc.)</li>
+<li><strong>Distributed Tracing</strong>: Built-in support for tracing across service boundaries</li>
+<li><strong>Minimal Overhead</strong>: OpenTelemetry is designed for production use with minimal impact</li>
+<li><strong>Visualization Options</strong>: Can leverage existing OpenTelemetry visualization tools</li>
+<li><strong>Context Propagation</strong>: Supports propagating context across async boundaries</li>
+</ol>
+<h3 id="negative">Negative<a class="headerlink" href="#negative" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Dependency Size</strong>: OpenTelemetry adds significant dependencies to the project</li>
+<li><strong>Configuration Complexity</strong>: Properly configuring OpenTelemetry requires additional expertise</li>
+<li><strong>Learning Curve</strong>: Using OpenTelemetry effectively requires understanding its concepts</li>
+<li><strong>Backend Requirements</strong>: Requires setting up and maintaining OpenTelemetry backends</li>
+<li><strong>Additional Resource Usage</strong>: Collecting and exporting telemetry data uses system resources</li>
+</ol>
+<h2 id="alternatives-considered">Alternatives Considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
+<h3 id="1-simple-logging-approach">1. Simple Logging Approach<a class="headerlink" href="#1-simple-logging-approach" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>Simpler implementation</li>
+<li>Fewer dependencies</li>
+<li><strong>Cons</strong>:</li>
+<li>Limited visibility into workflow execution</li>
+<li>No standardized way to analyze the data</li>
+<li>No metrics collection</li>
+</ul>
+<h3 id="2-custom-metrics-solution">2. Custom Metrics Solution<a class="headerlink" href="#2-custom-metrics-solution" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>Could be more tailored to workflow-specific needs</li>
+<li>Potentially lower overhead for specific metrics</li>
+<li><strong>Cons</strong>:</li>
+<li>Would require maintaining a custom solution</li>
+<li>No standardized integration with other systems</li>
+<li>Limited ecosystem tools</li>
+</ul>
+<h3 id="3-multiple-separate-systems-logs-metrics-traces">3. Multiple Separate Systems (logs, metrics, traces)<a class="headerlink" href="#3-multiple-separate-systems-logs-metrics-traces" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>Could choose best-of-breed for each concern</li>
+<li>More flexibility in implementation</li>
+<li><strong>Cons</strong>:</li>
+<li>No unified observability model</li>
+<li>More complex integration points</li>
+<li>Harder to correlate data across systems</li>
+</ul>
+<h3 id="4-no-built-in-observability">4. No Built-in Observability<a class="headerlink" href="#4-no-built-in-observability" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Pros</strong>:</li>
+<li>Simpler framework</li>
+<li>Lower dependency footprint</li>
+<li><strong>Cons</strong>:</li>
+<li>Users would need to implement their own solutions</li>
+<li>Inconsistent observability implementations</li>
+<li>Poor developer experience</li>
+</ul>
+<p>We chose OpenTelemetry as our primary observability solution because it provides a comprehensive, standards-based approach to observability that covers traces, metrics, and logs. It offers excellent ecosystem compatibility while maintaining reasonable performance characteristics. The event-based observer pattern allows us to integrate OpenTelemetry seamlessly while still supporting additional observability mechanisms for specific use cases.</p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>
