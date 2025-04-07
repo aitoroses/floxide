@@ -30,11 +30,11 @@ use async_trait::async_trait;
 use floxide_core::{
     batch::BatchContext, error::FloxideError, DefaultAction, Node, NodeId, NodeOutcome,
 };
-use rand::Rng;
+use rand::{Rng, rngs::StdRng, SeedableRng};
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::info;
+use tracing::{info, Level};
 use tracing_subscriber::fmt;
 use uuid::Uuid;
 
@@ -66,7 +66,7 @@ impl Image {
     /// Initializes an image with a random ID and simulated processing time.
     fn _new(name: &str, width: u32, height: u32, format: &str) -> Self {
         // Simulate random processing time for this image
-        let mut rng = rand::thread_rng();
+        let mut rng = StdRng::from_entropy();
         let processing_time_ms = rng.gen_range(100..1000);
 
         Self {
@@ -224,6 +224,26 @@ impl BatchContext<Image> for ImageBatchContext {
         ctx.current_image = Some(item);  // Set the current item
         Ok(ctx)
     }
+
+    /// Updates the batch context with the results of processing multiple items
+    ///
+    /// This method is called after a batch of items has been processed to
+    /// update the overall batch context with the results.
+    fn update_with_results(&mut self, results: &[Result<Image, FloxideError>]) -> Result<(), FloxideError> {
+        // Count successes and failures
+        self.processed_count += results.iter().filter(|r| r.is_ok()).count();
+        self.failed_count += results.iter().filter(|r| r.is_err()).count();
+
+        // Update statistics for each result
+        for result in results {
+            match result {
+                Ok(_) => self.add_stat("success"),
+                Err(_) => self.add_stat("failure"),
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// A simple image processor node that implements the Node trait
@@ -246,7 +266,11 @@ impl SimpleImageProcessor {
 }
 
 #[async_trait]
-impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor {
+impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor
+where
+    Self: Send + Sync,
+    ImageBatchContext: Send,
+{
     type Output = Image;
 
     /// Returns the ID of the node
@@ -279,8 +303,13 @@ impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor {
             image.name, image.width, image.height, image.format
         );
 
-        // Simulate a random failure (15% chance)
-        let mut rng = rand::thread_rng();
+        // Resize the image to 80% of its original size
+        let new_width = (image.width as f32 * 0.8) as u32;
+        let new_height = (image.height as f32 * 0.8) as u32;
+        let resized = image._resize(new_width, new_height).await?;
+
+        // Simulate a random failure (15% chance) - using StdRng which is Send
+        let mut rng = StdRng::from_entropy();
         if rng.gen_range(0..100) < 15 {
             ctx.add_stat("failed");
             return Err(FloxideError::node_execution(
@@ -288,11 +317,6 @@ impl Node<ImageBatchContext, DefaultAction> for SimpleImageProcessor {
                 &format!("Failed to process image: {}", image.id),
             ));
         }
-
-        // Resize the image to 80% of its original size
-        let new_width = (image.width as f32 * 0.8) as u32;
-        let new_height = (image.height as f32 * 0.8) as u32;
-        let resized = image._resize(new_width, new_height).await?;
 
         // Convert the image to WebP format
         let converted = resized._convert_format(&ctx.target_format).await?;
@@ -317,6 +341,8 @@ async fn process_image(image: Image) -> Result<Image, FloxideError> {
     let mut ctx = ImageBatchContext {
         images: vec![],
         current_image: Some(image),
+        processed_count: 0,
+        failed_count: 0,
         target_format: "webp".to_string(),
         stats: HashMap::new(),
     };
@@ -365,10 +391,10 @@ async fn process_batch(
             async move {
                 // Acquire a permit from the semaphore
                 let _permit = sem.acquire().await.unwrap();
-                
+
                 // Process the image
                 let result = process_image(image).await;
-                
+
                 // The permit is automatically released when it goes out of scope
                 result
             }
@@ -387,6 +413,7 @@ async fn process_batch(
 /// 2. Creates a batch of sample images
 /// 3. Processes the batch with controlled parallelism
 /// 4. Collects and displays statistics about the processing
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the tracing subscriber for logging
     fmt().with_max_level(Level::INFO).init();
@@ -395,10 +422,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create a batch of sample images
     let mut images = Vec::new();
+    let mut rng = StdRng::from_entropy();
     for i in 1..=20 {
         let name = format!("image_{}.jpg", i);
-        let width = rand::thread_rng().gen_range(800..2000);
-        let height = rand::thread_rng().gen_range(600..1500);
+        let width = rng.gen_range(800..2000);
+        let height = rng.gen_range(600..1500);
         images.push(Image::_new(&name, width, height, "jpg"));
     }
 
