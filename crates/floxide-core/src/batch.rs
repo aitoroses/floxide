@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use tokio::sync::Semaphore;
-use tracing::{debug, info};
+use tracing::debug;
 use uuid::Uuid;
 
 use crate::action::ActionType;
@@ -96,7 +96,7 @@ where
         // Get items to process
         debug!(node_id = %self.id, "Getting batch items to process");
         let items = ctx.get_batch_items()?;
-        info!(node_id = %self.id, item_count = items.len(), "Processing batch items");
+        debug!(node_id = %self.id, item_count = items.len(), "Processing batch items");
 
         let mut results = Vec::with_capacity(items.len());
 

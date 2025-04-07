@@ -14,7 +14,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 use uuid::Uuid;
 
 /// Represents a time schedule for execution
@@ -321,7 +321,7 @@ where
             };
 
             // Wait until it's time to execute
-            info!(
+            debug!(
                 "Waiting {:?} until next execution of node {}",
                 wait_duration, current_node_id
             );
@@ -339,14 +339,14 @@ where
 
             // If the action is the termination action, stop the workflow
             if action == self.termination_action {
-                info!("Workflow terminated by node {}", current_node_id);
+                debug!("Workflow terminated by node {}", current_node_id);
                 break;
             }
 
             // Find the next node based on the action
             if let Some(next_node_id) = self.routes.get(&(current_node_id.clone(), action.clone()))
             {
-                info!(
+                debug!(
                     "Moving from node {} to node {}",
                     current_node_id, next_node_id
                 );
@@ -357,7 +357,7 @@ where
                     .routes
                     .get(&(current_node_id.clone(), Action::default()))
                 {
-                    info!(
+                    debug!(
                         "No route found for action {:?}, using default route to node {}",
                         action, next_node_id
                     );
@@ -440,7 +440,7 @@ where
         } else {
             // Wait until the scheduled time
             let wait_duration = self.node.schedule().duration_until_next()?;
-            info!(
+            debug!(
                 "Waiting {:?} before executing node {}",
                 wait_duration, self.id
             );

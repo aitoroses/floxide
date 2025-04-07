@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 use crate::action::{ActionType, DefaultAction};
 use crate::error::FloxideError;
@@ -139,7 +139,7 @@ where
         let mut current_node_id = self.start_node.clone();
         let mut visit_counts = HashMap::new();
 
-        info!(start_node = %current_node_id, "Starting workflow execution");
+        debug!(start_node = %current_node_id, "Starting workflow execution");
         debug!(node = %current_node_id, "Starting workflow execution from node");
 
         // Debug info for connections
@@ -197,19 +197,19 @@ where
 
             match &outcome {
                 NodeOutcome::Success(_) => {
-                    info!(node_id = %current_node_id, "Node completed successfully with Success outcome");
+                    debug!(node_id = %current_node_id, "Node completed successfully with Success outcome");
                 }
                 NodeOutcome::Skipped => {
-                    info!(node_id = %current_node_id, "Node completed with Skipped outcome");
+                    debug!(node_id = %current_node_id, "Node completed with Skipped outcome");
                 }
                 NodeOutcome::RouteToAction(action) => {
-                    info!(node_id = %current_node_id, action = %action.name(), action_debug = ?action, "Node completed with RouteToAction outcome");
+                    debug!(node_id = %current_node_id, action = %action.name(), action_debug = ?action, "Node completed with RouteToAction outcome");
                 }
             }
 
             match outcome {
                 NodeOutcome::Success(output) => {
-                    info!(node_id = %current_node_id, "Node completed successfully");
+                    debug!(node_id = %current_node_id, "Node completed successfully");
                     // Find the default route if there is one
                     if let Some(next) = self.default_routes.get(&current_node_id) {
                         debug!(

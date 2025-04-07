@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 use uuid::Uuid;
 
 /// A node that waits for events and processes them as they arrive
@@ -338,7 +338,7 @@ where
 
             // If the action is the termination action, we're done
             if action == self.termination_action {
-                info!("Event-driven workflow terminated with termination action");
+                debug!("Event-driven workflow terminated with termination action");
                 return Ok(());
             }
 

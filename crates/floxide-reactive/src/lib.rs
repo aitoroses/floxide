@@ -18,7 +18,7 @@ use tokio::fs::metadata;
 use tokio::sync::mpsc;
 use tokio::time::sleep;
 use tokio_stream::wrappers::ReceiverStream;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 /// Errors specific to reactive operations
 #[derive(Debug, Error)]
@@ -324,7 +324,7 @@ where
         change: FileChange,
         context: &mut Context,
     ) -> Result<Action, FloxideError> {
-        info!("Reacting to file change: {:?}", change);
+        debug!("Reacting to file change: {:?}", change);
 
         if let Some(callback) = &self.change_handler {
             callback(change.clone(), context).await
