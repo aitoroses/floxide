@@ -165,22 +165,22 @@ impl TransformNode<String, TextStats, TextProcessingError> for TextAnalyzer {
         // Count words and characters
         let words = input.split_whitespace().count();
         let chars = input.chars().count();
-        
+
         // Check if the text contains numbers
         let contains_numbers = input.chars().any(|c| c.is_numeric());
-        
+
         info!(
             "Analyzed text: {} words, {} characters, contains numbers: {}",
             words, chars, contains_numbers
         );
-        
+
         let stats = TextStats {
             word_count: words,
             char_count: chars,
             contains_numbers,
             original_text: input.clone(),
         };
-        
+
         Ok(stats)
     }
 

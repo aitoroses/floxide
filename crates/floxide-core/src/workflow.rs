@@ -583,9 +583,15 @@ mod tests {
 
             // Continue looping until value > 100
             if ctx.value <= 100 {
-                Ok((ctx, NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Next)))
+                Ok((
+                    ctx,
+                    NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Next),
+                ))
             } else {
-                Ok((ctx, NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Error)))
+                Ok((
+                    ctx,
+                    NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Error),
+                ))
             }
         });
 
@@ -654,9 +660,15 @@ mod tests {
 
             // Continue looping until value > 100
             if ctx.value <= 100 {
-                Ok((ctx, NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Next)))
+                Ok((
+                    ctx,
+                    NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Next),
+                ))
             } else {
-                Ok((ctx, NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Error)))
+                Ok((
+                    ctx,
+                    NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Error),
+                ))
             }
         });
 

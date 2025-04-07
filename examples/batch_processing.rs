@@ -30,7 +30,7 @@ use async_trait::async_trait;
 use floxide_core::{
     batch::BatchContext, error::FloxideError, DefaultAction, Node, NodeId, NodeOutcome,
 };
-use rand::{Rng, rngs::StdRng, SeedableRng};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use std::collections::HashMap;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -220,8 +220,8 @@ impl BatchContext<Image> for ImageBatchContext {
     fn create_item_context(&self, item: Image) -> Result<Self, FloxideError> {
         // Create a new context for a single item
         let mut ctx = self.clone();
-        ctx.images = Vec::new();  // Clear the batch items
-        ctx.current_image = Some(item);  // Set the current item
+        ctx.images = Vec::new(); // Clear the batch items
+        ctx.current_image = Some(item); // Set the current item
         Ok(ctx)
     }
 
@@ -229,7 +229,10 @@ impl BatchContext<Image> for ImageBatchContext {
     ///
     /// This method is called after a batch of items has been processed to
     /// update the overall batch context with the results.
-    fn update_with_results(&mut self, results: &[Result<Image, FloxideError>]) -> Result<(), FloxideError> {
+    fn update_with_results(
+        &mut self,
+        results: &[Result<Image, FloxideError>],
+    ) -> Result<(), FloxideError> {
         // Count successes and failures
         self.processed_count += results.iter().filter(|r| r.is_ok()).count();
         self.failed_count += results.iter().filter(|r| r.is_err()).count();
@@ -373,13 +376,10 @@ async fn process_image(image: Image) -> Result<Image, FloxideError> {
 ///
 /// The function returns a vector of results, preserving the success or failure
 /// status of each item's processing.
-async fn process_batch(
-    images: Vec<Image>,
-    parallelism: usize,
-) -> Vec<Result<Image, FloxideError>> {
+async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Image, FloxideError>> {
     use futures::stream::{self, StreamExt};
-    use tokio::sync::Semaphore;
     use std::sync::Arc;
+    use tokio::sync::Semaphore;
 
     // Create a semaphore to limit concurrency
     let semaphore = Arc::new(Semaphore::new(parallelism));
