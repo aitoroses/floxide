@@ -9,7 +9,7 @@ description = "Reactive node abstractions for the floxide framework"
 publish = true
 
 [dependencies]
-floxide-core = { path = "../floxide-core", version = "=1.1.0" }
+floxide-core = { path = "../floxide-core", version = "=1.1.1" }
 async-trait = { workspace = true }
 futures = { workspace = true }
 tokio = { workspace = true, features = [

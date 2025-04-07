@@ -11,7 +11,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "1.1.0"
+version = "1.1.1"
 edition = "2021"
 authors = ["Floxide Contributors"]
 license = "MIT"
@@ -82,14 +82,14 @@ serde_json.workspace = true
 tokio-stream.workspace = true
 
 # Core crate (always included)
-floxide-core = { path = "./crates/floxide-core", version = "=1.1.0" }
+floxide-core = { path = "./crates/floxide-core", version = "=1.1.1" }
 
 # Feature-gated dependencies on subcrates
-floxide-transform = { path = "./crates/floxide-transform", version = "=1.1.0", optional = true } 
-floxide-event = { path = "./crates/floxide-event", version = "=1.1.0", optional = true }
-floxide-timer = { path = "./crates/floxide-timer", version = "=1.1.0", optional = true }
-floxide-longrunning = { path = "./crates/floxide-longrunning", version = "=1.1.0", optional = true }
-floxide-reactive = { path = "./crates/floxide-reactive", version = "=1.1.0", optional = true }
+floxide-transform = { path = "./crates/floxide-transform", version = "=1.1.1", optional = true } 
+floxide-event = { path = "./crates/floxide-event", version = "=1.1.1", optional = true }
+floxide-timer = { path = "./crates/floxide-timer", version = "=1.1.1", optional = true }
+floxide-longrunning = { path = "./crates/floxide-longrunning", version = "=1.1.1", optional = true }
+floxide-reactive = { path = "./crates/floxide-reactive", version = "=1.1.1", optional = true }
 
 # Example configurations
 [[example]]
