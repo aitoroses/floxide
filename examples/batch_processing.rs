@@ -385,7 +385,6 @@ async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Ima
     let semaphore = Arc::new(Semaphore::new(parallelism));
 
     // Process all images concurrently with controlled parallelism
-    
 
     stream::iter(images)
         .map(|image| {
@@ -395,7 +394,6 @@ async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Ima
                 let _permit = sem.acquire().await.unwrap();
 
                 // Process the image
-                
 
                 // The permit is automatically released when it goes out of scope
                 process_image(image).await
