@@ -317,7 +317,7 @@ where
             ctx.add_stat("failed");
             return Err(FloxideError::node_execution(
                 "SimpleImageProcessor",
-                &format!("Failed to process image: {}", image.id),
+                format!("Failed to process image: {}", image.id),
             ));
         }
 
@@ -385,7 +385,9 @@ async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Ima
     let semaphore = Arc::new(Semaphore::new(parallelism));
 
     // Process all images concurrently with controlled parallelism
-    let results = stream::iter(images)
+    
+
+    stream::iter(images)
         .map(|image| {
             let sem = semaphore.clone();
             async move {
@@ -393,17 +395,15 @@ async fn process_batch(images: Vec<Image>, parallelism: usize) -> Vec<Result<Ima
                 let _permit = sem.acquire().await.unwrap();
 
                 // Process the image
-                let result = process_image(image).await;
+                
 
                 // The permit is automatically released when it goes out of scope
-                result
+                process_image(image).await
             }
         })
         .buffer_unordered(parallelism) // Process up to `parallelism` items concurrently
         .collect::<Vec<_>>()
-        .await;
-
-    results
+        .await
 }
 
 /// Main function to demonstrate batch processing
