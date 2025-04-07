@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 
@@ -44,6 +44,12 @@ where
 
     /// Default fallback routes for nodes
     default_routes: HashMap<NodeId, NodeId>,
+
+    /// Whether to allow cycles in the workflow
+    allow_cycles: bool,
+
+    /// Maximum number of times a node can be visited (0 means no limit)
+    cycle_limit: usize,
 }
 
 impl<Context, A, Output> Workflow<Context, A, Output>
@@ -69,6 +75,8 @@ where
             nodes,
             edges: HashMap::new(),
             default_routes: HashMap::new(),
+            allow_cycles: false,
+            cycle_limit: 0,
         }
     }
 
@@ -102,10 +110,34 @@ where
         self.nodes.get(&id).map(|node| node.as_ref())
     }
 
+    /// Configure whether to allow cycles in the workflow
+    ///
+    /// By default, cycles are not allowed and will result in a WorkflowCycleDetected error.
+    /// When cycles are allowed, the workflow will continue execution even when revisiting nodes.
+    ///
+    /// # Arguments
+    /// * `allow` - Whether to allow cycles in the workflow
+    pub fn allow_cycles(&mut self, allow: bool) -> &mut Self {
+        self.allow_cycles = allow;
+        self
+    }
+
+    /// Set a limit on the number of times a node can be visited
+    ///
+    /// This is only relevant when cycles are allowed. If a node is visited more than
+    /// the specified limit, a WorkflowCycleDetected error will be returned.
+    ///
+    /// # Arguments
+    /// * `limit` - Maximum number of times a node can be visited (0 means no limit)
+    pub fn set_cycle_limit(&mut self, limit: usize) -> &mut Self {
+        self.cycle_limit = limit;
+        self
+    }
+
     /// Execute the workflow with the given context
     pub async fn execute(&self, ctx: &mut Context) -> Result<Output, WorkflowError> {
         let mut current_node_id = self.start_node.clone();
-        let mut visited = HashSet::new();
+        let mut visit_counts = HashMap::new();
 
         info!(start_node = %current_node_id, "Starting workflow execution");
         eprintln!("Starting workflow execution from node: {}", current_node_id);
@@ -121,14 +153,42 @@ where
             eprintln!("  {} -> {}", from, to);
         }
 
-        while !visited.contains(&current_node_id) {
+        loop {
+            // Check if we've visited this node before
+            let visit_count = visit_counts.entry(current_node_id.clone()).or_insert(0);
+            *visit_count += 1;
+
+            // Check for cycles
+            if !self.allow_cycles && *visit_count > 1 {
+                // Cycles are not allowed and we've already visited this node
+                error!(
+                    node_id = %current_node_id,
+                    "Cycle detected in workflow execution"
+                );
+                return Err(WorkflowError::NodeExecution(
+                    FloxideError::WorkflowCycleDetected,
+                ));
+            }
+
+            // Check cycle limit if specified (0 means no limit)
+            if self.cycle_limit > 0 && *visit_count > self.cycle_limit {
+                error!(
+                    node_id = %current_node_id,
+                    visit_count = %visit_count,
+                    limit = %self.cycle_limit,
+                    "Cycle limit exceeded in workflow execution"
+                );
+                return Err(WorkflowError::NodeExecution(
+                    FloxideError::WorkflowCycleDetected,
+                ));
+            }
+
             let node = self.nodes.get(&current_node_id).ok_or_else(|| {
                 error!(node_id = %current_node_id, "Node not found in workflow");
                 WorkflowError::NodeNotFound(current_node_id.clone())
             })?;
 
-            visited.insert(current_node_id.clone());
-            debug!(node_id = %current_node_id, "Executing node");
+            debug!(node_id = %current_node_id, visit_count = %visit_count, "Executing node");
 
             let outcome = node
                 .process(ctx)
@@ -285,15 +345,6 @@ where
                 }
             }
         }
-
-        // If we get here, we've detected a cycle
-        error!(
-            node_id = %current_node_id,
-            "Cycle detected in workflow execution"
-        );
-        Err(WorkflowError::NodeExecution(
-            FloxideError::WorkflowCycleDetected,
-        ))
     }
 }
 
@@ -310,6 +361,8 @@ where
             nodes: self.nodes.clone(), // Cloning HashMap<NodeId, Arc<dyn Node>> is now possible
             edges: self.edges.clone(),
             default_routes: self.default_routes.clone(),
+            allow_cycles: self.allow_cycles,
+            cycle_limit: self.cycle_limit,
         }
     }
 }
@@ -519,5 +572,139 @@ mod tests {
         assert!(result2.is_ok());
         assert_eq!(ctx2.value, 11); // 3 -> *2 = 6 -> +5 = 11
         assert_eq!(ctx2.visited, vec!["start", "skip_check", "end"]);
+    }
+
+    #[tokio::test]
+    async fn test_cyclic_workflow() {
+        // Create nodes
+        let start_node = closure::node(|mut ctx: TestContext| async move {
+            ctx.value += 1;
+            ctx.visited.push("start".to_string());
+            Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))
+        });
+
+        let loop_node = closure::node(|mut ctx: TestContext| async move {
+            ctx.value *= 2;
+            ctx.visited.push("loop".to_string());
+
+            // Continue looping until value > 100
+            if ctx.value <= 100 {
+                Ok((ctx, NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Next)))
+            } else {
+                Ok((ctx, NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Error)))
+            }
+        });
+
+        let end_node = closure::node(|mut ctx: TestContext| async move {
+            ctx.value -= 10;
+            ctx.visited.push("end".to_string());
+            Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))
+        });
+
+        // Build workflow with cycles allowed
+        let mut workflow = Workflow::new(start_node);
+        let start_id = workflow.start_node.clone();
+        let loop_id = loop_node.id();
+        let end_id = end_node.id();
+
+        workflow
+            .add_node(loop_node)
+            .add_node(end_node)
+            .set_default_route(&start_id, &loop_id)
+            .connect(&loop_id, DefaultAction::Next, &loop_id) // Cycle back to loop_node
+            .connect(&loop_id, DefaultAction::Error, &end_id)
+            .allow_cycles(true) // Enable cycles
+            .set_cycle_limit(10); // Set a reasonable limit
+
+        // Execute workflow
+        let mut ctx = TestContext {
+            value: 3,
+            visited: vec![],
+        };
+
+        let result = workflow.execute(&mut ctx).await;
+        assert!(result.is_ok());
+
+        // Check final state
+        // Initial value: 3
+        // After start: 3 + 1 = 4
+        // Loop iterations:
+        // 1: 4 * 2 = 8
+        // 2: 8 * 2 = 16
+        // 3: 16 * 2 = 32
+        // 4: 32 * 2 = 64
+        // 5: 64 * 2 = 128 (> 100, so route to end)
+        // After end: 128 - 10 = 118
+        assert_eq!(ctx.value, 118);
+
+        // Should have visited start once, loop 5 times, and end once
+        assert_eq!(ctx.visited.len(), 7);
+        assert_eq!(ctx.visited[0], "start");
+        assert_eq!(ctx.visited[1], "loop");
+        assert_eq!(ctx.visited[2], "loop");
+        assert_eq!(ctx.visited[3], "loop");
+        assert_eq!(ctx.visited[4], "loop");
+        assert_eq!(ctx.visited[5], "loop");
+        assert_eq!(ctx.visited[6], "end");
+
+        // Test with cycles disabled - create new nodes
+        let start_node2 = closure::node(|mut ctx: TestContext| async move {
+            ctx.value += 1;
+            ctx.visited.push("start".to_string());
+            Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))
+        });
+
+        let loop_node2 = closure::node(|mut ctx: TestContext| async move {
+            ctx.value *= 2;
+            ctx.visited.push("loop".to_string());
+
+            // Continue looping until value > 100
+            if ctx.value <= 100 {
+                Ok((ctx, NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Next)))
+            } else {
+                Ok((ctx, NodeOutcome::<(), DefaultAction>::RouteToAction(DefaultAction::Error)))
+            }
+        });
+
+        let end_node2 = closure::node(|mut ctx: TestContext| async move {
+            ctx.value -= 10;
+            ctx.visited.push("end".to_string());
+            Ok((ctx, NodeOutcome::<(), DefaultAction>::Success(())))
+        });
+
+        // Build workflow with cycles disabled
+        let mut workflow2 = Workflow::new(start_node2);
+        let start_id2 = workflow2.start_node.clone();
+        let loop_id2 = loop_node2.id();
+        let end_id2 = end_node2.id();
+
+        workflow2
+            .add_node(loop_node2)
+            .add_node(end_node2)
+            .set_default_route(&start_id2, &loop_id2)
+            .connect(&loop_id2, DefaultAction::Next, &loop_id2) // Cycle back to loop_node
+            .connect(&loop_id2, DefaultAction::Error, &end_id2)
+            .allow_cycles(false); // Disable cycles
+
+        let mut ctx2 = TestContext {
+            value: 3,
+            visited: vec![],
+        };
+
+        let result2 = workflow2.execute(&mut ctx2).await;
+        assert!(result2.is_err());
+
+        // Should have detected a cycle after the first loop iteration
+        match result2 {
+            Err(WorkflowError::NodeExecution(FloxideError::WorkflowCycleDetected)) => {
+                // This is the expected error
+            }
+            _ => panic!("Expected WorkflowCycleDetected error, got {:?}", result2),
+        }
+
+        // Should have visited start once and loop once
+        assert_eq!(ctx2.visited.len(), 2);
+        assert_eq!(ctx2.visited[0], "start");
+        assert_eq!(ctx2.visited[1], "loop");
     }
 }

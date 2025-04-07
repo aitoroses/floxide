@@ -60,6 +60,7 @@ nav:
     - Overview: core-concepts/overview.md
     - Nodes: core-concepts/nodes.md
     - Workflows: core-concepts/workflows.md
+    - Cyclic Workflows: core-concepts/cyclic-workflows.md
     - Actions: core-concepts/actions.md
     - Contexts: core-concepts/contexts.md
   - Guides:
@@ -92,5 +93,5 @@ nav:
     - floxide-timer: api/floxide-timer.md
     - floxide-reactive: api/floxide-reactive.md
     - floxide-longrunning: api/floxide-longrunning.md
-    - floxide-batch: api/floxide-batch.md 
+    - floxide-batch: api/floxide-batch.md
   - Contributing: contributing.md

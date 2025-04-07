@@ -103,6 +103,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Advanced Workflow Patterns
 
+### Cyclic Workflows
+
+By default, Floxide prevents cycles in workflows to avoid infinite loops. However, you can enable cyclic workflows for use cases like retry loops, polling mechanisms, or iterative processing:
+
+```rust
+let mut workflow = Workflow::new(start_node)
+    .add_node(process_node)
+    .add_node(check_node)
+    .set_default_route(&start_id, &process_id)
+    .connect(&process_id, DefaultAction::Next, &check_id)
+    .connect(&check_id, DefaultAction::Next, &process_id) // Create a cycle
+    .allow_cycles(true); // Enable cycles
+```
+
+When enabling cycles, you should either set a cycle limit or implement a conditional exit in your node logic:
+
+```rust
+// Set a cycle limit
+workflow.set_cycle_limit(10);
+
+// Or implement a conditional exit in your node
+let loop_node = closure::node(|mut ctx: MyContext| async move {
+    ctx.iteration_count += 1;
+
+    // Check exit condition
+    if ctx.is_complete() || ctx.iteration_count >= 10 {
+        // Exit the loop
+        Ok((ctx, NodeOutcome::RouteToAction(DefaultAction::Complete)))
+    } else {
+        // Continue the loop
+        Ok((ctx, NodeOutcome::RouteToAction(DefaultAction::Next)))
+    }
+});
+```
+
+For more details, see [Cyclic Workflows](./cyclic-workflows.md).
+
 ### Error Handling
 
 Floxide provides several ways to handle errors in workflows:
