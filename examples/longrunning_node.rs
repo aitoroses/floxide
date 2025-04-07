@@ -352,8 +352,11 @@ async fn run_multi_step_process_example() -> Result<(), FloxideError> {
             file_info.last_checkpoint = Utc::now();
 
             // Update the context and state
-            ctx.processes.insert(current_file.clone(), file_info.clone());
-            state.file_bytes_processed.insert(current_file.clone(), new_bytes_processed);
+            ctx.processes
+                .insert(current_file.clone(), file_info.clone());
+            state
+                .file_bytes_processed
+                .insert(current_file.clone(), new_bytes_processed);
 
             // Add checkpoint data
             state.add_checkpoint_data(
@@ -409,7 +412,8 @@ async fn run_multi_step_process_example() -> Result<(), FloxideError> {
                 let current_file_index = state.current_step as usize;
                 if current_file_index == 0 {
                     let current_file = &context.files[current_file_index];
-                    let bytes_processed = *state.file_bytes_processed.get(current_file).unwrap_or(&0);
+                    let bytes_processed =
+                        *state.file_bytes_processed.get(current_file).unwrap_or(&0);
 
                     if bytes_processed == 500 && !suspended_at_half {
                         suspended_at_half = true;
