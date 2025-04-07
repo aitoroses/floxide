@@ -140,17 +140,17 @@ where
         let mut visit_counts = HashMap::new();
 
         info!(start_node = %current_node_id, "Starting workflow execution");
-        eprintln!("Starting workflow execution from node: {}", current_node_id);
+        debug!(node = %current_node_id, "Starting workflow execution from node");
 
         // Debug info for connections
-        eprintln!("Node connections:");
+        debug!("Node connections:");
         for ((from, action), to) in &self.edges {
-            eprintln!("  {} -[{:?}]-> {}", from, action, to);
+            debug!(from = %from, action = ?action, to = %to, "Connection");
         }
 
-        eprintln!("Default routes:");
+        debug!("Default routes:");
         for (from, to) in &self.default_routes {
-            eprintln!("  {} -> {}", from, to);
+            debug!(from = %from, to = %to, "Default route");
         }
 
         loop {
@@ -198,18 +198,12 @@ where
             match &outcome {
                 NodeOutcome::Success(_) => {
                     info!(node_id = %current_node_id, "Node completed successfully with Success outcome");
-                    eprintln!("Node {} completed with Success outcome", current_node_id);
                 }
                 NodeOutcome::Skipped => {
                     info!(node_id = %current_node_id, "Node completed with Skipped outcome");
-                    eprintln!("Node {} completed with Skipped outcome", current_node_id);
                 }
                 NodeOutcome::RouteToAction(action) => {
-                    info!(node_id = %current_node_id, action = %action.name(), "Node completed with RouteToAction outcome");
-                    eprintln!(
-                        "Node {} completed with RouteToAction({:?}) outcome",
-                        current_node_id, action
-                    );
+                    info!(node_id = %current_node_id, action = %action.name(), action_debug = ?action, "Node completed with RouteToAction outcome");
                 }
             }
 
