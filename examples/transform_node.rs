@@ -135,7 +135,7 @@ struct TextStats {
     /// Whether the text contains numeric digits
     contains_numbers: bool,
     /// Original text that was analyzed
-    original_text: String,
+    _original_text: String,
 }
 
 #[async_trait]
@@ -178,7 +178,7 @@ impl TransformNode<String, TextStats, TextProcessingError> for TextAnalyzer {
             word_count: words,
             char_count: chars,
             contains_numbers,
-            original_text: input.clone(),
+            _original_text: input.clone(),
         };
 
         Ok(stats)
@@ -404,7 +404,7 @@ async fn run_text_analysis_example() -> Result<(), Box<dyn Error>> {
                 word_count: ctx.input.split_whitespace().count(),
                 char_count: ctx.input.chars().count(),
                 contains_numbers: ctx.input.chars().any(|c| c.is_numeric()),
-                original_text: ctx.input.clone(),
+                _original_text: ctx.input.clone(),
             };
 
             Ok(NodeOutcome::Success(stats))
