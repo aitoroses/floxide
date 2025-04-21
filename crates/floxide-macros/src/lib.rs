@@ -5,8 +5,9 @@ use quote::{format_ident, quote, quote_spanned};
 use syn::{
     bracketed,
     parse::{Parse, ParseStream},
-    parse_macro_input, token, Ident, Result, Token,
+    parse_macro_input, Ident, Result, Token,
 };
+use heck::ToSnakeCase;
 
 /// AST for `workflow! { name = X; start = [A, …]; edges { … } [acyclic;] }`
 struct WorkflowDef {
@@ -150,8 +151,11 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         succs.iter().map(move |to| {
             // span on the successor node to highlight the failing target
             let span = to.span();
-            // unique identifier per edge for clearer error context
-            let check_ident = format_ident!("__assert_edge_{}_{}", from, to);
+            // create a snake_case identifier for the edge assertion
+            let check_ident_raw = format!("__assert_edge_{}_{}", from, to);
+            // convert raw identifier string to snake_case
+            let check_ident_snake = check_ident_raw.to_snake_case();
+            let check_ident = format_ident!("{}", check_ident_snake);
             quote_spanned! { span =>
                 #[allow(dead_code)]
                 // enforce that <#from as Node>::Output == <#to as Node>::Input

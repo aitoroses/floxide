@@ -39,30 +39,13 @@ impl Node for PrintResult {
     }
 }
 
-pub struct PrintResult2;
-#[async_trait]
-impl Node for PrintResult2 {
-    type Input  = i64;
-    type Output = ();
-
-    async fn process<C>(
-        &self,
-        _ctx: &mut WorkflowCtx<C>,
-        input: i64
-    ) -> Result<Transition<Self>, FloxideError>
-    where Self: Sized + Node, C: Send + Sync + 'static {
-        println!("Result2 = {}", input);
-        Ok(Transition::Finish)
-    }
-}
-
 // 2) Wire them together in a minimal workflow! macro invocation:
 
 workflow! {
     name = Minimal;
     start = [AddOne];
     edges {
-      AddOne     => [PrintResult, PrintResult2];
+      AddOne     => [PrintResult];
       PrintResult => [];
     }
 }
