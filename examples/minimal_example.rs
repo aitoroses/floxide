@@ -43,7 +43,7 @@ impl Node for PrintResult {
 
 workflow! {
     name = Minimal;
-    start = [AddOne];
+    start = AddOne;
     edges {
       AddOne     => [PrintResult];
       PrintResult => [];

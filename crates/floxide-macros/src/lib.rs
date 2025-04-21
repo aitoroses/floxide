@@ -6,6 +6,7 @@ use syn::{
     bracketed,
     parse::{Parse, ParseStream},
     parse_macro_input, Ident, Result, Token,
+    token::Bracket,
 };
 use heck::ToSnakeCase;
 
@@ -25,12 +26,17 @@ impl Parse for WorkflowDef {
         let name: Ident = input.parse()?;
         input.parse::<Token![;]>()?;
 
-        // start = [A, B, …];
+        // start = X or start = [A, B, …]; allow single identifier without brackets
         input.parse::<Ident>()?;        // `start`
         input.parse::<Token![=]>()?;
-        let content;
-        bracketed!(content in input);
-        let start = content.parse_terminated(Ident::parse, Token![,])?.into_iter().collect();
+        let start = if input.peek(Bracket) {
+            let content;
+            bracketed!(content in input);
+            content.parse_terminated(Ident::parse, Token![,])?.into_iter().collect()
+        } else {
+            let single: Ident = input.parse()?;
+            vec![single]
+        };
         input.parse::<Token![;]>()?;
 
         // edges { A => [B, ...]; … }
@@ -69,6 +75,12 @@ impl Parse for WorkflowDef {
 pub fn workflow(item: TokenStream) -> TokenStream {
     let WorkflowDef { name, start, edges, acyclic } =
         parse_macro_input!(item as WorkflowDef);
+
+    // ensure exactly one start node
+    if start.len() != 1 {
+        let msg = format!("`start` must specify exactly one node, found {}", start.len());
+        return quote_spanned! { name.span() => compile_error!(#msg); }.into();
+    }
 
     // Construct the name of the generated struct
     let wf_struct = format_ident!("{}Workflow", name);
