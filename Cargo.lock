@@ -285,11 +285,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "floxide-core",
- "floxide-event",
- "floxide-longrunning",
- "floxide-reactive",
- "floxide-timer",
- "floxide-transform",
  "futures",
  "rand",
  "serde",
@@ -307,7 +302,6 @@ version = "1.1.2"
 dependencies = [
  "criterion",
  "floxide-core",
- "floxide-transform",
  "tokio",
 ]
 
@@ -320,75 +314,7 @@ dependencies = [
  "serde",
  "thiserror",
  "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "floxide-event"
-version = "1.1.2"
-dependencies = [
- "async-trait",
- "floxide-core",
- "futures",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "floxide-longrunning"
-version = "1.1.2"
-dependencies = [
- "async-trait",
- "chrono",
- "floxide-core",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "floxide-reactive"
-version = "1.1.2"
-dependencies = [
- "async-trait",
- "floxide-core",
- "futures",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "floxide-timer"
-version = "1.1.2"
-dependencies = [
- "async-trait",
- "chrono",
- "floxide-core",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "floxide-transform"
-version = "1.1.2"
-dependencies = [
- "async-trait",
- "floxide-core",
- "futures",
- "thiserror",
- "tokio",
+ "tokio-util",
  "tracing",
  "uuid",
 ]
@@ -520,6 +446,12 @@ dependencies = [
  "cfg-if",
  "crunchy",
 ]
+
+[[package]]
+name = "hashbrown"
+version = "0.14.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
 name = "hermit-abi"
@@ -1067,19 +999,22 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
- "tokio-util",
 ]
 
 [[package]]
 name = "tokio-util"
-version = "0.7.13"
+version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7fcaa8d55a2bdd6b83ace262b016eca0d79ee02818c5c1bcdf0305114081078"
+checksum = "6b9590b93e6fcc1739458317cccd391ad3955e2bde8913edf6f95f9e65a8f034"
 dependencies = [
  "bytes",
  "futures-core",
+ "futures-io",
  "futures-sink",
+ "futures-util",
+ "hashbrown",
  "pin-project-lite",
+ "slab",
  "tokio",
 ]
 
