@@ -24,6 +24,7 @@
 //! floxide = { version = "1.0.0", features = ["transform", "event"] }
 //! ```
 
+
 /// Initialize the framework with default settings.
 ///
 /// This sets up tracing for better logging and performs any necessary
@@ -35,23 +36,5 @@ pub fn init() {
 
 // Re-export the core module (always included)
 pub use floxide_core as core;
+pub use ::floxide_macros::workflow;
 
-// // Re-export the transform module
-// #[cfg(feature = "transform")]
-// pub use floxide_transform as transform;
-
-// // Re-export the event module
-// #[cfg(feature = "event")]
-// pub use floxide_event as event;
-
-// // Re-export the timer module
-// #[cfg(feature = "timer")]
-// pub use floxide_timer as timer;
-
-// // Re-export the longrunning module
-// #[cfg(feature = "longrunning")]
-// pub use floxide_longrunning as longrunning;
-
-// // Re-export the reactive module
-// #[cfg(feature = "reactive")]
-// pub use floxide_reactive as reactive;

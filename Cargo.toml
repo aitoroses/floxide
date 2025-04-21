@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/floxide-core",
+    "crates/floxide-macros",
     # "crates/floxide-transform",
     # "crates/floxide-event",
     # "crates/floxide-timer",
@@ -40,6 +41,7 @@ tokio-stream = "0.1.17"
 tokio-util = { version = "0.7.10", features = ["full"] }
 
 floxide-core = { path = "./crates/floxide-core" }
+floxide-macros = { path = "./crates/floxide-macros" }
 # floxide-transform = { path = "./crates/floxide-transform" }
 # floxide-event = { path = "./crates/floxide-event" }
 # floxide-timer = { path = "./crates/floxide-timer" }
@@ -84,6 +86,7 @@ tokio-stream.workspace = true
 
 # Core crate (always included)
 floxide-core = { path = "./crates/floxide-core", version = "=1.1.2" }
+floxide-macros = { path = "./crates/floxide-macros", version = "=1.1.2" }
 
 # Feature-gated dependencies on subcrates
 # floxide-transform = { path = "./crates/floxide-transform", version = "=1.1.2", optional = true } 

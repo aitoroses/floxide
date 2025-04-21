@@ -285,6 +285,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "floxide-core",
+ "floxide-macros",
  "futures",
  "rand",
  "serde",
@@ -317,6 +318,15 @@ dependencies = [
  "tokio-util",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "floxide-macros"
+version = "1.1.2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
