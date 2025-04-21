@@ -1,7 +1,7 @@
 // crates/floxide-macros/src/workflow.rs
 
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, quote_spanned};
 use syn::{
     bracketed,
     parse::{Parse, ParseStream},
@@ -145,9 +145,28 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         }
     });
 
+    // Generate compile-time type-equality checks for each edge: ensure From::Output == To::Input
+    let type_checks = edges.iter().flat_map(|(from, succs)| {
+        succs.iter().map(move |to| {
+            // span on the successor node to highlight the failing target
+            let span = to.span();
+            // unique identifier per edge for clearer error context
+            let check_ident = format_ident!("__assert_edge_{}_{}", from, to);
+            quote_spanned! { span =>
+                #[allow(dead_code)]
+                // enforce that <#from as Node>::Output == <#to as Node>::Input
+                let #check_ident: fn(<#from as floxide_core::node::Node>::Output)
+                                   -> <#to as floxide_core::node::Node>::Input = |x| x;
+            }
+        })
+    });
+
     // The main run‑loop body
     let run_body = quote! {
         #acyclic_check
+
+        // compile-time type checks: verify each edge's Output == Input
+        #(#type_checks)*
 
         // initialize with start node
         let mut node_id = std::any::TypeId::of::<#start_ty>();
