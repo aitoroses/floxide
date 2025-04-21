@@ -4,17 +4,18 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{
     bracketed,
+    braced,
     parse::{Parse, ParseStream},
-    parse_macro_input, Ident, Result, Token,
-    token::Bracket,
+    parse_macro_input, Ident, Result, Token, Type,
 };
-use heck::ToSnakeCase;
+use quote::ToTokens;
+use syn::spanned::Spanned;
 
-/// AST for `workflow! { name = X; start = [A, …]; edges { … } [acyclic;] }`
+/// AST for `workflow! { name = X; start = Foo; edges { Foo => [Bar] } [acyclic;] }`
 struct WorkflowDef {
     name: Ident,
-    start: Vec<Ident>,
-    edges: Vec<(Ident, Vec<Ident>)>,
+    start: Type,
+    edges: Vec<(Type, Vec<Type>)>,
     acyclic: bool,
 }
 
@@ -26,31 +27,24 @@ impl Parse for WorkflowDef {
         let name: Ident = input.parse()?;
         input.parse::<Token![;]>()?;
 
-        // start = X or start = [A, B, …]; allow single identifier without brackets
+        // start = Foo;
         input.parse::<Ident>()?;        // `start`
         input.parse::<Token![=]>()?;
-        let start = if input.peek(Bracket) {
-            let content;
-            bracketed!(content in input);
-            content.parse_terminated(Ident::parse, Token![,])?.into_iter().collect()
-        } else {
-            let single: Ident = input.parse()?;
-            vec![single]
-        };
+        let start: Type = input.parse()?;
         input.parse::<Token![;]>()?;
 
-        // edges { A => [B, ...]; … }
+        // edges { Foo => [Bar, Baz]; … }
         input.parse::<Ident>()?;        // `edges`
         let edges_content;
-        syn::braced!(edges_content in input);
+        braced!(edges_content in input);
         let mut edges = Vec::new();
         while !edges_content.is_empty() {
-            let from: Ident = edges_content.parse()?;
+            let from: Type = edges_content.parse()?;
             edges_content.parse::<Token![=>]>()?;
             let succs_content;
             bracketed!(succs_content in edges_content);
-            let succs = succs_content
-                .parse_terminated(Ident::parse, Token![,])?
+            let succs: Vec<Type> = succs_content
+                .parse_terminated(Type::parse, Token![,])?
                 .into_iter()
                 .collect();
             edges_content.parse::<Token![;]>()?;
@@ -73,28 +67,20 @@ impl Parse for WorkflowDef {
 
 #[proc_macro]
 pub fn workflow(item: TokenStream) -> TokenStream {
+    // parse the workflow definition
     let WorkflowDef { name, start, edges, acyclic } =
         parse_macro_input!(item as WorkflowDef);
 
-    // ensure exactly one start node
-    if start.len() != 1 {
-        let msg = format!("`start` must specify exactly one node, found {}", start.len());
-        return quote_spanned! { name.span() => compile_error!(#msg); }.into();
-    }
-
-    // Construct the name of the generated struct
-    let wf_struct = format_ident!("{}Workflow", name);
-    // Pick the first start as the single-entry point
-    let start_ty = &start[0];
-
-    // Optional compile‑time acyclic check
+    // compile-time acyclic detection (if requested)
     let acyclic_check = if acyclic {
-        // Build indegree map
+        // build indegree map keyed by type tokens
         let mut indegree = std::collections::HashMap::new();
-        for (n, succs) in &edges {
-            indegree.entry(n.to_string()).or_insert(0);
-            for s in succs {
-                *indegree.entry(s.to_string()).or_insert(0) += 1;
+        for (from, succs) in &edges {
+            let from_key = from.to_token_stream().to_string();
+            indegree.entry(from_key.clone()).or_insert(0);
+            for to in succs {
+                let to_key = to.to_token_stream().to_string();
+                *indegree.entry(to_key).or_insert(0) += 1;
             }
         }
         // Kahn's algorithm
@@ -104,15 +90,16 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             .collect();
         let mut visited = 0;
         let mut local = indegree.clone();
-        while let Some(n) = queue.pop() {
+        while let Some(node_str) = queue.pop() {
             visited += 1;
-            if let Some((_, succs)) =
-                edges.iter().find(|(from, _)| &from.to_string() == &n)
+            if let Some((_, succs)) = edges.iter()
+                .find(|(from, _)| from.to_token_stream().to_string() == node_str)
             {
-                for s in succs {
-                    if let Some(d) = local.get_mut(&s.to_string()) {
-                        *d -= 1;
-                        if *d == 0 { queue.push(s.to_string()); }
+                for to in succs {
+                    let key = to.to_token_stream().to_string();
+                    if let Some(count) = local.get_mut(&key) {
+                        *count -= 1;
+                        if *count == 0 { queue.push(key); }
                     }
                 }
             }
@@ -127,30 +114,39 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         quote! {}
     };
 
-    // Generate dispatch arms for each node
-    let dispatch_arms = edges.iter().map(|(from, succs)| {
-        let from_ty = from;
-        let succ_code = succs.iter().map(|to| {
-            quote! {
-                // transition to #to
-                node_id = std::any::TypeId::of::<#to>();
-                payload = Some(Box::new(out));
+    // compile-time type checks for each edge: <From as Node>::Output == <To as Node>::Input
+    let type_checks = edges.iter().flat_map(|(from, succs)| {
+        succs.iter().map(move |to| {
+            let span = to.span();
+            quote_spanned! { span =>
+                #[allow(dead_code)]
+                let _: fn(
+                    <#from as floxide_core::node::Node>::Output
+                ) -> 
+                   <#to as floxide_core::node::Node>::Input
+                   = |x| x;
             }
-        });
+        })
+    });
+
+    // dispatch arms: for each (from, succs) enqueue successors into a worklist
+    let dispatch_arms = edges.iter().map(|(from, succs)| {
         quote! {
-            if node_id == std::any::TypeId::of::<#from_ty>() {
-                // downcast the payload to this node's Input
-                let inp = match payload.take().unwrap().downcast::<<#from_ty as floxide_core::node::Node>::Input>() {
-                    Ok(b) => *b,
-                    Err(_) => panic!("invalid payload type"),
-                };
-                // call process
-                let next = #from_ty {}.process(ctx, inp).await?;
-                match next {
+            if node_id == std::any::TypeId::of::<#from>() {
+                let inp = *payload
+                    .downcast::< <#from as floxide_core::node::Node>::Input >()
+                    .expect("invalid payload type");
+                // instantiate the node and call its process method
+                match (#from {}).process(ctx, inp).await? {
                     floxide_core::transition::Transition::Next(_, out) => {
-                        #(#succ_code)*
-                    }
-                    floxide_core::transition::Transition::Finish => return Ok(()),
+                        #(
+                            work.push_back((
+                                std::any::TypeId::of::<#succs>(),
+                                Box::new(out.clone()) as Box<dyn std::any::Any + Send>
+                            ));
+                        )*
+                    },
+                    floxide_core::transition::Transition::Finish => {},
                     floxide_core::transition::Transition::Abort(e) => return Err(e),
                 }
                 continue;
@@ -158,56 +154,32 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         }
     });
 
-    // Generate compile-time type-equality checks for each edge: ensure From::Output == To::Input
-    let type_checks = edges.iter().flat_map(|(from, succs)| {
-        succs.iter().map(move |to| {
-            // span on the successor node to highlight the failing target
-            let span = to.span();
-            // create a snake_case identifier for the edge assertion
-            let check_ident_raw = format!("__assert_edge_{}_{}", from, to);
-            // convert raw identifier string to snake_case
-            let check_ident_snake = check_ident_raw.to_snake_case();
-            let check_ident = format_ident!("{}", check_ident_snake);
-            quote_spanned! { span =>
-                #[allow(dead_code)]
-                // enforce that <#from as Node>::Output == <#to as Node>::Input
-                let #check_ident: fn(<#from as floxide_core::node::Node>::Output)
-                                   -> <#to as floxide_core::node::Node>::Input = |x| x;
-            }
-        })
-    });
-
-    // The main run‑loop body
+    // assemble the run-body with a VecDeque worklist
     let run_body = quote! {
+        use std::collections::VecDeque;
         #acyclic_check
-
-        // compile-time type checks: verify each edge's Output == Input
         #(#type_checks)*
-
-        // initialize with start node
-        let mut node_id = std::any::TypeId::of::<#start_ty>();
-        // box the initial input
-        let mut payload: Option<Box<dyn std::any::Any + Send>> = Some(Box::new(input));
-
-        loop {
+        let mut work = VecDeque::new();
+        work.push_back((
+            std::any::TypeId::of::<#start>(),
+            Box::new(input) as Box<dyn std::any::Any + Send>,
+        ));
+        while let Some((node_id, payload)) = work.pop_front() {
             #(#dispatch_arms)*
-
-            // if we get here, no matching node was found
-            return Err(floxide_core::error::FloxideError::Generic(
-                format!("Unknown node id {:?}", node_id)
-            ));
+            panic!("unknown node id {:?}", node_id);
         }
+        Ok(())
     };
 
-    // Emit the final code
+    // generate the struct and impl
+    let wf_struct = format_ident!("{}Workflow", name);
+    // Generate the workflow struct and implementation
     let expanded = quote! {
-        use async_trait::async_trait;
-
         pub struct #wf_struct;
 
         #[async_trait]
         impl floxide_core::workflow::Workflow for #wf_struct {
-            type Input = <#start_ty as floxide_core::node::Node>::Input;
+            type Input = <#start as floxide_core::node::Node>::Input;
 
             async fn run(
                 &mut self,
@@ -219,5 +191,6 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         }
     };
 
+    // Return the generated code
     TokenStream::from(expanded)
 }

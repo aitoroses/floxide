@@ -2,63 +2,87 @@
 
 use floxide_core::*;
 use floxide_macros::workflow;
+use async_trait::async_trait;
 
-// 1) Define two simple nodes using the Node trait directly:
+/// Example workflow: multiply by 2, add 3, then print result
+pub struct Multiply2;
+pub struct Add3;
+pub struct PrintResult;
 
-pub struct AddOne;
 #[async_trait]
-impl Node for AddOne {
-    type Input  = i32;
+impl Node for Multiply2 {
+    type Input = i32;
     type Output = i32;
 
     async fn process<C>(
         &self,
         _ctx: &mut WorkflowCtx<C>,
-        input: i32
+        input: i32,
     ) -> Result<Transition<Self>, FloxideError>
-    where Self: Sized + Node, C: Send + Sync + 'static {
-        let result = input + 1;
-        Ok(Transition::Next(Self, result))
+    where
+        Self: Sized + Node,
+        C: Send + Sync + 'static,
+    {
+        let out = input * 2;
+        println!("Multiply2: {} * 2 = {}", input, out);
+        Ok(Transition::Next(Multiply2, out))
     }
 }
 
-pub struct PrintResult;
+#[async_trait]
+impl Node for Add3 {
+    type Input = i32;
+    type Output = i32;
+
+    async fn process<C>(
+        &self,
+        _ctx: &mut WorkflowCtx<C>,
+        input: i32,
+    ) -> Result<Transition<Self>, FloxideError>
+    where
+        Self: Sized + Node,
+        C: Send + Sync + 'static,
+    {
+        let out = input + 3;
+        println!("Add3: {} + 3 = {}", input, out);
+        Ok(Transition::Next(Add3, out))
+    }
+}
+
 #[async_trait]
 impl Node for PrintResult {
-    type Input  = i32;
+    type Input = i32;
     type Output = ();
 
     async fn process<C>(
         &self,
         _ctx: &mut WorkflowCtx<C>,
-        input: i32
+        input: i32,
     ) -> Result<Transition<Self>, FloxideError>
-    where Self: Sized + Node, C: Send + Sync + 'static {
-        println!("Result = {}", input);
+    where
+        Self: Sized + Node,
+        C: Send + Sync + 'static,
+    {
+        println!("PrintResult: final result = {}", input);
         Ok(Transition::Finish)
     }
 }
 
-// 2) Wire them together in a minimal workflow! macro invocation:
-
+// Define a simple linear workflow: Multiply2 -> Add3 -> PrintResult
 workflow! {
-    name = Minimal;
-    start = AddOne;
+    name = SimpleMath;
+    start = Multiply2;
     edges {
-      AddOne     => [PrintResult];
-      PrintResult => [];
+        Multiply2  => [Add3];
+        Add3       => [PrintResult];
+        PrintResult => [];
     }
 }
 
-// 3) Use the WorkflowEngine to run it:
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create an empty context (no custom store)
     let mut ctx = WorkflowCtx::new(());
-
-    // Run the 'MinimalWorkflow' with initial input 5
-    MinimalWorkflow.run(&mut ctx, 5).await?;
-
+    // Run the SimpleMath workflow starting from 5
+    SimpleMathWorkflow.run(&mut ctx, 5).await?;
     Ok(())
 }
