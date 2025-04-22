@@ -1,196 +1,225 @@
 // crates/floxide-macros/src/workflow.rs
 
 use proc_macro::TokenStream;
-use quote::{format_ident, quote, quote_spanned};
+use quote::{format_ident, quote};
 use syn::{
-    bracketed,
-    braced,
+    bracketed, braced,
     parse::{Parse, ParseStream},
-    parse_macro_input, Ident, Result, Token, Type,
+    parse_macro_input, token, Ident, Result, Token,
+    Visibility, Generics, Type, Path,
 };
-use quote::ToTokens;
-use syn::spanned::Spanned;
 
-/// AST for `workflow! { name = X; start = Foo; edges { Foo => [Bar] } [acyclic;] }`
+/// AST for struct-based workflow: struct fields, start field, and per-node edges
+// Internal representation of a composite edge arm: matches Output enum variant
+struct CompositeArm {
+    action_path: Ident,
+    variant: Ident,
+    binding: Ident,
+    succs: Vec<Ident>,
+}
+// AST for struct-based workflow: struct fields, start field, and per-node composite edges
 struct WorkflowDef {
+    vis: Visibility,
     name: Ident,
-    start: Type,
-    edges: Vec<(Type, Vec<Type>)>,
-    acyclic: bool,
+    generics: Generics,
+    fields: Vec<(Ident, Type)>,
+    start: Ident,
+    // for each source field, a list of composite arms
+    edges: Vec<(Ident, Vec<CompositeArm>)>,
 }
 
 impl Parse for WorkflowDef {
     fn parse(input: ParseStream) -> Result<Self> {
-        // name = Foo;
-        input.parse::<Ident>()?;        // `name`
-        input.parse::<Token![=]>()?;
+        // parse optional visibility
+        let vis: Visibility = if input.peek(Token![pub]) {
+            input.parse()?  // pub or pub(...) etc
+        } else {
+            Visibility::Inherited
+        };
+        // parse struct definition
+        input.parse::<Token![struct]>()?;
         let name: Ident = input.parse()?;
-        input.parse::<Token![;]>()?;
-
-        // start = Foo;
-        input.parse::<Ident>()?;        // `start`
+        let generics: Generics = input.parse()?;
+        // parse struct fields
+        let content;
+        braced!(content in input);
+        let mut fields = Vec::new();
+        while !content.is_empty() {
+            let fld: Ident = content.parse()?;
+            content.parse::<Token![:]>()?;
+            let ty: Type = content.parse()?;
+            if content.peek(Token![,]) {
+                content.parse::<Token![,]>()?;
+            }
+            fields.push((fld, ty));
+        }
+        // parse start = field;
+        input.parse::<Ident>()?; // start
         input.parse::<Token![=]>()?;
-        let start: Type = input.parse()?;
+        let start: Ident = input.parse()?;
         input.parse::<Token![;]>()?;
-
-        // edges { Foo => [Bar, Baz]; … }
-        input.parse::<Ident>()?;        // `edges`
+        // parse edges { ... }
+        input.parse::<Ident>()?; // edges
         let edges_content;
         braced!(edges_content in input);
         let mut edges = Vec::new();
         while !edges_content.is_empty() {
-            let from: Type = edges_content.parse()?;
+            let src: Ident = edges_content.parse()?;
             edges_content.parse::<Token![=>]>()?;
-            let succs_content;
-            bracketed!(succs_content in edges_content);
-            let succs: Vec<Type> = succs_content
-                .parse_terminated(Type::parse, Token![,])?
-                .into_iter()
-                .collect();
-            edges_content.parse::<Token![;]>()?;
-            edges.push((from, succs));
-        }
-
-        // optional acyclic;
-        let mut acyclic = false;
-        if input.peek(Ident) && input.peek2(Token![;]) {
-            let kw: Ident = input.parse()?;
-            if kw == "acyclic" {
-                acyclic = true;
-                input.parse::<Token![;]>()?;
+            // composite edges in a braced block
+            let nested;
+            braced!(nested in edges_content);
+            let mut composite = Vec::new();
+            while !nested.is_empty() {
+                // parse pattern: EnumName::Variant(binding)
+                let action_path: Ident = nested.parse()?;
+                nested.parse::<Token![::]>()?;
+                let variant: Ident = nested.parse()?;
+                let inner;
+                syn::parenthesized!(inner in nested);
+                let binding: Ident = inner.parse()?;
+                nested.parse::<Token![=>]>()?;
+                // parse successors list
+                let succs_content;
+                bracketed!(succs_content in nested);
+                let succs: Vec<Ident> = succs_content
+                    .parse_terminated(Ident::parse, Token![,])?
+                    .into_iter()
+                    .collect();
+                nested.parse::<Token![;]>()?;
+                composite.push(CompositeArm { action_path, variant, binding, succs });
             }
+            edges_content.parse::<Token![;]>()?;
+            edges.push((src, composite));
         }
-
-        Ok(WorkflowDef { name, start, edges, acyclic })
+        Ok(WorkflowDef { vis, name, generics, fields, start, edges })
     }
 }
 
 #[proc_macro]
 pub fn workflow(item: TokenStream) -> TokenStream {
-    // parse the workflow definition
-    let WorkflowDef { name, start, edges, acyclic } =
+    // parse the struct-based workflow definition
+    let WorkflowDef { vis, name, generics, fields, start, edges } =
         parse_macro_input!(item as WorkflowDef);
 
-    // compile-time acyclic detection (if requested)
-    let acyclic_check = if acyclic {
-        // build indegree map keyed by type tokens
-        let mut indegree = std::collections::HashMap::new();
-        for (from, succs) in &edges {
-            let from_key = from.to_token_stream().to_string();
-            indegree.entry(from_key.clone()).or_insert(0);
-            for to in succs {
-                let to_key = to.to_token_stream().to_string();
-                *indegree.entry(to_key).or_insert(0) += 1;
-            }
-        }
-        // Kahn's algorithm
-        let mut queue: Vec<_> = indegree.iter()
-            .filter(|&(_, &d)| d == 0)
-            .map(|(k, _)| k.clone())
-            .collect();
-        let mut visited = 0;
-        let mut local = indegree.clone();
-        while let Some(node_str) = queue.pop() {
-            visited += 1;
-            if let Some((_, succs)) = edges.iter()
-                .find(|(from, _)| from.to_token_stream().to_string() == node_str)
-            {
-                for to in succs {
-                    let key = to.to_token_stream().to_string();
-                    if let Some(count) = local.get_mut(&key) {
-                        *count -= 1;
-                        if *count == 0 { queue.push(key); }
+    // Build WorkItem enum name
+    let work_item_ident = format_ident!("{}WorkItem", name);
+    // Generate WorkItem variants
+    let work_variants = fields.iter().map(|(fld, ty)| {
+        // Variant name: capitalized field name
+        let fld_str = fld.to_string();
+        let mut chars = fld_str.chars();
+        let first = chars.next().unwrap().to_uppercase().to_string();
+        let rest: String = chars.collect();
+        let var_ident = format_ident!("{}{}", first, rest);
+        quote! { #var_ident(<#ty as floxide_core::node::Node>::Input) }
+    });
+
+    // Struct definition
+    let struct_def = {
+        let field_defs = fields.iter().map(|(fld, ty)| quote! { pub #fld: #ty });
+        quote! { #vis struct #name #generics { #(#field_defs),* } }
+    };
+
+    // Generate run method arms for each field
+    let run_arms = fields.iter().map(|(fld, ty)| {
+        // WorkItem variant
+        let fld_str = fld.to_string();
+        let mut chars = fld_str.chars();
+        let first = chars.next().unwrap().to_uppercase().to_string();
+        let rest: String = chars.collect();
+        let var_ident = format_ident!("{}{}", first, rest);
+        // Find edges for this field
+        let arm = edges.iter().find(|(src, _)| src == fld);
+        let arm_tokens = if let Some((_, composite)) = arm {
+            if composite.is_empty() {
+                // no edges: treat Next(_) or Finish as terminal
+                quote! {
+                    match self.#fld.process(ctx, x).await? {
+                        Transition::Next(_) | Transition::Finish => {},
+                        Transition::Abort(e) => return Err(e),
+                    }
+                }
+            } else {
+                // composite edges: pattern-based
+                let pats = composite.iter().map(|arm| {
+                    let CompositeArm { action_path, variant, binding, succs } = arm;
+                    // build pattern: Path::Variant(binding)
+                    let pat = quote! { #action_path :: #variant (#binding) };
+                    // push variants for succs
+                    let succ_pushes = succs.iter().map(|succ| {
+                        // succ variant name: capitalize succ ident
+                        let succ_str = succ.to_string();
+                        let mut sc = succ_str.chars();
+                        let sf = sc.next().unwrap().to_uppercase().to_string();
+                        let rest: String = sc.collect();
+                        let succ_var = format_ident!("{}{}", sf, rest);
+                        quote! { work.push_back(#work_item_ident::#succ_var(#binding)); }
+                    });
+                    quote! { #pat => { #(#succ_pushes)* } }
+                });
+                quote! {
+                    match self.#fld.process(ctx, x).await? {
+                        Transition::Next(action) => {
+                            match action { #(#pats),* _ => {} }
+                        }
+                        Transition::Finish => {},
+                        Transition::Abort(e) => return Err(e),
                     }
                 }
             }
-        }
-        if visited != indegree.len() {
-            let msg = format!("workflow `{}` is not acyclic", name);
-            quote! { compile_error!(#msg); }
         } else {
-            quote! {}
-        }
-    } else {
-        quote! {}
-    };
-
-    // compile-time type checks for each edge: <From as Node>::Output == <To as Node>::Input
-    let type_checks = edges.iter().flat_map(|(from, succs)| {
-        succs.iter().map(move |to| {
-            let span = to.span();
-            quote_spanned! { span =>
-                #[allow(dead_code)]
-                let _: fn(
-                    <#from as floxide_core::node::Node>::Output
-                ) -> 
-                   <#to as floxide_core::node::Node>::Input
-                   = |x| x;
-            }
-        })
-    });
-
-    // dispatch arms: for each (from, succs) enqueue successors into a worklist
-    let dispatch_arms = edges.iter().map(|(from, succs)| {
+            panic!("No edges defined for field {}", fld);
+        };
         quote! {
-            if node_id == std::any::TypeId::of::<#from>() {
-                let inp = *payload
-                    .downcast::< <#from as floxide_core::node::Node>::Input >()
-                    .expect("invalid payload type");
-                // instantiate the node and call its process method
-                match (#from {}).process(ctx, inp).await? {
-                    floxide_core::transition::Transition::Next(_, out) => {
-                        #(
-                            work.push_back((
-                                std::any::TypeId::of::<#succs>(),
-                                Box::new(out.clone()) as Box<dyn std::any::Any + Send>
-                            ));
-                        )*
-                    },
-                    floxide_core::transition::Transition::Finish => {},
-                    floxide_core::transition::Transition::Abort(e) => return Err(e),
-                }
-                continue;
+            #work_item_ident::#var_ident(x) => {
+                #arm_tokens
             }
         }
     });
 
-    // assemble the run-body with a VecDeque worklist
-    let run_body = quote! {
-        use std::collections::VecDeque;
-        #acyclic_check
-        #(#type_checks)*
-        let mut work = VecDeque::new();
-        work.push_back((
-            std::any::TypeId::of::<#start>(),
-            Box::new(input) as Box<dyn std::any::Any + Send>,
-        ));
-        while let Some((node_id, payload)) = work.pop_front() {
-            #(#dispatch_arms)*
-            panic!("unknown node id {:?}", node_id);
-        }
-        Ok(())
+    // Start variant
+    let start_var = {
+        let s = start.to_string();
+        let mut cs = s.chars();
+        let first = cs.next().unwrap().to_uppercase().to_string();
+        let rest: String = cs.collect();
+        format_ident!("{}{}", first, rest)
     };
+    // Start field type for Input
+    let start_ty = fields.iter().find(|(fld,_)| fld == &start)
+        .map(|(_,ty)| ty).expect("start field not found");
 
-    // generate the struct and impl
-    let wf_struct = format_ident!("{}Workflow", name);
-    // Generate the workflow struct and implementation
+    // Assemble the expanded code
     let expanded = quote! {
-        pub struct #wf_struct;
+        #struct_def
+        
+        #[allow(non_camel_case_types)]
+        enum #work_item_ident {
+            #(#work_variants),*
+        }
 
         #[async_trait]
-        impl floxide_core::workflow::Workflow for #wf_struct {
-            type Input = <#start as floxide_core::node::Node>::Input;
+        impl floxide_core::workflow::Workflow for #name #generics {
+            type Input = <#start_ty as floxide_core::node::Node>::Input;
 
             async fn run(
                 &mut self,
                 ctx: &mut floxide_core::context::WorkflowCtx<()>,
                 input: Self::Input
             ) -> Result<(), floxide_core::error::FloxideError> {
-                #run_body
+                use std::collections::VecDeque;
+                use floxide_core::transition::Transition;
+                let mut work = VecDeque::new();
+                work.push_back(#work_item_ident::#start_var(input));
+                while let Some(item) = work.pop_front() {
+                    match item {
+                        #(#run_arms),*
+                    }
+                }
+                Ok(())
             }
         }
     };
-
-    // Return the generated code
     TokenStream::from(expanded)
 }

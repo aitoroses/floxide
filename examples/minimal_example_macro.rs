@@ -1,7 +1,7 @@
-// examples/minimal_example.rs
+// examples/minimal_example_macro.rs
+use floxide_macros::workflow;
 use floxide_core::*;
 use async_trait::async_trait;
-use std::collections::VecDeque;
 
 /// Action enum for FooNode: branch carries different payloads
 #[derive(Clone, Debug)]
@@ -89,61 +89,21 @@ impl Node for SmallNode {
     }
 }
 
-/// Manual workflow implementation demonstrating threshold branching
-pub struct ThresholdWorkflow {
-    foo: FooNode,
-    big: BigNode,
-    small: SmallNode,
-}
-
-#[async_trait]
-impl Workflow for ThresholdWorkflow {
-    type Input = u64;
-
-    async fn run(
-        &mut self,
-        ctx: &mut WorkflowCtx<()>,
-        input: u64,
-    ) -> Result<(), FloxideError> {
-        // Worklist of items tagged by origin
-        enum WorkItem {
-            Foo(u64),
-            Big(u64),
-            Small(String),
-        }
-
-        let mut work = VecDeque::new();
-        work.push_back(WorkItem::Foo(input));
-
-        while let Some(item) = work.pop_front() {
-            match item {
-                WorkItem::Foo(x) => {
-                    match self.foo.process(ctx, x).await? {
-                        Transition::Next(FooAction::Above(v)) => {
-                            work.push_back(WorkItem::Big(v));
-                        }
-                        Transition::Next(FooAction::Below(s)) => {
-                            work.push_back(WorkItem::Small(s));
-                        }
-                        Transition::Finish => break,
-                        Transition::Abort(e) => return Err(e),
-                    }
-                }
-                WorkItem::Big(v) => {
-                    match self.big.process(ctx, v).await? {
-                        Transition::Next(_) | Transition::Finish => break,
-                        Transition::Abort(e) => return Err(e),
-                    }
-                }
-                WorkItem::Small(s) => {
-                    match self.small.process(ctx, s).await? {
-                        Transition::Next(_) | Transition::Finish => break,
-                        Transition::Abort(e) => return Err(e),
-                    }
-                }
-            }
-        }
-        Ok(())
+// Generate the ThresholdWorkflow using our `workflow!` procedural macro
+workflow! {
+    pub struct ThresholdWorkflow {
+        foo: FooNode,
+        big: BigNode,
+        small: SmallNode,
+    }
+    start = foo;
+    edges {
+        foo => {
+            FooAction::Above(v) => [ big ];
+            FooAction::Below(s) => [ small ];
+        };
+        big => {};
+        small => {};
     }
 }
 
