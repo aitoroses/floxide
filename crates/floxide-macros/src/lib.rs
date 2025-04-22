@@ -261,6 +261,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
     // Assemble the expanded code
     let expanded = quote! {
+
+        #[derive(Debug, Clone)]
         #struct_def
 
         #[allow(non_camel_case_types)]

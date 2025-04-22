@@ -8,6 +8,7 @@ use tokio::time::sleep;
 use std::time::Duration;
 
 /// A node that sleeps for a specified duration before completing.
+#[derive(Clone, Debug)]
 pub struct SlowNode {
     dur: Duration,
 }

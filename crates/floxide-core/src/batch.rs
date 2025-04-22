@@ -8,7 +8,7 @@ use futures::future::join_all;
 use std::vec::Vec;
 
 /// A node adapter that runs an inner node on a batch of inputs, collecting outputs in parallel
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BatchNode<N> {
     pub node: N,
     pub batch_size: usize,

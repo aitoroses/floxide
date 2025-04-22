@@ -6,6 +6,7 @@ use floxide_core::*;
 use async_trait::async_trait;
 
 /// A node that multiplies its input by 3
+#[derive(Clone, Debug)]
 pub struct TripleNode;
 
 #[async_trait]

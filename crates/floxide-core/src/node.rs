@@ -14,4 +14,4 @@ pub trait Node: Send + Sync + 'static {
         input: Self::Input
     ) -> Result<Transition<Self::Output>, crate::error::FloxideError>
     where Self: Sized + Node, C: Clone + Send + Sync + 'static;
-} 
+}

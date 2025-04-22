@@ -6,7 +6,7 @@ use floxide_core::*;
 use async_trait::async_trait;
 
 /// A simple node that multiplies its input by 2
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Multiply2;
 
 #[async_trait]
@@ -30,12 +30,14 @@ impl Node for Multiply2 {
 }
 
 /// Action enum for branching after batch multiply
+#[derive(Clone, Debug)]
 pub enum BatchAction {
     Large(Vec<i32>),
     Small(Vec<i32>),
 }
 
 /// Node that sums a batch and branches based on sum
+#[derive(Clone, Debug)]
 pub struct BranchAfterMultiply {
     threshold: i32,
 }
@@ -67,6 +69,7 @@ impl Node for BranchAfterMultiply {
 }
 
 /// Node that handles large batches
+#[derive(Clone, Debug)]
 pub struct LargeNode;
 
 #[async_trait]
@@ -89,6 +92,7 @@ impl Node for LargeNode {
 }
 
 /// Node that handles small batches
+#[derive(Clone, Debug)]
 pub struct SmallNode;
 
 #[async_trait]

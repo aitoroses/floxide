@@ -11,6 +11,7 @@ pub enum FooAction {
 }
 
 /// Node that compares input against a threshold
+#[derive(Clone, Debug)]
 pub struct FooNode {
     threshold: u64,
 }
@@ -46,6 +47,7 @@ impl Node for FooNode {
 }
 
 /// Node that handles values above threshold
+#[derive(Clone, Debug)]
 pub struct BigNode;
 
 #[async_trait]
@@ -68,6 +70,7 @@ impl Node for BigNode {
 }
 
 /// Node that handles values below threshold
+#[derive(Clone, Debug)]
 pub struct SmallNode;
 
 #[async_trait]
