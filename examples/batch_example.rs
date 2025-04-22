@@ -16,7 +16,7 @@ impl Node for Multiply2 {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         input: i32,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -49,7 +49,7 @@ impl Node for BranchAfterMultiply {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         inputs: Vec<i32>,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -79,7 +79,7 @@ impl Node for LargeNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         inputs: Vec<i32>,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -102,7 +102,7 @@ impl Node for SmallNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         inputs: Vec<i32>,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -138,15 +138,15 @@ workflow! {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the workflow with batch size and threshold
-    let mut wf = BatchWorkflow {
+    let wf = BatchWorkflow {
         multiply: BatchNode::new(Multiply2, 2),
         branch: BranchAfterMultiply { threshold: 20 },
         large: LargeNode,
         small: SmallNode,
     };
-    let mut ctx = WorkflowCtx::new(());
+    let ctx = WorkflowCtx::new(());
     let inputs = vec![1, 2, 3, 4, 5];
     println!("Running batch workflow on {:?}", inputs);
-    wf.run(&mut ctx, inputs).await?;
+    wf.run(&ctx, inputs).await?;
     Ok(())
 }

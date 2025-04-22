@@ -1,5 +1,4 @@
 use crate::node::Node;
-use crate::context::WorkflowCtx;
 use crate::transition::Transition;
 use crate::error::FloxideError;
 use async_trait::async_trait;
@@ -28,13 +27,14 @@ where
     <N as Node>::Output: Send + 'static,
 {
     /// Process a batch of inputs, where the associated Input/Output types are Vecs
-    pub async fn process_batch<Ctx>(
+pub async fn process_batch<C>(
         &self,
-        ctx: &mut WorkflowCtx<Ctx>,
+        // take ownership of the context so it can be cloned into blocking tasks
+        ctx: C,
         inputs: <Self as Node>::Input,
     ) -> Result<<Self as Node>::Output, FloxideError>
     where
-        Ctx: Send + Sync + Clone + 'static,
+        C: Clone + Send + Sync + 'static,
     {
         let mut outputs = Vec::new();
         let node = self.node.clone();
@@ -43,10 +43,11 @@ where
 
         for input in inputs.into_iter() {
             let node = node.clone();
-            let mut ctx = ctx_clone.clone();
+            // clone the context reference (does not require C: Clone)
+            let ctx = ctx_clone.clone();
             let task = task::spawn_blocking(move || {
                 tokio::runtime::Handle::current().block_on(async move {
-                    node.process(&mut ctx, input).await
+                    node.process(&ctx, input).await
                 })
             });
             tasks.push(task);
@@ -93,16 +94,18 @@ where
     type Input = Vec<<N as Node>::Input>;
     type Output = Vec<<N as Node>::Output>;
 
-    async fn process<Ctx>(
+    async fn process<C>(
         &self,
-        ctx: &mut WorkflowCtx<Ctx>,
+        ctx: &C,
         inputs: Self::Input,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
         Self: Sized + Node,
-        Ctx: Send + Sync + Clone + 'static,
+        C: Clone + Send + Sync + 'static,
     {
-        let outputs = self.process_batch(ctx, inputs).await?;
+        // clone the owned context for batch processing
+        // clone the owned context for batch processing
+        let outputs = self.process_batch((*ctx).clone(), inputs).await?;
         Ok(Transition::Next(outputs))
     }
 }

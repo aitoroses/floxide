@@ -16,7 +16,7 @@ impl Node for TripleNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         input: i32,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -41,14 +41,14 @@ workflow! {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut wf = TerminalWorkflow {
+    let wf = TerminalWorkflow {
         triple: TripleNode,
     };
-    let mut ctx = WorkflowCtx::new(());
+    let ctx = WorkflowCtx::new(());
     let input = 7;
     println!("Running workflow with input {}:", input);
     // wf.run now returns the node's Output type (i32 here)
-    let output: i32 = wf.run(&mut ctx, input).await?;
+    let output: i32 = wf.run(&ctx, input).await?;
     println!("Workflow output: {}", output);
     Ok(())
 }

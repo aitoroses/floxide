@@ -23,7 +23,7 @@ impl Node for FooNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         input: u64,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -57,7 +57,7 @@ impl Node for BigNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         input: u64,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -80,7 +80,7 @@ impl Node for SmallNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         input: String,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -107,8 +107,8 @@ impl Workflow for ThresholdWorkflow {
     type Output = ();
 
     async fn run<D>(
-        &mut self,
-        ctx: &mut WorkflowCtx<D>,
+        &self,
+        ctx: &D,
         input: u64,
     ) -> Result<Self::Output, FloxideError>
     where D: Clone + Send + Sync + 'static {
@@ -156,15 +156,15 @@ impl Workflow for ThresholdWorkflow {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut wf = ThresholdWorkflow {
+    let wf = ThresholdWorkflow {
         foo: FooNode { threshold: 10 },
         big: BigNode,
         small: SmallNode,
     };
-    let mut ctx = WorkflowCtx::new(());
+    let ctx = WorkflowCtx::new(());
     println!("Running with input 5:");
-    wf.run(&mut ctx, 5).await?;
+    wf.run(&ctx, 5).await?;
     println!("Running with input 42:");
-    wf.run(&mut ctx, 42).await?;
+    wf.run(&ctx, 42).await?;
     Ok(())
 }

@@ -1,7 +1,13 @@
 // examples/minimal_example_macro.rs
-use floxide_macros::workflow;
-use floxide_core::*;
 use async_trait::async_trait;
+use floxide_core::*;
+use floxide_macros::workflow;
+
+/// Context type for the workflow
+#[derive(Clone, Debug)]
+pub struct MyCtx {
+    pub value: u64,
+}   
 
 /// Action enum for FooNode: branch carries different payloads
 #[derive(Clone, Debug)]
@@ -23,7 +29,7 @@ impl Node for FooNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         input: u64,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -33,15 +39,14 @@ impl Node for FooNode {
         if input > self.threshold {
             let out = input * 2;
             println!("FooNode: {} > {} => Above({})", input, self.threshold, out);
-            Ok(Transition::Next(
-                FooAction::Above(out)
-            ))
+            Ok(Transition::Next(FooAction::Above(out)))
         } else {
             let msg = format!("{} <= {}", input, self.threshold);
-            println!("FooNode: {} <= {} => Below(\"{}\")", input, self.threshold, msg);
-            Ok(Transition::Next(
-                FooAction::Below(msg),
-            ))
+            println!(
+                "FooNode: {} <= {} => Below(\"{}\")",
+                input, self.threshold, msg
+            );
+            Ok(Transition::Next(FooAction::Below(msg)))
         }
     }
 }
@@ -57,7 +62,7 @@ impl Node for BigNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         input: u64,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -80,7 +85,7 @@ impl Node for SmallNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         input: String,
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -112,15 +117,15 @@ workflow! {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut wf = ThresholdWorkflow {
+    let wf = ThresholdWorkflow {
         foo: FooNode { threshold: 10 },
         big: BigNode,
         small: SmallNode,
     };
-    let mut ctx = WorkflowCtx::new(());
+    let ctx = WorkflowCtx::new(MyCtx { value: 0 });
     println!("Running with input 5:");
-    wf.run(&mut ctx, 5).await?;
+    wf.run(&ctx, 5).await?;
     println!("Running with input 42:");
-    wf.run(&mut ctx, 42).await?;
+    wf.run(&ctx, 42).await?;
     Ok(())
 }

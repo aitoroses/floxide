@@ -3,7 +3,7 @@ use std::future::Future;
 use tokio_util::sync::CancellationToken;
 use crate::error::FloxideError;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WorkflowCtx<S> {
     pub store: S,
     cancel: CancellationToken,

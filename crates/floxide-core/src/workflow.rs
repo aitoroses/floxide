@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 // crates/floxide-core/src/workflow.rs
 use async_trait::async_trait;
-use crate::{context::WorkflowCtx, error::FloxideError, Node, Transition};
+use crate::{error::FloxideError, Node, Transition};
 
 #[async_trait]
 pub trait Workflow: Debug + Clone + Send + Sync + 'static {
@@ -10,12 +10,12 @@ pub trait Workflow: Debug + Clone + Send + Sync + 'static {
     /// Output type returned by the workflow's terminal branch
     type Output: Send + 'static;
     /// Execute the workflow, returning the output of the terminal branch
-    async fn run<D>(
-        &mut self,
-        ctx: &mut WorkflowCtx<D>,
+    async fn run<C>(
+        &self,
+        ctx: &C,
         input: Self::Input
     ) -> Result<Self::Output, FloxideError>
-    where D: Clone + Send + Sync + 'static;
+    where C: Clone + Send + Sync + 'static;
 }
 
 /// CompositeNode wraps a Workflow so it implements Node
@@ -37,13 +37,13 @@ where
 {
     type Input = W::Input;
     type Output = W::Output;
-    async fn process<D>(
+    async fn process<C>(
         &self,
-        ctx: &mut WorkflowCtx<D>,
+        ctx: &C,
         input: Self::Input,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where D: Clone + Send + Sync + 'static {
-        let mut inner = self.workflow.clone();
+    where C: Clone + Send + Sync + 'static {
+        let inner = self.workflow.clone();
         let out = inner.run(ctx, input).await?;
         Ok(Transition::Next(out))
     }

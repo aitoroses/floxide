@@ -165,9 +165,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 if succs.is_empty() {
                     // terminal direct branch: return the output value
                     quote! {
-                        let mut __proc_ctx = ctx.clone();
-                        let __run_ctx = ctx.clone();
-                        match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
+                        // access only the store for this node
+                        let __store = &ctx.store;
+                        match ctx.run_future(self.#fld.process(__store, x)).await? {
                             Transition::Next(action) => return Ok(action),
                             Transition::Finish => return Ok(Default::default()),
                             Transition::Abort(e) => return Err(e),
@@ -184,9 +184,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         quote! { work.push_back(#work_item_ident::#succ_var(action.clone())); }
                     });
                     quote! {
-                        let mut __proc_ctx = ctx.clone();
-                        let __run_ctx = ctx.clone();
-                        match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
+                        // access only the store for this node
+                        let __store = &ctx.store;
+                        match ctx.run_future(self.#fld.process(__store, x)).await? {
                             Transition::Next(action) => { #(#pushes)* }
                             Transition::Finish => {},
                             Transition::Abort(e) => return Err(e),
@@ -197,10 +197,10 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             EdgeKind::Composite(composite) => {
                 if composite.is_empty() {
                     // terminal composite branch: return the output value
-                    quote! {
-                        let mut __proc_ctx = ctx.clone();
-                        let __run_ctx = ctx.clone();
-                        match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
+                quote! {
+                        // access only the store for this node
+                        let __store = &ctx.store;
+                        match ctx.run_future(self.#fld.process(__store, x)).await? {
                             Transition::Next(action) => return Ok(action),
                             Transition::Finish => return Ok(Default::default()),
                             Transition::Abort(e) => return Err(e),
@@ -227,9 +227,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         }
                     });
                     quote! {
-                        let mut __proc_ctx = ctx.clone();
-                        let __run_ctx = ctx.clone();
-                        match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
+                        // access only the store for this node
+                        let __store = &ctx.store;
+                        match ctx.run_future(self.#fld.process(__store, x)).await? {
                             Transition::Next(action) => {
                                 match action { #(#pats),* _ => {} }
                             }
@@ -271,17 +271,16 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         }
 
 
-        #[async_trait]
-        impl floxide_core::workflow::Workflow for #name #generics {
-            type Input = <#start_ty as floxide_core::node::Node>::Input;
-            type Output = <#terminal_ty as floxide_core::node::Node>::Output;
-
-            async fn run<D>(
-                &mut self,
-                ctx: &mut floxide_core::context::WorkflowCtx<D>,
-                input: Self::Input
-            ) -> Result<Self::Output, floxide_core::error::FloxideError>
-            where D: Clone + Send + Sync + 'static {
+        impl #name #generics {
+            /// Execute the workflow, returning the output of the terminal branch
+            pub async fn run<C>(
+                &self,
+                ctx: &floxide_core::WorkflowCtx<C>,
+                input: <#start_ty as floxide_core::node::Node>::Input
+            ) -> Result<<#terminal_ty as floxide_core::node::Node>::Output, floxide_core::error::FloxideError>
+            where
+                C: Clone + Send + Sync + 'static,
+            {
                 use std::collections::VecDeque;
                 use floxide_core::transition::Transition;
                 let mut work = VecDeque::new();
@@ -292,6 +291,24 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     }
                 }
                 unreachable!("Workflow did not reach terminal branch");
+            }
+        }
+
+        #[async_trait]
+        impl floxide_core::workflow::Workflow for #name #generics {
+            type Input = <#start_ty as floxide_core::node::Node>::Input;
+            type Output = <#terminal_ty as floxide_core::node::Node>::Output;
+
+            async fn run<D>(
+                &self,
+                ctx: &D,
+                input: Self::Input
+            ) -> Result<Self::Output, floxide_core::error::FloxideError>
+            where D: Clone + Send + Sync + 'static {
+                // build a full WorkflowCtx<C> from the store
+                let wf_ctx = floxide_core::WorkflowCtx::new(ctx.clone());
+                // delegate to the inherent run method
+                self.run(&wf_ctx, input).await
             }
         }
     };

@@ -20,7 +20,7 @@ impl Node for SlowNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -46,13 +46,13 @@ workflow! {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut wf = TimeoutWorkflow {
+    let wf = TimeoutWorkflow {
         slow: SlowNode { dur: Duration::from_secs(2) },
     };
     let mut ctx = WorkflowCtx::new(());
     // Set a timeout shorter than the node's sleep
     ctx.set_timeout(Duration::from_millis(500));
-    match wf.run(&mut ctx, ()).await {
+    match wf.run(&ctx, ()).await {
         Ok(_) => println!("Workflow completed successfully"),
         Err(e) => println!("Workflow failed: {}", e),
     }

@@ -20,7 +20,7 @@ impl Node for SlowNode {
 
     async fn process<C>(
         &self,
-        _ctx: &mut WorkflowCtx<C>,
+        _ctx: &C,
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError>
     where
@@ -46,10 +46,10 @@ workflow! {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut wf = CancelWorkflow {
+    let wf = CancelWorkflow {
         slow: SlowNode { dur: Duration::from_secs(2) },
     };
-    let mut ctx = WorkflowCtx::new(());
+    let ctx = WorkflowCtx::new(());
     // Clone the cancellation token and trigger it after a delay
     let canceller = ctx.cancel_token().clone();
     tokio::spawn(async move {
@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Cancelling workflow");
         canceller.cancel();
     });
-    match wf.run(&mut ctx, ()).await {
+    match wf.run(&ctx, ()).await {
         Ok(_) => println!("Workflow completed successfully"),
         Err(e) => println!("Workflow failed: {}", e),
     }
