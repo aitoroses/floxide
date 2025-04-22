@@ -162,7 +162,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     quote! { work.push_back(#work_item_ident::#succ_var(action.clone())); }
                 });
                 quote! {
-                    match self.#fld.process(ctx, x).await? {
+                    let mut __proc_ctx = ctx.clone();
+                    let __run_ctx = ctx.clone();
+                    match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
                         Transition::Next(action) => { #(#pushes)* }
                         Transition::Finish => {},
                         Transition::Abort(e) => return Err(e),
@@ -173,7 +175,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 if composite.is_empty() {
                     // no edges: treat Next(_) or Finish as terminal
                     quote! {
-                        match self.#fld.process(ctx, x).await? {
+                        let mut __proc_ctx = ctx.clone();
+                        let __run_ctx = ctx.clone();
+                        match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
                             Transition::Next(_) | Transition::Finish => {},
                             Transition::Abort(e) => return Err(e),
                         }
@@ -194,7 +198,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         quote! { #pat => { #(#succ_pushes)* } }
                     });
                     quote! {
-                        match self.#fld.process(ctx, x).await? {
+                        let mut __proc_ctx = ctx.clone();
+                        let __run_ctx = ctx.clone();
+                        match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
                             Transition::Next(action) => {
                                 match action { #(#pats),* _ => {} }
                             }

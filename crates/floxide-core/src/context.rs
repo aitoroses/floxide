@@ -1,5 +1,7 @@
 use std::time::Duration;
+use std::future::Future;
 use tokio_util::sync::CancellationToken;
+use crate::error::FloxideError;
 
 #[derive(Clone)]
 pub struct WorkflowCtx<S> {
@@ -33,5 +35,38 @@ where
 
     pub fn set_timeout(&mut self, d: Duration) {
         self.timeout = Some(d);
+    }
+    /// Cancel the workflow execution.
+    pub fn cancel(&self) {
+        self.cancel.cancel();
+    }
+
+    /// Returns true if the workflow has been cancelled.
+    pub fn is_cancelled(&self) -> bool {
+        self.cancel.is_cancelled()
+    }
+
+    /// Asynchronously wait until the workflow is cancelled.
+    pub async fn cancelled(&self) {
+        self.cancel.cancelled().await;
+    }
+
+    /// Runs the provided future, respecting cancellation and optional timeout.
+    pub async fn run_future<R, F>(&self, fut: F) -> Result<R, FloxideError>
+    where
+        F: Future<Output = Result<R, FloxideError>>,
+    {
+        if let Some(duration) = self.timeout {
+            tokio::select! {
+                _ = self.cancel.cancelled() => Err(FloxideError::Cancelled),
+                _ = tokio::time::sleep(duration) => Err(FloxideError::Timeout(duration)),
+                res = fut => res,
+            }
+        } else {
+            tokio::select! {
+                _ = self.cancel.cancelled() => Err(FloxideError::Cancelled),
+                res = fut => res,
+            }
+        }
     }
 }
