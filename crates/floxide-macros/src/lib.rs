@@ -5,8 +5,8 @@ use quote::{format_ident, quote};
 use syn::{
     bracketed, braced,
     parse::{Parse, ParseStream},
-    parse_macro_input, token, Ident, Result, Token,
-    Visibility, Generics, Type, Path,
+    parse_macro_input, Ident, Result, Token,
+    Visibility, Generics, Type
 };
 
 /// AST for struct-based workflow: struct fields, start field, and per-node edges
@@ -122,7 +122,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     };
 
     // Generate run method arms for each field
-    let run_arms = fields.iter().map(|(fld, ty)| {
+    let run_arms = fields.iter().map(|(fld, _ty)| {
         // WorkItem variant
         let fld_str = fld.to_string();
         let mut chars = fld_str.chars();
