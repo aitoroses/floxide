@@ -120,6 +120,16 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
     // Build WorkItem enum name
     let work_item_ident = format_ident!("{}WorkItem", name);
+    // Determine terminal branch: a field with no successors (direct empty or composite empty)
+    let terminal_src = edges.iter().find(|(_, kind)| {
+        matches!(kind, EdgeKind::Direct(succs) if succs.is_empty())
+        || matches!(kind, EdgeKind::Composite(ar) if ar.is_empty())
+    }).expect("Workflow must have a terminal branch").0.clone();
+    // Find the type of the terminal field
+    let terminal_ty = fields.iter()
+        .find(|(fld, _)| fld == &terminal_src)
+        .map(|(_, ty)| ty.clone())
+        .expect("Terminal field not found among fields");
     // Generate WorkItem variants
     let work_variants = fields.iter().map(|(fld, ty)| {
         // Variant name: capitalized field name
@@ -152,33 +162,47 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         // Generate code based on edge kind
         let arm_tokens = match kind {
             EdgeKind::Direct(succs) => {
-                // direct successor(s): pass the action to next node(s)
-                let pushes = succs.iter().map(|succ| {
-                    let succ_str = succ.to_string();
-                    let mut sc = succ_str.chars();
-                    let sf = sc.next().unwrap().to_uppercase().to_string();
-                    let rest: String = sc.collect();
-                    let succ_var = format_ident!("{}{}", sf, rest);
-                    quote! { work.push_back(#work_item_ident::#succ_var(action.clone())); }
-                });
-                quote! {
-                    let mut __proc_ctx = ctx.clone();
-                    let __run_ctx = ctx.clone();
-                    match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
-                        Transition::Next(action) => { #(#pushes)* }
-                        Transition::Finish => {},
-                        Transition::Abort(e) => return Err(e),
+                if succs.is_empty() {
+                    // terminal direct branch: return the output value
+                    quote! {
+                        let mut __proc_ctx = ctx.clone();
+                        let __run_ctx = ctx.clone();
+                        match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
+                            Transition::Next(action) => return Ok(action),
+                            Transition::Finish => return Ok(Default::default()),
+                            Transition::Abort(e) => return Err(e),
+                        }
+                    }
+                } else {
+                    // direct successor(s): pass the action to next node(s)
+                    let pushes = succs.iter().map(|succ| {
+                        let succ_str = succ.to_string();
+                        let mut sc = succ_str.chars();
+                        let sf = sc.next().unwrap().to_uppercase().to_string();
+                        let rest: String = sc.collect();
+                        let succ_var = format_ident!("{}{}", sf, rest);
+                        quote! { work.push_back(#work_item_ident::#succ_var(action.clone())); }
+                    });
+                    quote! {
+                        let mut __proc_ctx = ctx.clone();
+                        let __run_ctx = ctx.clone();
+                        match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
+                            Transition::Next(action) => { #(#pushes)* }
+                            Transition::Finish => {},
+                            Transition::Abort(e) => return Err(e),
+                        }
                     }
                 }
             }
             EdgeKind::Composite(composite) => {
                 if composite.is_empty() {
-                    // no edges: treat Next(_) or Finish as terminal
+                    // terminal composite branch: return the output value
                     quote! {
                         let mut __proc_ctx = ctx.clone();
                         let __run_ctx = ctx.clone();
                         match __run_ctx.run_future(self.#fld.process(&mut __proc_ctx, x)).await? {
-                            Transition::Next(_) | Transition::Finish => {},
+                            Transition::Next(action) => return Ok(action),
+                            Transition::Finish => return Ok(Default::default()),
                             Transition::Abort(e) => return Err(e),
                         }
                     }
@@ -187,6 +211,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     let pats = composite.iter().map(|arm| {
                         let CompositeArm { action_path, variant, binding, succs } = arm;
                         let pat = quote! { #action_path :: #variant (#binding) };
+                        // for composite arms: if no successors, return output; else push successors
                         let succ_pushes = succs.iter().map(|succ| {
                             let succ_str = succ.to_string();
                             let mut sc = succ_str.chars();
@@ -195,7 +220,11 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                             let succ_var = format_ident!("{}{}", sf, rest);
                             quote! { work.push_back(#work_item_ident::#succ_var(#binding)); }
                         });
-                        quote! { #pat => { #(#succ_pushes)* } }
+                        if succs.is_empty() {
+                            quote! { #pat => { return Ok(#binding); } }
+                        } else {
+                            quote! { #pat => { #(#succ_pushes)* } }
+                        }
                     });
                     quote! {
                         let mut __proc_ctx = ctx.clone();
@@ -233,21 +262,23 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     // Assemble the expanded code
     let expanded = quote! {
         #struct_def
-        
+
         #[allow(non_camel_case_types)]
         enum #work_item_ident {
             #(#work_variants),*
         }
 
+
         #[async_trait]
         impl floxide_core::workflow::Workflow for #name #generics {
             type Input = <#start_ty as floxide_core::node::Node>::Input;
+            type Output = <#terminal_ty as floxide_core::node::Node>::Output;
 
             async fn run(
                 &mut self,
                 ctx: &mut floxide_core::context::WorkflowCtx<()>,
                 input: Self::Input
-            ) -> Result<(), floxide_core::error::FloxideError> {
+            ) -> Result<Self::Output, floxide_core::error::FloxideError> {
                 use std::collections::VecDeque;
                 use floxide_core::transition::Transition;
                 let mut work = VecDeque::new();
@@ -257,7 +288,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         #(#run_arms),*
                     }
                 }
-                Ok(())
+                unreachable!("Workflow did not reach terminal branch");
             }
         }
     };

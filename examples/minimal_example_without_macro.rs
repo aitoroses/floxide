@@ -99,12 +99,14 @@ pub struct ThresholdWorkflow {
 #[async_trait]
 impl Workflow for ThresholdWorkflow {
     type Input = u64;
+    /// Output type of the workflow (unit for side-effect only example)
+    type Output = ();
 
     async fn run(
         &mut self,
         ctx: &mut WorkflowCtx<()>,
         input: u64,
-    ) -> Result<(), FloxideError> {
+    ) -> Result<Self::Output, FloxideError> {
         // Worklist of items tagged by origin
         enum WorkItem {
             Foo(u64),
