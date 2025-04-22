@@ -17,15 +17,19 @@ struct CompositeArm {
     binding: Ident,
     succs: Vec<Ident>,
 }
-// AST for struct-based workflow: struct fields, start field, and per-node composite edges
+// AST for struct-based workflow: struct fields, start field, and routing edges
+enum EdgeKind {
+    Direct(Vec<Ident>),
+    Composite(Vec<CompositeArm>),
+}
 struct WorkflowDef {
     vis: Visibility,
     name: Ident,
     generics: Generics,
     fields: Vec<(Ident, Type)>,
     start: Ident,
-    // for each source field, a list of composite arms
-    edges: Vec<(Ident, Vec<CompositeArm>)>,
+    // for each source field, direct successors or composite arms
+    edges: Vec<(Ident, EdgeKind)>,
 }
 
 impl Parse for WorkflowDef {
@@ -66,31 +70,43 @@ impl Parse for WorkflowDef {
         while !edges_content.is_empty() {
             let src: Ident = edges_content.parse()?;
             edges_content.parse::<Token![=>]>()?;
-            // composite edges in a braced block
+            // parse either direct successors or composite arms
             let nested;
             braced!(nested in edges_content);
-            let mut composite = Vec::new();
-            while !nested.is_empty() {
-                // parse pattern: EnumName::Variant(binding)
-                let action_path: Ident = nested.parse()?;
-                nested.parse::<Token![::]>()?;
-                let variant: Ident = nested.parse()?;
-                let inner;
-                syn::parenthesized!(inner in nested);
-                let binding: Ident = inner.parse()?;
-                nested.parse::<Token![=>]>()?;
-                // parse successors list
+            let edge_kind = if nested.peek(syn::token::Bracket) {
+                // direct successors: [ succ1, succ2, ... ]
                 let succs_content;
                 bracketed!(succs_content in nested);
                 let succs: Vec<Ident> = succs_content
                     .parse_terminated(Ident::parse, Token![,])?
                     .into_iter()
                     .collect();
-                nested.parse::<Token![;]>()?;
-                composite.push(CompositeArm { action_path, variant, binding, succs });
-            }
+                EdgeKind::Direct(succs)
+            } else {
+                // composite arms: Enum::Variant(binding) => [succs]; ...
+                let mut composite = Vec::new();
+                while !nested.is_empty() {
+                    let action_path: Ident = nested.parse()?;
+                    nested.parse::<Token![::]>()?;
+                    let variant: Ident = nested.parse()?;
+                    let inner;
+                    syn::parenthesized!(inner in nested);
+                    let binding: Ident = inner.parse()?;
+                    nested.parse::<Token![=>]>()?;
+                    let succs_content;
+                    bracketed!(succs_content in nested);
+                    let succs: Vec<Ident> = succs_content
+                        .parse_terminated(Ident::parse, Token![,])?
+                        .into_iter()
+                        .collect();
+                    nested.parse::<Token![;]>()?;
+                    composite.push(CompositeArm { action_path, variant, binding, succs });
+                }
+                EdgeKind::Composite(composite)
+            };
+            // consume semicolon after edge block
             edges_content.parse::<Token![;]>()?;
-            edges.push((src, composite));
+            edges.push((src, edge_kind));
         }
         Ok(WorkflowDef { vis, name, generics, fields, start, edges })
     }
@@ -130,46 +146,64 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         let rest: String = chars.collect();
         let var_ident = format_ident!("{}{}", first, rest);
         // Find edges for this field
-        let arm = edges.iter().find(|(src, _)| src == fld);
-        let arm_tokens = if let Some((_, composite)) = arm {
-            if composite.is_empty() {
-                // no edges: treat Next(_) or Finish as terminal
-                quote! {
-                    match self.#fld.process(ctx, x).await? {
-                        Transition::Next(_) | Transition::Finish => {},
-                        Transition::Abort(e) => return Err(e),
-                    }
-                }
-            } else {
-                // composite edges: pattern-based
-                let pats = composite.iter().map(|arm| {
-                    let CompositeArm { action_path, variant, binding, succs } = arm;
-                    // build pattern: Path::Variant(binding)
-                    let pat = quote! { #action_path :: #variant (#binding) };
-                    // push variants for succs
-                    let succ_pushes = succs.iter().map(|succ| {
-                        // succ variant name: capitalize succ ident
-                        let succ_str = succ.to_string();
-                        let mut sc = succ_str.chars();
-                        let sf = sc.next().unwrap().to_uppercase().to_string();
-                        let rest: String = sc.collect();
-                        let succ_var = format_ident!("{}{}", sf, rest);
-                        quote! { work.push_back(#work_item_ident::#succ_var(#binding)); }
-                    });
-                    quote! { #pat => { #(#succ_pushes)* } }
+        let kind = edges.iter().find(|(src, _)| src == fld)
+            .map(|(_, k)| k)
+            .unwrap_or_else(|| panic!("No edges defined for field {}", fld));
+        // Generate code based on edge kind
+        let arm_tokens = match kind {
+            EdgeKind::Direct(succs) => {
+                // direct successor(s): pass the action to next node(s)
+                let pushes = succs.iter().map(|succ| {
+                    let succ_str = succ.to_string();
+                    let mut sc = succ_str.chars();
+                    let sf = sc.next().unwrap().to_uppercase().to_string();
+                    let rest: String = sc.collect();
+                    let succ_var = format_ident!("{}{}", sf, rest);
+                    quote! { work.push_back(#work_item_ident::#succ_var(action.clone())); }
                 });
                 quote! {
                     match self.#fld.process(ctx, x).await? {
-                        Transition::Next(action) => {
-                            match action { #(#pats),* _ => {} }
-                        }
+                        Transition::Next(action) => { #(#pushes)* }
                         Transition::Finish => {},
                         Transition::Abort(e) => return Err(e),
                     }
                 }
             }
-        } else {
-            panic!("No edges defined for field {}", fld);
+            EdgeKind::Composite(composite) => {
+                if composite.is_empty() {
+                    // no edges: treat Next(_) or Finish as terminal
+                    quote! {
+                        match self.#fld.process(ctx, x).await? {
+                            Transition::Next(_) | Transition::Finish => {},
+                            Transition::Abort(e) => return Err(e),
+                        }
+                    }
+                } else {
+                    // composite edges: pattern-based
+                    let pats = composite.iter().map(|arm| {
+                        let CompositeArm { action_path, variant, binding, succs } = arm;
+                        let pat = quote! { #action_path :: #variant (#binding) };
+                        let succ_pushes = succs.iter().map(|succ| {
+                            let succ_str = succ.to_string();
+                            let mut sc = succ_str.chars();
+                            let sf = sc.next().unwrap().to_uppercase().to_string();
+                            let rest: String = sc.collect();
+                            let succ_var = format_ident!("{}{}", sf, rest);
+                            quote! { work.push_back(#work_item_ident::#succ_var(#binding)); }
+                        });
+                        quote! { #pat => { #(#succ_pushes)* } }
+                    });
+                    quote! {
+                        match self.#fld.process(ctx, x).await? {
+                            Transition::Next(action) => {
+                                match action { #(#pats),* _ => {} }
+                            }
+                            Transition::Finish => {},
+                            Transition::Abort(e) => return Err(e),
+                        }
+                    }
+                }
+            }
         };
         quote! {
             #work_item_ident::#var_ident(x) => {

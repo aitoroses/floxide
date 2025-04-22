@@ -13,5 +13,5 @@ pub trait Node: Send + Sync + 'static {
         ctx: &mut WorkflowCtx<C>,
         input: Self::Input
     ) -> Result<Transition<Self::Output>, crate::error::FloxideError>
-    where Self: Sized + Node, C: Send + Sync + 'static;
+    where Self: Sized + Node, C: Clone + Send + Sync + 'static;
 } 

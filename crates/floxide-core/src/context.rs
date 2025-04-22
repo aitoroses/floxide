@@ -1,6 +1,7 @@
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 
+#[derive(Clone)]
 pub struct WorkflowCtx<S> {
     pub store: S,
     cancel: CancellationToken,

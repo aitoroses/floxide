@@ -8,3 +8,5 @@ pub use transition::Transition;
 pub use node::Node;
 pub use workflow::Workflow;
 pub use error::FloxideError;
+pub mod batch;
+pub use batch::BatchNode;
