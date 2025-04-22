@@ -18,13 +18,11 @@ impl Node for SlowNode {
     type Input = ();
     type Output = ();
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        C: Send + Sync + 'static,
     {
         println!("SlowNode: sleeping for {:?}", self.dur);
         sleep(self.dur).await;
@@ -38,6 +36,7 @@ workflow! {
     pub struct TimeoutWorkflow {
         slow: SlowNode,
     }
+    context = ();
     start = slow;
     edges {
         slow => {};

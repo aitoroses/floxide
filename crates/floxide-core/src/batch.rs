@@ -20,21 +20,19 @@ impl<N> BatchNode<N> {
     }
 }
 
-impl<N> BatchNode<N>
-where
-    N: Node + Clone + Send + Sync + 'static,
-    <N as Node>::Input: Clone + Send + 'static,
-    <N as Node>::Output: Send + 'static,
-{
+impl<N> BatchNode<N> {
     /// Process a batch of inputs, where the associated Input/Output types are Vecs
-pub async fn process_batch<C>(
+    pub async fn process_batch<CTX>(
         &self,
         // take ownership of the context so it can be cloned into blocking tasks
-        ctx: C,
-        inputs: <Self as Node>::Input,
-    ) -> Result<<Self as Node>::Output, FloxideError>
+        ctx: CTX,
+        inputs: <Self as Node<CTX>>::Input,
+    ) -> Result<<Self as Node<CTX>>::Output, FloxideError>
     where
-        C: Clone + Send + Sync + 'static,
+        CTX: Clone + Send + Sync + 'static,
+        N: Node<CTX> + Clone + Send + Sync + 'static,
+        <N as Node<CTX>>::Input: Clone + Send + 'static,
+        <N as Node<CTX>>::Output: Send + 'static,
     {
         let mut outputs = Vec::new();
         let node = self.node.clone();
@@ -85,26 +83,21 @@ pub async fn process_batch<C>(
 }
 
 #[async_trait]
-impl<N> Node for BatchNode<N>
+impl<C, N> Node<C> for BatchNode<N>
 where
-    N: Node + Clone + Send + Sync + 'static,
-    <N as Node>::Input: Clone + Send + 'static,
-    <N as Node>::Output: Send + 'static,
+    C: Clone + Send + Sync + 'static,
+    N: Node<C> + Clone + Send + Sync + 'static,
+    <N as Node<C>>::Input: Clone + Send + 'static,
+    <N as Node<C>>::Output: Send + 'static,
 {
-    type Input = Vec<<N as Node>::Input>;
-    type Output = Vec<<N as Node>::Output>;
+    type Input = Vec<<N as Node<C>>::Input>;
+    type Output = Vec<<N as Node<C>>::Output>;
 
-    async fn process<C>(
+    async fn process(
         &self,
         ctx: &C,
         inputs: Self::Input,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        Self: Sized + Node,
-        C: Clone + Send + Sync + 'static,
-    {
-        // clone the owned context for batch processing
-        // clone the owned context for batch processing
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         let outputs = self.process_batch((*ctx).clone(), inputs).await?;
         Ok(Transition::Next(outputs))
     }

@@ -14,14 +14,11 @@ impl Node for Multiply2 {
     type Input = i32;
     type Output = i32;
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         input: i32,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        Self: Sized + Node,
-        C: Clone + Send + Sync + 'static,
     {
         let out = input * 2;
         println!("Multiply2: {} * 2 = {}", input, out);
@@ -47,14 +44,11 @@ impl Node for BranchAfterMultiply {
     type Input = Vec<i32>;
     type Output = BatchAction;
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         inputs: Vec<i32>,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        Self: Sized + Node,
-        C: Clone + Send + Sync + 'static,
     {
         // Sum and branch
         let sum: i32 = inputs.iter().sum();
@@ -77,14 +71,11 @@ impl Node for LargeNode {
     type Input = Vec<i32>;
     type Output = ();
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         inputs: Vec<i32>,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        Self: Sized + Node,
-        C: Clone + Send + Sync + 'static,
     {
         println!("LargeNode: {:?}", inputs);
         Ok(Transition::Finish)
@@ -100,14 +91,11 @@ impl Node for SmallNode {
     type Input = Vec<i32>;
     type Output = ();
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         inputs: Vec<i32>,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        Self: Sized + Node,
-        C: Clone + Send + Sync + 'static,
     {
         println!("SmallNode: {:?}", inputs);
         Ok(Transition::Finish)
@@ -123,6 +111,7 @@ workflow! {
         small: SmallNode,
     }
     start = multiply;
+    context = ();
     edges {
         // direct edge: multiply outputs feed into branch
         multiply => { [ branch ] };

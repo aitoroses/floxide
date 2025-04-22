@@ -12,12 +12,12 @@ pub struct DoubleNode;
 impl Node for DoubleNode {
     type Input = i32;
     type Output = i32;
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         input: i32,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where C: Clone + Send + Sync + 'static {
+    {
         println!("DoubleNode: {} -> {}", input, input * 2);
         Ok(Transition::Next(input * 2))
     }
@@ -30,12 +30,12 @@ pub struct AddTenNode;
 impl Node for AddTenNode {
     type Input = i32;
     type Output = i32;
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         input: i32,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where C: Clone + Send + Sync + 'static {
+    {
         println!("AddTenNode: {} -> {}", input, input + 10);
         Ok(Transition::Next(input + 10))
     }
@@ -48,6 +48,7 @@ workflow! {
         addten: AddTenNode,
     }
     start = double;
+    context = ();
     edges {
         double => { [ addten ] };
         addten => {};
@@ -61,12 +62,12 @@ pub struct PrintNode;
 impl Node for PrintNode {
     type Input = i32;
     type Output = ();
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         input: i32,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where C: Clone + Send + Sync + 'static {
+    {
         println!("PrintNode: final output = {}", input);
         Ok(Transition::Finish)
     }
@@ -79,6 +80,7 @@ workflow! {
         print: PrintNode,
     }
     start = sub;
+    context = ();
     edges {
         sub => { [ print ] };
         print => {};

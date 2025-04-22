@@ -23,19 +23,15 @@ pub struct FooNode {
 }
 
 #[async_trait]
-impl Node for FooNode {
+impl Node<MyCtx> for FooNode {
     type Input = u64;
     type Output = FooAction;
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &MyCtx,
         input: u64,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        Self: Sized + Node,
-        C: Send + Sync + 'static,
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         if input > self.threshold {
             let out = input * 2;
             println!("FooNode: {} > {} => Above({})", input, self.threshold, out);
@@ -56,19 +52,15 @@ impl Node for FooNode {
 pub struct BigNode;
 
 #[async_trait]
-impl Node for BigNode {
+impl Node<MyCtx> for BigNode {
     type Input = u64;
     type Output = ();
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &MyCtx,
         input: u64,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        Self: Sized + Node,
-        C: Send + Sync + 'static,
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("BigNode: handling value {}", input);
         Ok(Transition::Finish)
     }
@@ -79,19 +71,15 @@ impl Node for BigNode {
 pub struct SmallNode;
 
 #[async_trait]
-impl Node for SmallNode {
+impl Node<MyCtx> for SmallNode {
     type Input = String;
     type Output = ();
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &MyCtx,
         input: String,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        Self: Sized + Node,
-        C: Send + Sync + 'static,
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("SmallNode: handling message \"{}\"", input);
         Ok(Transition::Finish)
     }
@@ -105,6 +93,7 @@ workflow! {
         small: SmallNode,
     }
     start = foo;
+    context = MyCtx;
     edges {
         foo => {
             FooAction::Above(v) => [ big ];

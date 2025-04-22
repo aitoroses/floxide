@@ -14,13 +14,11 @@ impl Node for TripleNode {
     type Input = i32;
     type Output = i32;
 
-    async fn process<C>(
+    async fn process(
         &self,
-        _ctx: &C,
+        _ctx: &(),
         input: i32,
     ) -> Result<Transition<Self::Output>, FloxideError>
-    where
-        C: Send + Sync + 'static,
     {
         let out = input * 3;
         println!("TripleNode: {} * 3 = {}", input, out);
@@ -33,6 +31,7 @@ workflow! {
     pub struct TerminalWorkflow {
         triple: TripleNode,
     }
+    // context = ();
     start = triple;
     edges {
         triple => {};
