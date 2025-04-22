@@ -276,11 +276,12 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             type Input = <#start_ty as floxide_core::node::Node>::Input;
             type Output = <#terminal_ty as floxide_core::node::Node>::Output;
 
-            async fn run(
+            async fn run<D>(
                 &mut self,
-                ctx: &mut floxide_core::context::WorkflowCtx<()>,
+                ctx: &mut floxide_core::context::WorkflowCtx<D>,
                 input: Self::Input
-            ) -> Result<Self::Output, floxide_core::error::FloxideError> {
+            ) -> Result<Self::Output, floxide_core::error::FloxideError>
+            where D: Clone + Send + Sync + 'static {
                 use std::collections::VecDeque;
                 use floxide_core::transition::Transition;
                 let mut work = VecDeque::new();
