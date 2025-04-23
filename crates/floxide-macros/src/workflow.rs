@@ -1,8 +1,9 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    braced, bracketed, parse::{Parse, ParseStream}, parse_macro_input, Generics, Ident, Result, Token, Type, Visibility
+    braced, bracketed, parse::{Parse, ParseStream}, parse_macro_input, Generics, Ident, Result, Token, Type, Visibility, LitStr
 };
+use proc_macro2::Span;
 
 /// AST for struct-based workflow: struct fields, start field, and per-node edges
 // Internal representation of a composite edge arm: matches Output enum variant
@@ -216,6 +217,19 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     let WorkflowDef { vis, name, generics, fields, start, context, edges } =
         parse_macro_input!(item as WorkflowDef);
 
+    // Helper: convert snake_case to CamelCase for identifiers and labels
+    let to_camel_case = |s: &str| -> String {
+        s.split('_')
+            .filter(|p| !p.is_empty())
+            .map(|p| {
+                let mut cs = p.chars();
+                let first = cs.next().unwrap().to_uppercase().to_string();
+                let rest: String = cs.collect();
+                first + &rest
+            })
+            .collect()
+    };
+
     // Build WorkItem enum name
     let work_item_ident = format_ident!("{}WorkItem", name);
     // Determine terminal branch: a field with no successors (direct empty or composite empty)
@@ -238,21 +252,15 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         .collect();
     // Generate WorkItem variants for node fields, parameterized by context C
     let work_variants = node_fields.iter().map(|(fld, ty, _)| {
-        // Variant name: capitalized field name
-        let fld_str = fld.to_string();
-        let mut chars = fld_str.chars();
-        let first = chars.next().unwrap().to_uppercase().to_string();
-        let rest: String = chars.collect();
-        let var_ident = format_ident!("{}{}", first, rest);
+        // Variant name: CamelCase from field name
+        let var_name = to_camel_case(&fld.to_string());
+        let var_ident = format_ident!("{}", var_name);
         quote! { #var_ident(<#ty as floxide_core::node::Node<#context>>::Input) }
     });
     // Compute the WorkItem variant name for the terminal field
     let terminal_var = {
-        let s = terminal_src.to_string();
-        let mut cs = s.chars();
-        let first = cs.next().unwrap().to_uppercase().to_string();
-        let rest: String = cs.collect();
-        format_ident!("{}{}", first, rest)
+        let var_name = to_camel_case(&terminal_src.to_string());
+        format_ident!("{}", var_name)
     };
 
     // Struct definition
@@ -267,11 +275,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     // We collect into a Vec so we can reuse in multiple generated methods
     let run_arms: Vec<_> = node_fields.iter().map(|(fld, _ty, retry)| {
         // WorkItem variant
-        let fld_str = fld.to_string();
-        let mut chars = fld_str.chars();
-        let first = chars.next().unwrap().to_uppercase().to_string();
-        let rest: String = chars.collect();
-        let var_ident = format_ident!("{}{}", first, rest);
+        let var_name = to_camel_case(&fld.to_string());
+        let var_ident = format_ident!("{}", var_name);
         // Find edges for this field
         let kind = edges.iter().find(|(src, _)| src == fld)
             .map(|(_, k)| k)
@@ -295,10 +300,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     quote! { return Ok(action) }
                 } else {
                     let pushes = succs.iter().map(|succ| {
-                        let succ_var = format_ident!("{}{}",
-                            succ.to_string().chars().next().unwrap().to_uppercase().to_string(),
-                            succ.to_string().chars().skip(1).collect::<String>()
-                        );
+                        let var_name = to_camel_case(&succ.to_string());
+                        let succ_var = format_ident!("{}", var_name);
                         quote! { __q.push_back(#work_item_ident::#succ_var(action.clone())); }
                     });
                     quote! { #(#pushes)* }
@@ -306,10 +309,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 // Build tokens for failure/fallback path
                 let push_failure = if let Some(fails) = on_failure {
                     let failure_pushes = fails.iter().map(|succ| {
-                        let succ_var = format_ident!("{}{}",
-                            succ.to_string().chars().next().unwrap().to_uppercase().to_string(),
-                            succ.to_string().chars().skip(1).collect::<String>()
-                        );
+                        let var_name = to_camel_case(&succ.to_string());
+                        let succ_var = format_ident!("{}", var_name);
                         // fallback receives no input (unit)
                         quote! { __q.push_back(#work_item_ident::#succ_var(())); }
                     });
@@ -345,11 +346,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let pat = quote! { #action_path :: #variant (#binding) };
                         // for composite arms: if no successors, return output; else push successors
                                 let succ_pushes = succs.iter().map(|succ| {
-                            let succ_str = succ.to_string();
-                            let mut sc = succ_str.chars();
-                            let sf = sc.next().unwrap().to_uppercase().to_string();
-                            let rest: String = sc.collect();
-                            let succ_var = format_ident!("{}{}", sf, rest);
+                            let var_name = to_camel_case(&succ.to_string());
+                            let succ_var = format_ident!("{}", var_name);
                             quote! { __q.push_back(#work_item_ident::#succ_var(#binding)); }
                         });
                         if succs.is_empty() {
@@ -380,15 +378,64 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
     // Start variant
     let start_var = {
-        let s = start.to_string();
-        let mut cs = s.chars();
-        let first = cs.next().unwrap().to_uppercase().to_string();
-        let rest: String = cs.collect();
-        format_ident!("{}{}", first, rest)
+        let var_name = to_camel_case(&start.to_string());
+        format_ident!("{}", var_name)
     };
     // Start field type for Input
     let start_ty = fields.iter().find(|(fld,_,_)| fld == &start)
         .map(|(_, ty, _)| ty).expect("start field not found");
+
+    // Generate DOT string at compile time
+    let dot = {
+        let mut dot = String::new();
+        dot.push_str("digraph ");
+        dot.push_str(&name.to_string());
+        dot.push_str(" {\n");
+        dot.push_str("  rankdir=LR;\n");
+        dot.push_str("  node [shape=box style=filled fontname=\"Helvetica\" color=lightgray];\n");
+        dot.push_str("  edge [fontname=\"Helvetica\" arrowhead=vee];\n");
+        // Nodes
+        for (fld, _, _) in &node_fields {
+            let var = to_camel_case(&fld.to_string());
+            dot.push_str("  "); dot.push_str(&var); dot.push_str(";\n");
+        }
+        // Edges
+        for (src, kind) in &edges {
+            let src_var = to_camel_case(&src.to_string());
+            match kind {
+                EdgeKind::Direct { succs, on_failure } => {
+                    for succ in succs {
+                        let succ_var = to_camel_case(&succ.to_string());
+                        dot.push_str("  "); dot.push_str(&src_var);
+                        dot.push_str(" -> "); dot.push_str(&succ_var); dot.push_str(";\n");
+                    }
+                    if let Some(fails) = on_failure {
+                        for fail in fails {
+                            let fail_var = to_camel_case(&fail.to_string());
+                            dot.push_str("  "); dot.push_str(&src_var);
+                            dot.push_str(" -> "); dot.push_str(&fail_var);
+                            dot.push_str(" [style=\"dotted\" color=\"red\" label=\"fallback\"];\n");
+                        }
+                    }
+                }
+                EdgeKind::Composite(arms) => {
+                    for arm in arms {
+                        let label = arm.variant.to_string();
+                        for succ in &arm.succs {
+                            let succ_var = to_camel_case(&succ.to_string());
+                            dot.push_str("  "); dot.push_str(&src_var);
+                            dot.push_str(" -> "); dot.push_str(&succ_var);
+                            dot.push_str(" [label=\""); dot.push_str(&label); dot.push_str("\"];\n");
+                        }
+                    }
+                }
+            }
+        }
+        
+        dot.push_str("}\n");
+        dot
+    };
+    let dot_literal = LitStr::new(&dot, Span::call_site());
 
     // Assemble the expanded code
     let expanded = quote! {
@@ -509,6 +556,12 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 }
                 unreachable!("Workflow did not reach terminal branch");
             }
+
+            /// Export the workflow definition as a Graphviz DOT string.
+            pub fn to_dot(&self) -> &'static str {
+                #dot_literal
+            }
+
         }
 
         #[async_trait::async_trait]
