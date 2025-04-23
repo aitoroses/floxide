@@ -206,6 +206,14 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         let var_ident = format_ident!("{}{}", first, rest);
         quote! { #var_ident(<#ty as floxide_core::node::Node<#context>>::Input) }
     });
+    // Compute the WorkItem variant name for the terminal field
+    let terminal_var = {
+        let s = terminal_src.to_string();
+        let mut cs = s.chars();
+        let first = cs.next().unwrap().to_uppercase().to_string();
+        let rest: String = cs.collect();
+        format_ident!("{}{}", first, rest)
+    };
 
     // Struct definition
     // Define the workflow struct with optional retry-policy fields
@@ -216,7 +224,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     };
 
     // Generate run method arms for each field
-    let run_arms = node_fields.iter().map(|(fld, _ty, retry)| {
+    // We collect into a Vec so we can reuse in multiple generated methods
+    let run_arms: Vec<_> = node_fields.iter().map(|(fld, _ty, retry)| {
         // WorkItem variant
         let fld_str = fld.to_string();
         let mut chars = fld_str.chars();
@@ -259,7 +268,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                             succ.to_string().chars().next().unwrap().to_uppercase().to_string(),
                             succ.to_string().chars().skip(1).collect::<String>()
                         );
-                        quote! { work.push_back(#work_item_ident::#succ_var(action.clone())); }
+                        quote! { __q.push_back(#work_item_ident::#succ_var(action.clone())); }
                     });
                     quote! {
                         #wrapper
@@ -290,13 +299,13 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let CompositeArm { action_path, variant, binding, succs } = arm;
                         let pat = quote! { #action_path :: #variant (#binding) };
                         // for composite arms: if no successors, return output; else push successors
-                        let succ_pushes = succs.iter().map(|succ| {
+                                let succ_pushes = succs.iter().map(|succ| {
                             let succ_str = succ.to_string();
                             let mut sc = succ_str.chars();
                             let sf = sc.next().unwrap().to_uppercase().to_string();
                             let rest: String = sc.collect();
                             let succ_var = format_ident!("{}{}", sf, rest);
-                            quote! { work.push_back(#work_item_ident::#succ_var(#binding)); }
+                            quote! { __q.push_back(#work_item_ident::#succ_var(#binding)); }
                         });
                         if succs.is_empty() {
                             quote! { #pat => { return Ok(#binding); } }
@@ -323,7 +332,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 #arm_tokens
             }
         }
-    });
+    }).collect();
 
     // Start variant
     let start_var = {
@@ -344,6 +353,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         #struct_def
 
         #[allow(non_camel_case_types)]
+        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
         enum #work_item_ident {
             #(#work_variants),*
         }
@@ -351,6 +361,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
         impl #name #generics {
             /// Execute the workflow, returning the output of the terminal branch
+            #[allow(unreachable_code)]
             pub async fn run(
                 &self,
                 ctx: &floxide_core::WorkflowCtx<#context>,
@@ -359,9 +370,95 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             {
                 use std::collections::VecDeque;
                 use floxide_core::transition::Transition;
-                let mut work = VecDeque::new();
-                work.push_back(#work_item_ident::#start_var(input));
-                while let Some(item) = work.pop_front() {
+                let mut __q = VecDeque::new();
+                __q.push_back(#work_item_ident::#start_var(input));
+                while let Some(item) = __q.pop_front() {
+                    match item {
+                        #(#run_arms),*
+                    }
+                }
+                unreachable!("Workflow did not reach terminal branch");
+            }
+
+            #[allow(unreachable_code)]
+            /// Execute the workflow, checkpointing state after each step.
+            pub async fn run_with_checkpoint<CS: floxide_core::checkpoint::CheckpointStore>(
+                &self,
+                ctx: &floxide_core::WorkflowCtx<#context>,
+                input: <#start_ty as floxide_core::node::Node<#context>>::Input,
+                store: &CS,
+                id: &str,
+            ) -> Result<<#terminal_ty as floxide_core::node::Node<#context>>::Output, floxide_core::error::FloxideError>
+            {
+                // Fully qualify Checkpoint to avoid import collisions
+                use std::collections::VecDeque;
+                use floxide_core::{Checkpoint, CheckpointStore};
+
+                // load existing checkpoint or start new
+                let mut cp: floxide_core::Checkpoint<#context, #work_item_ident> = match store.load(id)
+                    .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))? {
+                    Some(bytes) => floxide_core::Checkpoint::from_bytes(&bytes)
+                        .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?,
+                    None => {
+                        let mut q = VecDeque::new();
+                        q.push_back(#work_item_ident::#start_var(input));
+                        floxide_core::Checkpoint { context: ctx.store.clone(), queue: q }
+                    }
+                };
+                // initialize working queue from checkpoint
+                let mut __q = cp.queue.clone();
+                // if there's no pending work, the workflow has already completed
+                if __q.is_empty() {
+                    return Err(floxide_core::error::FloxideError::AlreadyCompleted);
+                }
+                // process loop with persistence
+                while let Some(item) = __q.pop_front() {
+                    match item {
+                        #(#run_arms),*
+                    }
+                    // update checkpoint state and persist
+                    cp.queue = __q.clone();
+                    let bytes = cp.to_bytes()
+                        .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
+                    store.save(id, &bytes)
+                        .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
+                }
+                unreachable!("Workflow did not reach terminal branch");
+            }
+
+            #[allow(unreachable_code)]
+            /// Resume a workflow run from its last checkpoint; context and queue are restored from store.
+            pub async fn resume<CS: floxide_core::checkpoint::CheckpointStore>(
+                &self,
+                store: &CS,
+                id: &str,
+            ) -> Result<<#terminal_ty as floxide_core::node::Node<#context>>::Output, floxide_core::error::FloxideError>
+            {
+                use std::collections::VecDeque;
+                // Load persisted checkpoint or error if never run
+                let bytes = store.load(id)
+                    .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?
+                    .ok_or_else(|| floxide_core::error::FloxideError::NotStarted)?;
+                let cp: floxide_core::Checkpoint<#context, #work_item_ident> =
+                    floxide_core::Checkpoint::from_bytes(&bytes)
+                        .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
+                // Rebuild WorkflowCtx from saved context
+                let wf_ctx = floxide_core::WorkflowCtx::new(cp.context.clone());
+                let ctx = &wf_ctx;
+                // Restore work queue from checkpoint
+                let mut __q: VecDeque<#work_item_ident> = cp.queue.clone();
+                // If there is no pending work, the workflow has already completed
+                if __q.is_empty() {
+                    return Err(floxide_core::error::FloxideError::AlreadyCompleted);
+                }
+                // if the only pending work is the terminal node, treat as completed
+                if __q.len() == 1 {
+                    if let #work_item_ident::#terminal_var(_) = __q.front().unwrap() {
+                        return Err(floxide_core::error::FloxideError::AlreadyCompleted);
+                    }
+                }
+                // Process remaining items
+                while let Some(item) = __q.pop_front() {
                     match item {
                         #(#run_arms),*
                     }

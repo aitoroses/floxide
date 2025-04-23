@@ -3,8 +3,9 @@
 
 use floxide_macros::{workflow, node};
 use floxide_core::{transition::Transition, Node, WorkflowCtx};
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct MyCtx;
 
 // Define a multiplying node with a `factor` field

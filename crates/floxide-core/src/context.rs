@@ -1,12 +1,20 @@
+//! The context for a workflow execution.
+
 use std::time::Duration;
 use std::future::Future;
 use tokio_util::sync::CancellationToken;
 use crate::error::FloxideError;
 
+/// The context for a workflow execution.
 #[derive(Clone, Debug)]
+///
+/// The context contains the store, cancellation token, and optional timeout.
 pub struct WorkflowCtx<S> {
+    /// The store for the workflow.
     pub store: S,
+    /// The cancellation token for the workflow.
     cancel: CancellationToken,
+    /// The optional timeout for the workflow.
     timeout: Option<Duration>,
 }
 
@@ -14,6 +22,7 @@ impl<S> WorkflowCtx<S>
 where
     S: Send + Sync + 'static,
 {
+    /// Creates a new workflow context with the given store.
     pub fn new(store: S) -> Self {
         Self {
             store,
@@ -22,6 +31,7 @@ where
         }
     }
 
+    /// Runs the provided function with a reference to the store.
     pub fn with_store<F, R>(&self, f: F) -> R
     where
         F: FnOnce(&S) -> R,
@@ -29,13 +39,16 @@ where
         f(&self.store)
     }
 
+    /// Returns a reference to the cancellation token.
     pub fn cancel_token(&self) -> &CancellationToken {
         &self.cancel
     }
 
+    /// Sets a timeout for the workflow.
     pub fn set_timeout(&mut self, d: Duration) {
         self.timeout = Some(d);
     }
+
     /// Cancel the workflow execution.
     pub fn cancel(&self) {
         self.cancel.cancel();

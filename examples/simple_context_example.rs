@@ -2,9 +2,9 @@
 use async_trait::async_trait;
 use floxide_core::*;
 use floxide_macros::workflow;
-
+use serde::{Serialize, Deserialize};
 /// Context type for the workflow
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MyCtx {
     pub value: u64,
 }   

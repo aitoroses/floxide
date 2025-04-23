@@ -42,11 +42,6 @@ tokio-util = { version = "0.7.10", features = ["full"] }
 
 floxide-core = { path = "./crates/floxide-core" }
 floxide-macros = { path = "./crates/floxide-macros" }
-# floxide-transform = { path = "./crates/floxide-transform" }
-# floxide-event = { path = "./crates/floxide-event" }
-# floxide-timer = { path = "./crates/floxide-timer" }
-# floxide-longrunning = { path = "./crates/floxide-longrunning" }
-# floxide-reactive = { path = "./crates/floxide-reactive" }
 
 # Create a library target at the root to make examples work
 [package]
@@ -62,13 +57,6 @@ description.workspace = true
 # Define features
 [features]
 default = []
-# Define features with dependencies on subcrates
-# transform = ["floxide-transform"]
-# event = ["floxide-event"]
-# timer = ["floxide-timer"]
-# longrunning = ["floxide-longrunning"]
-# reactive = ["floxide-reactive"]
-# full = ["transform", "event", "timer", "longrunning", "reactive"]
 
 [dependencies]
 # Core dependencies (always included)
@@ -87,13 +75,6 @@ tokio-stream.workspace = true
 # Core crate (always included)
 floxide-core = { path = "./crates/floxide-core", version = "=1.1.2" }
 floxide-macros = { path = "./crates/floxide-macros", version = "=1.1.2" }
-
-# Feature-gated dependencies on subcrates
-# floxide-transform = { path = "./crates/floxide-transform", version = "=1.1.2", optional = true } 
-# floxide-event = { path = "./crates/floxide-event", version = "=1.1.2", optional = true }
-# floxide-timer = { path = "./crates/floxide-timer", version = "=1.1.2", optional = true }
-# floxide-longrunning = { path = "./crates/floxide-longrunning", version = "=1.1.2", optional = true }
-# floxide-reactive = { path = "./crates/floxide-reactive", version = "=1.1.2", optional = true }
 
 [profile.dev]
 opt-level = 0

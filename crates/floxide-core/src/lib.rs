@@ -7,6 +7,8 @@ pub mod batch;
 pub mod source;
 pub mod retry;
 
+pub mod checkpoint;
+
 pub use context::WorkflowCtx;
 pub use transition::Transition;
 pub use node::Node;
@@ -16,3 +18,5 @@ pub use batch::BatchNode;
 pub use source::{Source, source};
 pub use retry::{RetryPolicy, BackoffStrategy, RetryError};
 pub use retry::{with_retry, RetryNode};
+
+pub use checkpoint::{Checkpoint, CheckpointError, CheckpointStore};
