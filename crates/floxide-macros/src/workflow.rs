@@ -21,7 +21,8 @@ struct WorkflowDef {
     vis: Visibility,
     name: Ident,
     generics: Generics,
-    fields: Vec<(Ident, Type)>,
+    /// Workflow fields: (name, type, optional retry-policy variable)
+    fields: Vec<(Ident, Type, Option<Ident>)>,
     start: Ident,
     context: Type,
     // for each source field, direct successors or composite arms
@@ -45,13 +46,29 @@ impl Parse for WorkflowDef {
         braced!(content in input);
         let mut fields = Vec::new();
         while !content.is_empty() {
+            // Optional retry annotation: #[retry = policy]
+            let mut retry_policy: Option<Ident> = None;
+            if content.peek(Token![#]) {
+                content.parse::<Token![#]>()?;
+                let inner;
+                bracketed!(inner in content);
+                let attr_name: Ident = inner.parse()?;
+                if attr_name == "retry" {
+                    inner.parse::<Token![=]>()?;
+                    let pol: Ident = inner.parse()?;
+                    retry_policy = Some(pol);
+                } else {
+                    return Err(inner.error("unknown attribute, expected `retry`"));
+                }
+            }
+            // Field name and type
             let fld: Ident = content.parse()?;
             content.parse::<Token![:]>()?;
             let ty: Type = content.parse()?;
             if content.peek(Token![,]) {
                 content.parse::<Token![,]>()?;
             }
-            fields.push((fld, ty));
+            fields.push((fld, ty, retry_policy));
         }
         // Now parse the rest in any order: start, context, edges
         let mut start: Option<Ident> = None;
@@ -168,11 +185,19 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     }).expect("Workflow must have a terminal branch").0.clone();
     // Find the type of the terminal field
     let terminal_ty = fields.iter()
-        .find(|(fld, _)| fld == &terminal_src)
-        .map(|(_, ty)| ty.clone())
+        .find(|(fld, _, _)| fld == &terminal_src)
+        .map(|(_, ty, _)| ty.clone())
         .expect("Terminal field not found among fields");
-    // Generate WorkItem variants, parameterized by context C
-    let work_variants = fields.iter().map(|(fld, ty)| {
+    // Identify policy fields (names used in #[retry = policy])
+    let policy_idents: Vec<Ident> = fields.iter()
+        .filter_map(|(_, _, retry)| retry.clone())
+        .collect();
+    // Only actual workflow node fields should produce variants and arms
+    let node_fields: Vec<_> = fields.iter()
+        .filter(|(fld, _, _)| !policy_idents.iter().any(|p| p == fld))
+        .collect();
+    // Generate WorkItem variants for node fields, parameterized by context C
+    let work_variants = node_fields.iter().map(|(fld, ty, _)| {
         // Variant name: capitalized field name
         let fld_str = fld.to_string();
         let mut chars = fld_str.chars();
@@ -183,13 +208,15 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     });
 
     // Struct definition
+    // Define the workflow struct with optional retry-policy fields
     let struct_def = {
-        let field_defs = fields.iter().map(|(fld, ty)| quote! { pub #fld: #ty });
+        // Each entry: (field_name, field_type, retry_policy)
+        let field_defs = fields.iter().map(|(fld, ty, _)| quote! { pub #fld: #ty });
         quote! { #vis struct #name #generics { #(#field_defs),* } }
     };
 
     // Generate run method arms for each field
-    let run_arms = fields.iter().map(|(fld, _ty)| {
+    let run_arms = node_fields.iter().map(|(fld, _ty, retry)| {
         // WorkItem variant
         let fld_str = fld.to_string();
         let mut chars = fld_str.chars();
@@ -200,15 +227,26 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         let kind = edges.iter().find(|(src, _)| src == fld)
             .map(|(_, k)| k)
             .unwrap_or_else(|| panic!("No edges defined for field {}", fld));
-        // Generate code based on edge kind
+        // Build a node wrapper: apply `with_retry` if a retry policy is specified
+        let wrapper = if let Some(pol) = retry {
+            quote! {
+                // wrap the inner node with retry policy
+                let __node = floxide_core::with_retry(self.#fld.clone(), self.#pol.clone());
+            }
+        } else {
+            quote! {
+                let __node = self.#fld.clone();
+            }
+        };
+        // Generate code based on edge kind, using __node.process instead of self.#fld.process
         let arm_tokens = match kind {
             EdgeKind::Direct(succs) => {
                 if succs.is_empty() {
                     // terminal direct branch: return the output value
                     quote! {
-                        // access only the store for this node
+                        #wrapper
                         let __store = &ctx.store;
-                        match ctx.run_future(self.#fld.process(__store, x)).await? {
+                        match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => return Ok(action),
                             Transition::Finish => return Ok(Default::default()),
                             Transition::Abort(e) => return Err(e),
@@ -217,17 +255,16 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 } else {
                     // direct successor(s): pass the action to next node(s)
                     let pushes = succs.iter().map(|succ| {
-                        let succ_str = succ.to_string();
-                        let mut sc = succ_str.chars();
-                        let sf = sc.next().unwrap().to_uppercase().to_string();
-                        let rest: String = sc.collect();
-                        let succ_var = format_ident!("{}{}", sf, rest);
+                        let succ_var = format_ident!("{}{}",
+                            succ.to_string().chars().next().unwrap().to_uppercase().to_string(),
+                            succ.to_string().chars().skip(1).collect::<String>()
+                        );
                         quote! { work.push_back(#work_item_ident::#succ_var(action.clone())); }
                     });
                     quote! {
-                        // access only the store for this node
+                        #wrapper
                         let __store = &ctx.store;
-                        match ctx.run_future(self.#fld.process(__store, x)).await? {
+                        match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => { #(#pushes)* }
                             Transition::Finish => {},
                             Transition::Abort(e) => return Err(e),
@@ -238,10 +275,10 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             EdgeKind::Composite(composite) => {
                 if composite.is_empty() {
                     // terminal composite branch: return the output value
-                quote! {
-                        // access only the store for this node
+                    quote! {
+                        #wrapper
                         let __store = &ctx.store;
-                        match ctx.run_future(self.#fld.process(__store, x)).await? {
+                        match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => return Ok(action),
                             Transition::Finish => return Ok(Default::default()),
                             Transition::Abort(e) => return Err(e),
@@ -268,9 +305,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         }
                     });
                     quote! {
-                        // access only the store for this node
+                        #wrapper
                         let __store = &ctx.store;
-                        match ctx.run_future(self.#fld.process(__store, x)).await? {
+                        match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => {
                                 match action { #(#pats),* _ => {} }
                             }
@@ -297,8 +334,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         format_ident!("{}{}", first, rest)
     };
     // Start field type for Input
-    let start_ty = fields.iter().find(|(fld,_)| fld == &start)
-        .map(|(_,ty)| ty).expect("start field not found");
+    let start_ty = fields.iter().find(|(fld,_,_)| fld == &start)
+        .map(|(_, ty, _)| ty).expect("start field not found");
 
     // Assemble the expanded code
     let expanded = quote! {
