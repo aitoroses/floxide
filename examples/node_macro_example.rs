@@ -2,7 +2,6 @@
 // Demonstrates the `node!` macro: struct fields, custom context, input/output, and workflow usage.
 
 use floxide_macros::{workflow, node};
-use async_trait::async_trait;
 use floxide_core::{transition::Transition, Node, WorkflowCtx};
 
 #[derive(Debug, Clone)]

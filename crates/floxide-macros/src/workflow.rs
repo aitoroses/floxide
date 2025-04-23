@@ -333,7 +333,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             }
         }
 
-        #[async_trait]
+        #[async_trait::async_trait]
         impl floxide_core::workflow::Workflow<#context> for #name #generics
         {
             type Input = <#start_ty as floxide_core::node::Node<#context>>::Input;
