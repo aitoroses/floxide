@@ -125,8 +125,8 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the checkpoint workflow example and returns Ok(()) if all scenarios succeed
+pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> {
     // Each job has its own context (e.g., job name)
     let ctx = WorkflowCtx::new(Ctx { failed: Arc::new(Mutex::new(false)) });
     // Build the workflow with its nodes
@@ -172,4 +172,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Resumed run result = {:?}", resumed);
 
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_checkpoint_example().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_checkpoint_example() {
+        run_checkpoint_example().await.expect("checkpoint workflow should run");
+    }
 }

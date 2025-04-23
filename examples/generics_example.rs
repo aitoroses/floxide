@@ -62,13 +62,31 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() {
+/// Runs the GenericsWorkflow and returns the result
+pub async fn run_generics_example() -> Result<usize, Box<dyn std::error::Error>> {
     let wf = GenericsWorkflow {
         foo: FooNode { value: 42 },
         bar: BarNode { value: "hello".to_string() },
     };
     let ctx = WorkflowCtx::new(());
-    let result = wf.run(&ctx, 123u32).await;
+    let result = wf.run(&ctx, 123u32).await?;
     println!("Workflow result: {:?}", result);
+    Ok(result)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_generics_example().await?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_generics_example() {
+        let result = run_generics_example().await.expect("workflow should run");
+        // The BarNode returns the length of the string passed from FooNode
+        assert_eq!(result, "foo-42".len());
+    }
 } 

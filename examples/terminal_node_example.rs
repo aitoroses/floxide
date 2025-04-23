@@ -38,16 +38,31 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the terminal workflow with input 7 and returns the output
+pub async fn run_terminal_node_example() -> Result<i32, Box<dyn std::error::Error>> {
     let wf = TerminalWorkflow {
         triple: TripleNode,
     };
     let ctx = WorkflowCtx::new(());
     let input = 7;
     println!("Running workflow with input {}:", input);
-    // wf.run now returns the node's Output type (i32 here)
     let output: i32 = wf.run(&ctx, input).await?;
     println!("Workflow output: {}", output);
+    Ok(output)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_terminal_node_example().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_terminal_node_example() {
+        let output = run_terminal_node_example().await.expect("workflow should run");
+        assert_eq!(output, 21);
+    }
 }

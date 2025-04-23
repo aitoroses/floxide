@@ -48,15 +48,15 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), FloxideError> {
+/// Runs the timer workflow and returns Ok(()) if it succeeds
+pub async fn run_timer_example() -> Result<(), FloxideError> {
     // Create a channel-backed source for u64 ticks, capacity 10.
     let (tx, source) = source::<(), u64>(10);
 
     // Spawn a task that sends ticks 0..=9 at 1-second intervals, then closes
     tokio::spawn(async move {
         for i in 0u64..10u64 {
-            sleep(Duration::from_secs(1)).await;
+            sleep(Duration::from_millis(200)).await;
             if tx.send(i).await.is_err() {
                 break;
             }
@@ -73,4 +73,18 @@ async fn main() -> Result<(), FloxideError> {
     // Drive the workflow for each incoming tick until source closes.
     source.run(&wf, &ctx).await?;
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), FloxideError> {
+    run_timer_example().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_timer_example() {
+        run_timer_example().await.expect("timer workflow should run");
+    }
 }

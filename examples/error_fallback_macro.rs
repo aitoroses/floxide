@@ -62,8 +62,8 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the error fallback workflow and returns the output string
+pub async fn run_error_fallback_workflow() -> Result<String, Box<dyn std::error::Error>> {
     let wf = ErrorFallbackWorkflow {
         fail: AlwaysFailNode,
         recovery: RecoveryNode,
@@ -71,6 +71,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ctx = WorkflowCtx::new(());
     // Run the workflow: `fail` will error, then fallback to `recovery`
     let output: String = wf.run(&ctx, ()).await?;
+    Ok(output)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let output = run_error_fallback_workflow().await?;
     println!("Workflow output after fallback: {}", output);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_error_fallback_workflow() {
+        let output = run_error_fallback_workflow().await.expect("workflow should succeed after fallback");
+        assert_eq!(output, "recovered");
+    }
 }

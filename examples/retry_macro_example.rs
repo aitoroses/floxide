@@ -55,8 +55,8 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the macro retry workflow and returns the result string
+pub async fn run_retry_macro_example() -> Result<&'static str, Box<dyn std::error::Error>> {
     // Create policy: 3 attempts, linear backoff 50ms
     let policy = RetryPolicy::new(
         3,
@@ -70,5 +70,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ctx = WorkflowCtx::new(());
     let result = wf.run(&ctx, ()).await?;
     println!("Workflow result: {}", result);
+    Ok(result)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_retry_macro_example().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_retry_macro_example() {
+        let result = run_retry_macro_example().await.expect("workflow should run");
+        assert_eq!(result, "success");
+    }
 }

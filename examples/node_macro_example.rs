@@ -51,8 +51,8 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the NodeMacroWorkflow with input 3 and returns Ok(()) if it succeeds
+pub async fn run_node_macro_example() -> Result<(), Box<dyn std::error::Error>> {
     // Instantiate the workflow with node instances
     let wf = NodeMacroWorkflow {
         mult: MultiplierNode { factor: 4 },
@@ -63,4 +63,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Running node_macro_example with input 3:");
     wf.run(&ctx, 3).await?;
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_node_macro_example().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_node_macro_example() {
+        run_node_macro_example().await.expect("workflow should run");
+    }
 }

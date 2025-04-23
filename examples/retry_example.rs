@@ -40,8 +40,8 @@ impl Node<()> for FlakyNode {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the flaky node with retry and returns Ok(()) if it succeeds
+pub async fn run_retry_example() -> Result<(), Box<dyn std::error::Error>> {
     // Simple context that supports no cancellation or timeouts
     let ctx = WorkflowCtx::new(());
     // Create a flaky node that fails twice before succeeding
@@ -61,4 +61,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     retry_node.process(&ctx.store, ()).await?;
     println!("Completed with retry policy.");
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_retry_example().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_retry_example() {
+        run_retry_example().await.expect("flaky node should eventually succeed");
+    }
 }

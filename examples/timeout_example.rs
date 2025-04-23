@@ -43,8 +43,8 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the timeout workflow and returns whether it timed out (true if timeout error, false if completed)
+pub async fn run_timeout_workflow() -> Result<bool, Box<dyn std::error::Error>> {
     let wf = TimeoutWorkflow {
         slow: SlowNode { dur: Duration::from_secs(2) },
     };
@@ -52,8 +52,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Set a timeout shorter than the node's sleep
     ctx.set_timeout(Duration::from_millis(500));
     match wf.run(&ctx, ()).await {
-        Ok(_) => println!("Workflow completed successfully"),
-        Err(e) => println!("Workflow failed: {}", e),
+        Ok(_) => Ok(false), // did not timeout
+        Err(_e) => Ok(true), // timed out
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let timed_out = run_timeout_workflow().await?;
+    if timed_out {
+        println!("Workflow failed due to timeout");
+    } else {
+        println!("Workflow completed successfully");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_timeout_workflow() {
+        let timed_out = run_timeout_workflow().await.expect("should run workflow");
+        assert!(timed_out, "Workflow should time out");
+    }
 }

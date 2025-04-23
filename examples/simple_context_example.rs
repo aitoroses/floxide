@@ -106,6 +106,12 @@ workflow! {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_threshold_workflow_example().await?;
+    Ok(())
+}
+
+/// Runs the threshold workflow with two inputs and returns Ok(()) if both succeed
+pub async fn run_threshold_workflow_example() -> Result<(), Box<dyn std::error::Error>> {
     let wf = ThresholdWorkflow {
         foo: FooNode { threshold: 10 },
         big: BigNode,
@@ -117,4 +123,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Running with input 42:");
     wf.run(&ctx, 42).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_threshold_workflow_example() {
+        run_threshold_workflow_example().await.expect("workflow should run for both inputs");
+    }
 }

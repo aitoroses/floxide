@@ -42,8 +42,8 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the cancel workflow and returns whether it was cancelled (true if cancelled, false if completed)
+pub async fn run_cancellation_example() -> Result<bool, Box<dyn std::error::Error>> {
     let wf = CancelWorkflow {
         slow: SlowNode { dur: Duration::from_secs(2) },
     };
@@ -56,8 +56,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         canceller.cancel();
     });
     match wf.run(&ctx, ()).await {
-        Ok(_) => println!("Workflow completed successfully"),
-        Err(e) => println!("Workflow failed: {}", e),
+        Ok(_) => Ok(false), // did not cancel
+        Err(_e) => Ok(true), // cancelled
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let cancelled = run_cancellation_example().await?;
+    if cancelled {
+        println!("Workflow was cancelled");
+    } else {
+        println!("Workflow completed successfully");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_cancellation_example() {
+        let cancelled = run_cancellation_example().await.expect("should run workflow");
+        assert!(cancelled, "Workflow should be cancelled");
+    }
 }

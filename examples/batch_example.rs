@@ -124,8 +124,8 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the batch workflow with a sample input and returns Ok(()) if it succeeds
+pub async fn run_batch_example() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the workflow with batch size and threshold
     let wf = BatchWorkflow {
         multiply: BatchNode::new(Multiply2, 2),
@@ -138,4 +138,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Running batch workflow on {:?}", inputs);
     wf.run(&ctx, inputs).await?;
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_batch_example().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_batch_example() {
+        run_batch_example().await.expect("batch workflow should run");
+    }
 }

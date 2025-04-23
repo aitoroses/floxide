@@ -87,8 +87,8 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Runs the nested workflow with input 5 and returns Ok(()) if it succeeds
+pub async fn run_nested_workflow_example() -> Result<(), Box<dyn std::error::Error>> {
     // Build the inner workflow and wrap it
     let inner = InnerWorkflow { double: DoubleNode, addten: AddTenNode };
     let wf = OuterWorkflow { sub: CompositeNode::new(inner), print: PrintNode };
@@ -96,4 +96,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Running nested workflow starting at 5:");
     wf.run(&ctx, 5).await?;
     Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    run_nested_workflow_example().await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_nested_workflow_example() {
+        run_nested_workflow_example().await.expect("nested workflow should run");
+    }
 }
