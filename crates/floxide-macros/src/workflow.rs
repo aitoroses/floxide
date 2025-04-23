@@ -14,7 +14,9 @@ struct CompositeArm {
 }
 // AST for struct-based workflow: struct fields, start field, and routing edges
 enum EdgeKind {
-    Direct(Vec<Ident>),
+    /// Direct edges: list of successor nodes on success, optional fallback on failure
+    Direct { succs: Vec<Ident>, on_failure: Option<Vec<Ident>> },
+    /// Composite edges: match on enum variants
     Composite(Vec<CompositeArm>),
 }
 struct WorkflowDef {
@@ -109,25 +111,50 @@ impl Parse for WorkflowDef {
                         input.parse::<Ident>()?; // edges
                         let edges_content;
                         braced!(edges_content in input);
-                        let mut edges_vec = Vec::new();
+                        // Collect direct-success, direct-failure, and composite arms
+                        let mut direct_success = std::collections::HashMap::<Ident, Vec<Ident>>::new();
+                        let mut direct_failure = std::collections::HashMap::<Ident, Vec<Ident>>::new();
+                        let mut composite_map = std::collections::HashMap::<Ident, Vec<CompositeArm>>::new();
                         while !edges_content.is_empty() {
                             let src: Ident = edges_content.parse()?;
+                            if edges_content.peek(Ident) {
+                                // on_failure clause
+                                let kw: Ident = edges_content.parse()?;
+                                if kw == "on_failure" {
+                                    edges_content.parse::<Token![=>]>()?;
+                                    let nested;
+                                    braced!(nested in edges_content);
+                                    // expect bracketed fallback list
+                                    let succs_content;
+                                    bracketed!(succs_content in nested);
+                                    let fails: Vec<Ident> = succs_content
+                                        .parse_terminated(Ident::parse, Token![,])?
+                                        .into_iter()
+                                        .collect();
+                                    edges_content.parse::<Token![;]>()?;
+                                    direct_failure.insert(src.clone(), fails);
+                                    continue;
+                                } else {
+                                    return Err(edges_content.error("Unexpected identifier. Expected `on_failure` or `=>`."));
+                                }
+                            }
+                            // success or composite entry
                             edges_content.parse::<Token![=>]>()?;
-                            // parse either direct successors or composite arms
                             let nested;
                             braced!(nested in edges_content);
-                            let edge_kind = if nested.peek(syn::token::Bracket) {
-                                // direct successors: [ succ1, succ2, ... ]
+                            if nested.peek(syn::token::Bracket) {
+                                // direct successors
                                 let succs_content;
                                 bracketed!(succs_content in nested);
                                 let succs: Vec<Ident> = succs_content
                                     .parse_terminated(Ident::parse, Token![,])?
                                     .into_iter()
                                     .collect();
-                                EdgeKind::Direct(succs)
+                                edges_content.parse::<Token![;]>()?;
+                                direct_success.insert(src.clone(), succs);
                             } else {
-                                // composite arms: Enum::Variant(binding) => [succs]; ...
-                                let mut composite = Vec::new();
+                                // composite arms
+                                let mut arms = Vec::new();
                                 while !nested.is_empty() {
                                     let action_path: Ident = nested.parse()?;
                                     nested.parse::<Token![::]>()?;
@@ -143,13 +170,26 @@ impl Parse for WorkflowDef {
                                         .into_iter()
                                         .collect();
                                     nested.parse::<Token![;]>()?;
-                                    composite.push(CompositeArm { action_path, variant, binding, succs });
+                                    arms.push(CompositeArm { action_path, variant, binding, succs });
                                 }
-                                EdgeKind::Composite(composite)
-                            };
-                            // consume semicolon after edge block
-                            edges_content.parse::<Token![;]>()?;
-                            edges_vec.push((src, edge_kind));
+                                edges_content.parse::<Token![;]>()?;
+                                composite_map.insert(src.clone(), arms);
+                            }
+                        }
+                        // Merge into final edges vector
+                        let mut edges_vec = Vec::new();
+                        // direct-success entries
+                        for (src, succs) in direct_success.into_iter() {
+                            let failure = direct_failure.remove(&src);
+                            edges_vec.push((src, EdgeKind::Direct { succs, on_failure: failure }));
+                        }
+                        // direct-failure-only entries
+                        for (src, fails) in direct_failure.into_iter() {
+                            edges_vec.push((src, EdgeKind::Direct { succs: Vec::new(), on_failure: Some(fails) }));
+                        }
+                        // composite entries
+                        for (src, arms) in composite_map.into_iter() {
+                            edges_vec.push((src, EdgeKind::Composite(arms)));
                         }
                         edges = Some(edges_vec);
                         seen.insert("edges");
@@ -180,7 +220,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     let work_item_ident = format_ident!("{}WorkItem", name);
     // Determine terminal branch: a field with no successors (direct empty or composite empty)
     let terminal_src = edges.iter().find(|(_, kind)| {
-        matches!(kind, EdgeKind::Direct(succs) if succs.is_empty())
+        matches!(kind, EdgeKind::Direct { succs, on_failure } if succs.is_empty() && on_failure.is_none())
         || matches!(kind, EdgeKind::Composite(ar) if ar.is_empty())
     }).expect("Workflow must have a terminal branch").0.clone();
     // Find the type of the terminal field
@@ -249,19 +289,11 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         };
         // Generate code based on edge kind, using __node.process instead of self.#fld.process
         let arm_tokens = match kind {
-            EdgeKind::Direct(succs) => {
-                if succs.is_empty() {
-                    // terminal direct branch: return the output value
-                    quote! {
-                        #wrapper
-                        let __store = &ctx.store;
-                        match ctx.run_future(__node.process(__store, x)).await? {
-                            Transition::Next(action) => return Ok(action),
-                            Transition::Abort(e) => return Err(e),
-                        }
-                    }
+            EdgeKind::Direct { succs, on_failure } => {
+                // Build tokens for success path
+                let push_success = if succs.is_empty() {
+                    quote! { return Ok(action) }
                 } else {
-                    // direct successor(s): pass the action to next node(s)
                     let pushes = succs.iter().map(|succ| {
                         let succ_var = format_ident!("{}{}",
                             succ.to_string().chars().next().unwrap().to_uppercase().to_string(),
@@ -269,13 +301,29 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         );
                         quote! { __q.push_back(#work_item_ident::#succ_var(action.clone())); }
                     });
-                    quote! {
-                        #wrapper
-                        let __store = &ctx.store;
-                        match ctx.run_future(__node.process(__store, x)).await? {
-                            Transition::Next(action) => { #(#pushes)* }
-                            Transition::Abort(e) => return Err(e),
-                        }
+                    quote! { #(#pushes)* }
+                };
+                // Build tokens for failure/fallback path
+                let push_failure = if let Some(fails) = on_failure {
+                    let failure_pushes = fails.iter().map(|succ| {
+                        let succ_var = format_ident!("{}{}",
+                            succ.to_string().chars().next().unwrap().to_uppercase().to_string(),
+                            succ.to_string().chars().skip(1).collect::<String>()
+                        );
+                        // fallback receives no input (unit)
+                        quote! { __q.push_back(#work_item_ident::#succ_var(())); }
+                    });
+                    quote! { #(#failure_pushes)* }
+                } else {
+                    quote! { return Err(e) }
+                };
+                // Generate match with explicit error handling
+                quote! {
+                    #wrapper
+                    let __store = &ctx.store;
+                    match ctx.run_future(__node.process(__store, x)).await {
+                        Ok(Transition::Next(action)) => { #push_success },
+                        Ok(Transition::Abort(e)) | Err(e) => { #push_failure },
                     }
                 }
             }
