@@ -69,7 +69,7 @@ impl Node for PrintNode {
     ) -> Result<Transition<Self::Output>, FloxideError>
     {
         println!("PrintNode: final output = {}", input);
-        Ok(Transition::Finish)
+        Ok(Transition::Next(()))
     }
 }
 

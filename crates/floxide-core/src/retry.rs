@@ -287,7 +287,6 @@ where
         loop {
             match self.inner.process(ctx, input.clone()).await {
                 Ok(Transition::Next(out)) => return Ok(Transition::Next(out)),
-                Ok(Transition::Finish) => return Ok(Transition::Finish),
                 Ok(Transition::Abort(e)) | Err(e) => {
                     // emit tracing event for retry evaluation
                     tracing::debug!(attempt, error=%e, "RetryNode: caught error, evaluating retry policy");

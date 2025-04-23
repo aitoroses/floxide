@@ -27,7 +27,7 @@ impl Node for SlowNode {
         println!("SlowNode: sleeping for {:?}", self.dur);
         sleep(self.dur).await;
         println!("SlowNode: woke up");
-        Ok(Transition::Finish)
+        Ok(Transition::Next(()))
     }
 }
 

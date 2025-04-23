@@ -33,7 +33,7 @@ node! {
     |ctx, x| {
         println!("PrinterNode: ctx = {:?}", ctx);
         println!("PrinterNode: final output = {}", x);
-        Ok(Transition::Finish)
+        Ok(Transition::Next(()))
     }
 }
 

@@ -56,7 +56,6 @@ impl<N> BatchNode<N> {
                 for res in results {
                     match res {
                         Ok(Ok(Transition::Next(o))) => outputs.push(o),
-                        Ok(Ok(Transition::Finish)) => {},
                         Ok(Ok(Transition::Abort(e))) => return Err(e),
                         Ok(Err(e)) => return Err(e),
                         Err(e) => return Err(FloxideError::Generic(format!("Join error: {e}"))),
@@ -70,7 +69,6 @@ impl<N> BatchNode<N> {
             for res in results {
                 match res {
                     Ok(Ok(Transition::Next(o))) => outputs.push(o),
-                    Ok(Ok(Transition::Finish)) => {},
                     Ok(Ok(Transition::Abort(e))) => return Err(e),
                     Ok(Err(e)) => return Err(e),
                     Err(e) => return Err(FloxideError::Generic(format!("Join error: {e}"))),

@@ -257,7 +257,6 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let __store = &ctx.store;
                         match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => return Ok(action),
-                            Transition::Finish => return Ok(Default::default()),
                             Transition::Abort(e) => return Err(e),
                         }
                     }
@@ -275,7 +274,6 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let __store = &ctx.store;
                         match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => { #(#pushes)* }
-                            Transition::Finish => {},
                             Transition::Abort(e) => return Err(e),
                         }
                     }
@@ -289,7 +287,6 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let __store = &ctx.store;
                         match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => return Ok(action),
-                            Transition::Finish => return Ok(Default::default()),
                             Transition::Abort(e) => return Err(e),
                         }
                     }
@@ -320,7 +317,6 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                             Transition::Next(action) => {
                                 match action { #(#pats),* _ => {} }
                             }
-                            Transition::Finish => {},
                             Transition::Abort(e) => return Err(e),
                         }
                     }

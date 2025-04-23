@@ -62,7 +62,7 @@ impl Node<MyCtx> for BigNode {
         input: u64,
     ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("BigNode: handling value {}", input);
-        Ok(Transition::Finish)
+        Ok(Transition::Next(()))
     }
 }
 
@@ -81,7 +81,7 @@ impl Node<MyCtx> for SmallNode {
         input: String,
     ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("SmallNode: handling message \"{}\"", input);
-        Ok(Transition::Finish)
+        Ok(Transition::Next(()))
     }
 }
 

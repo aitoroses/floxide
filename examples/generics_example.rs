@@ -44,7 +44,7 @@ impl<U: Display + Debug + Clone + Sync + Send + 'static> Node<()> for BarNode<U>
         input: String,
     ) -> Result<Transition<usize>, FloxideError> {
         println!("BarNode processing: {}", input);
-        Ok(Transition::Finish)
+        Ok(Transition::Next(input.len()))
     }
 }
 

@@ -78,7 +78,7 @@ impl Node for LargeNode {
     ) -> Result<Transition<Self::Output>, FloxideError>
     {
         println!("LargeNode: {:?}", inputs);
-        Ok(Transition::Finish)
+        Ok(Transition::Next(()))
     }
 }
 
@@ -98,7 +98,7 @@ impl Node for SmallNode {
     ) -> Result<Transition<Self::Output>, FloxideError>
     {
         println!("SmallNode: {:?}", inputs);
-        Ok(Transition::Finish)
+        Ok(Transition::Next(()))
     }
 }
 

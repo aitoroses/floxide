@@ -35,7 +35,7 @@ impl Node<()> for FlakyNode {
             Err(FloxideError::Generic(format!("failure #{}", *count)))
         } else {
             println!("FlakyNode: success on attempt {}", *count);
-            Ok(Transition::Finish)
+            Ok(Transition::Next(()))
         }
     }
 }
