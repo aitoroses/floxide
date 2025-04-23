@@ -3,14 +3,14 @@ use async_trait::async_trait;
 
 /// A node takes an input and a context, and returns a transition.
 #[async_trait]
-pub trait Node<C=()>: Send + Sync + 'static
+pub trait Node<C=()>: Send + Sync
 where
-    C: Clone + Send + Sync + 'static,
+    C: Send + Sync,
 {
     /// Input type for the node
-    type Input: Send + 'static;
+    type Input: Send + Sync;
     /// Output type produced by the node
-    type Output: Send + 'static;
+    type Output: Send + Sync;
 
     /// Process an input value within the given context, producing a transition
     async fn process(

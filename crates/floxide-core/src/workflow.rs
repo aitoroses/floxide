@@ -5,14 +5,14 @@ use async_trait::async_trait;
 use crate::{error::FloxideError, Node, Transition};
 
 #[async_trait]
-pub trait Workflow<C>: Debug + Clone + Send + Sync + 'static
+pub trait Workflow<C>: Debug + Clone + Send + Sync
 where
-    C: Clone + Send + Sync + 'static,
+    C: Clone + Send + Sync,
 {
     /// Input type for the workflow
-    type Input: Send + 'static;
+    type Input: Send + Sync;
     /// Output type returned by the workflow's terminal branch
-    type Output: Send + 'static;
+    type Output: Send + Sync;
 
     /// Execute the workflow, returning the output of the terminal branch
     async fn run(
@@ -35,10 +35,10 @@ impl<W> CompositeNode<W> {
 #[async_trait]
 impl<C, W> Node<C> for CompositeNode<W>
 where
-    C: Clone + Send + Sync + 'static,
-    W: Workflow<C> + Clone + Send + Sync + 'static,
-    W::Input: Send + 'static,
-    W::Output: Send + 'static,
+    C: Clone + Send + Sync,
+    W: Workflow<C> + Clone + Send + Sync,
+    W::Input: Send + Sync,
+    W::Output: Send + Sync,
 {
     type Input = W::Input;
     type Output = W::Output;

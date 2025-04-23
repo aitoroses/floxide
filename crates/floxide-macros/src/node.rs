@@ -84,7 +84,7 @@ pub fn node(item: TokenStream) -> TokenStream {
         #[::async_trait::async_trait]
         impl ::floxide_core::node::Node<#ctx_ty> for #name
         where
-            #ctx_ty: Clone + Send + Sync + 'static
+            #ctx_ty: Clone + Send + Sync
         {
             type Input = #input_ty;
             type Output = #output_ty;
