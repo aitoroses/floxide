@@ -28,7 +28,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 ///   context = MyCtx;
 ///   input   = InputType;
 ///   output  = OutputType;
-///   |self_, ctx, input_val| { /* returns Result<Transition<OutputType>, FloxideError> */ }
+///   |ctx, input_val| { /* can access self, returns Result<Transition<OutputType>, FloxideError> */ }
 /// }
 #[proc_macro]
 pub fn node(item: TokenStream) -> TokenStream {
