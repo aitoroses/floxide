@@ -9,7 +9,7 @@ use serde::{Serialize, Deserialize};
 // Global mutable failed flag
 static FAILED: LazyLock<Arc<Mutex<bool>>> = LazyLock::new(|| Arc::new(Mutex::new(false)));
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Ctx {
     failed: Arc<Mutex<bool>>,
 }
@@ -176,6 +176,9 @@ pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     run_checkpoint_example().await
 }
 

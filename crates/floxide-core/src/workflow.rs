@@ -7,7 +7,7 @@ use crate::{error::FloxideError, Node, Transition};
 #[async_trait]
 pub trait Workflow<C>: Debug + Clone + Send + Sync
 where
-    C: Clone + Send + Sync,
+    C: Debug +Clone + Send + Sync,
 {
     /// Input type for the workflow
     type Input: Send + Sync;
@@ -35,7 +35,7 @@ impl<W> CompositeNode<W> {
 #[async_trait]
 impl<C, W> Node<C> for CompositeNode<W>
 where
-    C: Clone + Send + Sync,
+    C: Debug + Clone + Send + Sync,
     W: Workflow<C> + Clone + Send + Sync,
     W::Input: Send + Sync,
     W::Output: Send + Sync,

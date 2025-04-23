@@ -77,6 +77,9 @@ pub async fn run_timer_example() -> Result<(), FloxideError> {
 
 #[tokio::main]
 async fn main() -> Result<(), FloxideError> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     run_timer_example().await
 }
 

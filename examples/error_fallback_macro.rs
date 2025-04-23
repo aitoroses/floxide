@@ -76,6 +76,9 @@ pub async fn run_error_fallback_workflow() -> Result<String, Box<dyn std::error:
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     let output = run_error_fallback_workflow().await?;
     println!("Workflow output after fallback: {}", output);
     Ok(())

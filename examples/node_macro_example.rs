@@ -67,6 +67,9 @@ pub async fn run_node_macro_example() -> Result<(), Box<dyn std::error::Error>> 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     run_node_macro_example().await
 }
 

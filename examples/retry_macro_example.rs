@@ -1,6 +1,6 @@
 //! Example: defining retries via the `workflow!` macro annotation
 use async_trait::async_trait;
-use floxide::core::*;
+use floxide_core::*;
 use floxide_macros::workflow;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -75,6 +75,10 @@ pub async fn run_retry_macro_example() -> Result<&'static str, Box<dyn std::erro
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+    .with_max_level(tracing::Level::DEBUG)
+    .init();
+
     run_retry_macro_example().await?;
     Ok(())
 }

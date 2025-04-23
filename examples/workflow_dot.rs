@@ -1,6 +1,5 @@
-use floxide::{init, workflow};
-use floxide::core::{node::Node, transition::Transition};
-use floxide_macros::node;
+use floxide_core::{node::Node, transition::Transition};
+use floxide_macros::{node, workflow};
 
 // A simple stub node that just passes through a value or fails once for retry demo
 // Define a printing node that finishes the workflow
@@ -69,8 +68,6 @@ workflow! {
 }
 
 fn main() {
-    // Initialize tracing/logging
-    init();
 
     // Build the workflow instance
     let wf = ExampleWorkflow {

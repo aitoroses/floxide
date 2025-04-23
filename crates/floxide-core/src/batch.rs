@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use tokio::task;
 use futures::future::join_all;
 use std::vec::Vec;
+use tracing;
 
 /// A node adapter that runs an inner node on a batch of inputs, collecting outputs in parallel
 #[derive(Clone, Debug)]
@@ -34,6 +35,8 @@ impl<N> BatchNode<N> {
         <N as Node<CTX>>::Input: Clone + Send + 'static,
         <N as Node<CTX>>::Output: Send + 'static,
     {
+        use tracing::{debug, error};
+        debug!(batch_size = self.batch_size, num_inputs = inputs.len(), "Starting batch processing");
         let mut outputs = Vec::new();
         let node = self.node.clone();
         let ctx_clone = ctx.clone();
@@ -51,31 +54,52 @@ impl<N> BatchNode<N> {
             tasks.push(task);
 
             if tasks.len() >= self.batch_size {
+                debug!(current_batch = tasks.len(), "Processing batch");
                 let results = join_all(tasks).await;
                 tasks = Vec::new();
                 for res in results {
                     match res {
                         Ok(Ok(Transition::Next(o))) => outputs.push(o),
-                        Ok(Ok(Transition::Abort(e))) => return Err(e),
-                        Ok(Err(e)) => return Err(e),
-                        Err(e) => return Err(FloxideError::Generic(format!("Join error: {e}"))),
+                        Ok(Ok(Transition::Abort(e))) => {
+                            error!(?e, "Node aborted during batch");
+                            return Err(e)
+                        },
+                        Ok(Err(e)) => {
+                            error!(?e, "Node errored during batch");
+                            return Err(e)
+                        },
+                        Err(e) => {
+                            error!(?e, "Join error during batch");
+                            return Err(FloxideError::Generic(format!("Join error: {e}")))
+                        },
                     }
                 }
             }
         }
 
         if !tasks.is_empty() {
+            debug!(final_batch = tasks.len(), "Processing final batch");
             let results = join_all(tasks).await;
             for res in results {
                 match res {
                     Ok(Ok(Transition::Next(o))) => outputs.push(o),
-                    Ok(Ok(Transition::Abort(e))) => return Err(e),
-                    Ok(Err(e)) => return Err(e),
-                    Err(e) => return Err(FloxideError::Generic(format!("Join error: {e}"))),
+                    Ok(Ok(Transition::Abort(e))) => {
+                        error!(?e, "Node aborted during final batch");
+                        return Err(e)
+                    },
+                    Ok(Err(e)) => {
+                        error!(?e, "Node errored during final batch");
+                        return Err(e)
+                    },
+                    Err(e) => {
+                        error!(?e, "Join error during final batch");
+                        return Err(FloxideError::Generic(format!("Join error: {e}")))
+                    },
                 }
             }
         }
 
+        debug!(num_outputs = outputs.len(), "Batch processing complete");
         Ok(outputs)
     }
 }

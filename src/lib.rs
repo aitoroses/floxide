@@ -25,16 +25,7 @@
 //! ```
 
 
-/// Initialize the framework with default settings.
-///
-/// This sets up tracing for better logging and performs any necessary
-/// initialization for the enabled features.
-pub fn init() {
-    // Initialize tracing for better logs
-    tracing_subscriber::fmt::init();
-}
-
 // Re-export the core module (always included)
-pub use floxide_core as core;
-pub use ::floxide_macros::workflow;
+pub use floxide_core::*;
+pub use ::floxide_macros::*;
 

@@ -59,6 +59,9 @@ pub async fn run_timeout_workflow() -> Result<bool, Box<dyn std::error::Error>> 
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     let timed_out = run_timeout_workflow().await?;
     if timed_out {
         println!("Workflow failed due to timeout");

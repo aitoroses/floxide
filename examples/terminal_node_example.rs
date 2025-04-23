@@ -53,6 +53,9 @@ pub async fn run_terminal_node_example() -> Result<i32, Box<dyn std::error::Erro
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     run_terminal_node_example().await?;
     Ok(())
 }

@@ -1,7 +1,7 @@
 // Abstraction for value-producing (source) nodes: nodes with Input=() that generate outputs
 //! Abstraction for value-producing (source) nodes: nodes with Input=() that emit a stream of outputs.
 use std::sync::Arc;
-
+use std::fmt::Debug;
 use tokio::sync::Mutex;
 use crate::error::FloxideError;
 use crate::workflow::Workflow;
@@ -25,7 +25,7 @@ impl<C, O> Source<C, O> {
 
 impl<C, O> Source<C, O>
 where
-    C: Clone + Send + Sync,
+    C: Debug + Clone + Send + Sync,
     O: Send + Sync,
 {
     /// Drive the provided workflow by pulling items from the channel and

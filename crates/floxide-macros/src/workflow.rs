@@ -318,13 +318,26 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 } else {
                     quote! { return Err(e) }
                 };
-                // Generate match with explicit error handling
+                // Generate match with explicit error handling and tracing logs
                 quote! {
                     #wrapper
                     let __store = &ctx.store;
+                    let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
+                    let _node_enter = node_span.enter();
+                    tracing::debug!(ctx = ?ctx.store, ?x, "Node input and context");
                     match ctx.run_future(__node.process(__store, x)).await {
-                        Ok(Transition::Next(action)) => { #push_success },
-                        Ok(Transition::Abort(e)) | Err(e) => { #push_failure },
+                        Ok(Transition::Next(action)) => {
+                            tracing::debug!(?action, "Node produced Transition::Next");
+                            #push_success
+                        },
+                        Ok(Transition::Abort(e)) => {
+                            tracing::warn!(error = ?e, "Node produced Transition::Abort");
+                            #push_failure
+                        },
+                        Err(e) => {
+                            tracing::error!(error = ?e, "Node process returned error");
+                            #push_failure
+                        },
                     }
                 }
             }
@@ -334,9 +347,18 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     quote! {
                         #wrapper
                         let __store = &ctx.store;
+                        let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
+                        let _node_enter = node_span.enter();
+                        tracing::debug!(store = ?ctx.store, ?x, "Node input and store");
                         match ctx.run_future(__node.process(__store, x)).await? {
-                            Transition::Next(action) => return Ok(action),
-                            Transition::Abort(e) => return Err(e),
+                            Transition::Next(action) => {
+                                tracing::debug!(?action, "Node produced Transition::Next (terminal composite)");
+                                return Ok(action)
+                            },
+                            Transition::Abort(e) => {
+                                tracing::warn!(error = ?e, "Node produced Transition::Abort (terminal composite)");
+                                return Err(e)
+                            },
                         }
                     }
                 } else {
@@ -345,25 +367,42 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let CompositeArm { action_path, variant, binding, succs } = arm;
                         let pat = quote! { #action_path :: #variant (#binding) };
                         // for composite arms: if no successors, return output; else push successors
-                                let succ_pushes = succs.iter().map(|succ| {
+                        let succ_pushes = succs.iter().map(|succ| {
                             let var_name = to_camel_case(&succ.to_string());
                             let succ_var = format_ident!("{}", var_name);
                             quote! { __q.push_back(#work_item_ident::#succ_var(#binding)); }
                         });
                         if succs.is_empty() {
-                            quote! { #pat => { return Ok(#binding); } }
+                            quote! {
+                                #pat => {
+                                    tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: terminal variant");
+                                    return Ok(#binding);
+                                }
+                            }
                         } else {
-                            quote! { #pat => { #(#succ_pushes)* } }
+                            quote! {
+                                #pat => {
+                                    tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: scheduling successors");
+                                    #(#succ_pushes)*
+                                }
+                            }
                         }
                     });
                     quote! {
                         #wrapper
                         let __store = &ctx.store;
+                        let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
+                        let _node_enter = node_span.enter();
+                        tracing::debug!(store = ?ctx.store, ?x, "Node input and store");
                         match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => {
-                                match action { #(#pats),* _ => {} }
+                                tracing::debug!(?action, "Node produced Transition::Next (composite)");
+                                match action { #(#pats)* _ => {tracing::warn!("Composite arm: unmatched variant");} }
                             }
-                            Transition::Abort(e) => return Err(e),
+                            Transition::Abort(e) => {
+                                tracing::warn!(error = ?e, "Node produced Transition::Abort (composite)");
+                                return Err(e);
+                            }
                         }
                     }
                 }
@@ -461,12 +500,18 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             {
                 use std::collections::VecDeque;
                 use floxide_core::transition::Transition;
+                use tracing::{debug, error, info, span, Level};
+                let span = span!(Level::INFO, "workflow_run", workflow = stringify!(#name));
+                let _enter = span.enter();
+                debug!(?input, store = ?ctx.store, "Starting workflow run");
                 let mut __q = VecDeque::new();
                 __q.push_back(#work_item_ident::#start_var(input));
                 while let Some(item) = __q.pop_front() {
+                    debug!(?item, queue_len = __q.len(), "Processing work item");
                     match item {
                         #(#run_arms),*
                     }
+                    debug!(queue_len = __q.len(), "Queue state after processing");
                 }
                 unreachable!("Workflow did not reach terminal branch");
             }
@@ -481,16 +526,22 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 id: &str,
             ) -> Result<<#terminal_ty as floxide_core::node::Node<#context>>::Output, floxide_core::error::FloxideError>
             {
-                // Fully qualify Checkpoint to avoid import collisions
                 use std::collections::VecDeque;
                 use floxide_core::{Checkpoint, CheckpointStore};
-
+                use tracing::{debug, error, info, span, Level};
+                let span = span!(Level::INFO, "workflow_run_with_checkpoint", workflow = stringify!(#name), checkpoint_id = id);
+                let _enter = span.enter();
+                debug!(?input, "Starting workflow run with checkpoint");
                 // load existing checkpoint or start new
                 let mut cp: floxide_core::Checkpoint<#context, #work_item_ident> = match store.load(id)
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))? {
-                    Some(bytes) => floxide_core::Checkpoint::from_bytes(&bytes)
-                        .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?,
+                    Some(bytes) => {
+                        debug!("Loaded existing checkpoint");
+                        floxide_core::Checkpoint::from_bytes(&bytes)
+                            .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?
+                    },
                     None => {
+                        debug!("No checkpoint found, starting new");
                         let mut q = VecDeque::new();
                         q.push_back(#work_item_ident::#start_var(input));
                         floxide_core::Checkpoint { context: ctx.store.clone(), queue: q }
@@ -500,19 +551,23 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 let mut __q = cp.queue.clone();
                 // if there's no pending work, the workflow has already completed
                 if __q.is_empty() {
+                    info!("Workflow already completed (empty queue)");
                     return Err(floxide_core::error::FloxideError::AlreadyCompleted);
                 }
                 // process loop with persistence
                 while let Some(item) = __q.pop_front() {
+                    debug!(?item, queue_len = __q.len(), "Processing work item");
                     match item {
                         #(#run_arms),*
                     }
+                    debug!(queue_len = __q.len(), "Queue state after processing");
                     // update checkpoint state and persist
                     cp.queue = __q.clone();
                     let bytes = cp.to_bytes()
                         .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
                     store.save(id, &bytes)
                         .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
+                    debug!("Checkpoint saved");
                 }
                 unreachable!("Workflow did not reach terminal branch");
             }
@@ -526,10 +581,14 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             ) -> Result<<#terminal_ty as floxide_core::node::Node<#context>>::Output, floxide_core::error::FloxideError>
             {
                 use std::collections::VecDeque;
+                use tracing::{debug, error, info, span, Level};
+                let span = span!(Level::INFO, "workflow_resume", workflow = stringify!(#name), checkpoint_id = id);
+                let _enter = span.enter();
                 // Load persisted checkpoint or error if never run
                 let bytes = store.load(id)
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?
                     .ok_or_else(|| floxide_core::error::FloxideError::NotStarted)?;
+                debug!("Loaded checkpoint for resume");
                 let cp: floxide_core::Checkpoint<#context, #work_item_ident> =
                     floxide_core::Checkpoint::from_bytes(&bytes)
                         .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
@@ -540,19 +599,23 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 let mut __q: VecDeque<#work_item_ident> = cp.queue.clone();
                 // If there is no pending work, the workflow has already completed
                 if __q.is_empty() {
+                    info!("Workflow already completed (empty queue)");
                     return Err(floxide_core::error::FloxideError::AlreadyCompleted);
                 }
                 // if the only pending work is the terminal node, treat as completed
                 if __q.len() == 1 {
                     if let #work_item_ident::#terminal_var(_) = __q.front().unwrap() {
+                        info!("Workflow already completed (terminal node)");
                         return Err(floxide_core::error::FloxideError::AlreadyCompleted);
                     }
                 }
                 // Process remaining items
                 while let Some(item) = __q.pop_front() {
+                    debug!(?item, queue_len = __q.len(), "Processing work item");
                     match item {
                         #(#run_arms),*
                     }
+                    debug!(queue_len = __q.len(), "Queue state after processing");
                 }
                 unreachable!("Workflow did not reach terminal branch");
             }

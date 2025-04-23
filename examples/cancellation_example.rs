@@ -63,6 +63,9 @@ pub async fn run_cancellation_example() -> Result<bool, Box<dyn std::error::Erro
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     let cancelled = run_cancellation_example().await?;
     if cancelled {
         println!("Workflow was cancelled");
