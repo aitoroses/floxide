@@ -569,7 +569,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 use std::collections::VecDeque;
                 use floxide_core::{Checkpoint, CheckpointStore};
                 use tracing::{debug, error, info, span, Level};
-                let span = span!(Level::INFO, "workflow_run_with_checkpoint", workflow = stringify!(#name), checkpoint_id = id);
+                let span = span!(Level::INFO, "workflow_run_with_checkpoint", workflow = stringify!(#name), run_id = id);
                 let _enter = span.enter();
                 debug!(?input, "Starting workflow run with checkpoint");
                 // load existing checkpoint or start new
@@ -675,9 +675,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             use tracing::{span, Level};
             // Span for seeding the distributed run (debug level)
             let seed_span = span!(Level::DEBUG, "workflow_start_distributed",
-                workflow = stringify!(#name), checkpoint_id = %id);
+                workflow = stringify!(#name), run_id = %id);
             let _enter = seed_span.enter();
-            tracing::debug!(workflow = stringify!(#name), checkpoint_id = %id, "start_distributed seeding");
+            tracing::debug!(run_id = %id, "start_distributed seeding");
             // Seed initial checkpoint+queue if not already started
             let saved = store.load(id)
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
@@ -715,7 +715,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             };
             // create a span now that run_id is known
             let step_span = span!(Level::DEBUG, "workflow_step_distributed",
-                workflow = stringify!(#name), checkpoint_id = %run_id, worker = worker_id);
+                workflow = stringify!(#name), run_id = %run_id, worker = worker_id);
             let _enter = step_span.enter();
             // debug log
             debug!(worker = worker_id, run_id = %run_id, ?item, "Worker dequeued item");
