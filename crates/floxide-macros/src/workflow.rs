@@ -297,24 +297,23 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             EdgeKind::Direct { succs, on_failure } => {
                 // Build tokens for success path
                 let push_success = if succs.is_empty() {
-                    quote! { return Ok(action) }
+                    // TERMINAL: return Ok(Some(action))
+                    quote! { return Ok(Some(action)) }
                 } else {
                     let pushes = succs.iter().map(|succ| {
                         let var_name = to_camel_case(&succ.to_string());
                         let succ_var = format_ident!("{}", var_name);
                         quote! { __q.push_back(#work_item_ident::#succ_var(action.clone())); }
                     });
-                    quote! { #(#pushes)* }
+                    quote! { #(#pushes)* return Ok(None) }
                 };
                 // Build tokens for failure/fallback path
                 let push_failure = if let Some(fails) = on_failure {
-                    let failure_pushes = fails.iter().map(|succ| {
+                    let succ_vars: Vec<_> = fails.iter().map(|succ| {
                         let var_name = to_camel_case(&succ.to_string());
-                        let succ_var = format_ident!("{}", var_name);
-                        // fallback receives no input (unit)
-                        quote! { __q.push_back(#work_item_ident::#succ_var(())); }
-                    });
-                    quote! { #(#failure_pushes)* }
+                        format_ident!("{}", var_name)
+                    }).collect();
+                    quote! { #( __q.push_back(#work_item_ident::#succ_vars({})); )* return Ok(None) }
                 } else {
                     quote! { return Err(e) }
                 };
@@ -343,7 +342,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             }
             EdgeKind::Composite(composite) => {
                 if composite.is_empty() {
-                    // terminal composite branch: return the output value
+                    // terminal composite branch: return the output value as Ok(Some(action))
                     quote! {
                         #wrapper
                         let __store = &ctx.store;
@@ -353,7 +352,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => {
                                 tracing::debug!(?action, "Node produced Transition::Next (terminal composite)");
-                                return Ok(action)
+                                return Ok(Some(action))
                             },
                             Transition::Abort(e) => {
                                 tracing::warn!(error = ?e, "Node produced Transition::Abort (terminal composite)");
@@ -363,29 +362,38 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     }
                 } else {
                     // composite edges: pattern-based
-                    let pats = composite.iter().map(|arm| {
+                    let pats_terminal = composite.iter().filter_map(|arm| {
                         let CompositeArm { action_path, variant, binding, succs } = arm;
-                        let pat = quote! { #action_path :: #variant (#binding) };
-                        // for composite arms: if no successors, return output; else push successors
-                        let succ_pushes = succs.iter().map(|succ| {
-                            let var_name = to_camel_case(&succ.to_string());
-                            let succ_var = format_ident!("{}", var_name);
-                            quote! { __q.push_back(#work_item_ident::#succ_var(#binding)); }
-                        });
                         if succs.is_empty() {
-                            quote! {
+                            let pat = quote! { #action_path :: #variant (#binding) };
+                            Some(quote! {
                                 #pat => {
                                     tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: terminal variant");
-                                    return Ok(#binding);
+                                    return Ok(Some(#binding));
                                 }
-                            }
+                            })
                         } else {
-                            quote! {
+                            None
+                        }
+                    });
+                    let pats_non_terminal = composite.iter().filter_map(|arm| {
+                        let CompositeArm { action_path, variant, binding, succs } = arm;
+                        if !succs.is_empty() {
+                            let pat = quote! { #action_path :: #variant (#binding) };
+                            let succ_pushes = succs.iter().map(|succ| {
+                                let var_name = to_camel_case(&succ.to_string());
+                                let succ_var = format_ident!("{}", var_name);
+                                quote! { __q.push_back(#work_item_ident::#succ_var(#binding)); }
+                            });
+                            Some(quote! {
                                 #pat => {
                                     tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: scheduling successors");
                                     #(#succ_pushes)*
+                                    return Ok(None);
                                 }
-                            }
+                            })
+                        } else {
+                            None
                         }
                     });
                     quote! {
@@ -397,7 +405,11 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => {
                                 tracing::debug!(?action, "Node produced Transition::Next (composite)");
-                                match action { #(#pats)* _ => {tracing::warn!("Composite arm: unmatched variant");} }
+                                match action {
+                                    #(#pats_terminal)*
+                                    #(#pats_non_terminal)*
+                                    _ => {tracing::warn!("Composite arm: unmatched variant"); return Ok(None);}
+                                }
                             }
                             Transition::Abort(e) => {
                                 tracing::warn!(error = ?e, "Node produced Transition::Abort (composite)");
@@ -484,12 +496,41 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
         #[allow(non_camel_case_types)]
         #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-        enum #work_item_ident {
+        #vis enum #work_item_ident {
             #(#work_variants),*
         }
 
+        impl #work_item_ident {
+            /// Export the workflow definition as a Graphviz DOT string.
+            pub fn to_dot() -> &'static str {
+                #dot_literal
+            }
+        }
 
         impl #name #generics {
+            /// Export the workflow definition as a Graphviz DOT string.
+            pub fn to_dot(&self) -> &'static str {
+                #dot_literal
+            }
+
+            #[allow(unreachable_code)]
+            async fn process_work_item<'a>(
+                &'a self,
+                ctx: &'a floxide_core::WorkflowCtx<#context>,
+                item: #work_item_ident,
+                __q: &mut std::collections::VecDeque<#work_item_ident>
+            ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>
+            {
+                use floxide_core::transition::Transition;
+                use tracing::{debug, error, warn};
+                match item {
+                    #(
+                        #run_arms
+                    ),*
+                }
+                Ok(None)
+            }
+
             /// Execute the workflow, returning the output of the terminal branch
             #[allow(unreachable_code)]
             pub async fn run(
@@ -499,7 +540,6 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             ) -> Result<<#terminal_ty as floxide_core::node::Node<#context>>::Output, floxide_core::error::FloxideError>
             {
                 use std::collections::VecDeque;
-                use floxide_core::transition::Transition;
                 use tracing::{debug, error, info, span, Level};
                 let span = span!(Level::INFO, "workflow_run", workflow = stringify!(#name));
                 let _enter = span.enter();
@@ -508,8 +548,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 __q.push_back(#work_item_ident::#start_var(input));
                 while let Some(item) = __q.pop_front() {
                     debug!(?item, queue_len = __q.len(), "Processing work item");
-                    match item {
-                        #(#run_arms),*
+                    if let Some(output) = self.process_work_item(ctx, item, &mut __q).await? {
+                        return Ok(output);
                     }
                     debug!(queue_len = __q.len(), "Queue state after processing");
                 }
@@ -557,8 +597,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 // process loop with persistence
                 while let Some(item) = __q.pop_front() {
                     debug!(?item, queue_len = __q.len(), "Processing work item");
-                    match item {
-                        #(#run_arms),*
+                    if let Some(output) = self.process_work_item(ctx, item, &mut __q).await? {
+                        return Ok(output);
                     }
                     debug!(queue_len = __q.len(), "Queue state after processing");
                     // update checkpoint state and persist
@@ -612,19 +652,13 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 // Process remaining items
                 while let Some(item) = __q.pop_front() {
                     debug!(?item, queue_len = __q.len(), "Processing work item");
-                    match item {
-                        #(#run_arms),*
+                    if let Some(output) = self.process_work_item(ctx, item, &mut __q).await? {
+                        return Ok(output);
                     }
                     debug!(queue_len = __q.len(), "Queue state after processing");
                 }
                 unreachable!("Workflow did not reach terminal branch");
             }
-
-            /// Export the workflow definition as a Graphviz DOT string.
-            pub fn to_dot(&self) -> &'static str {
-                #dot_literal
-            }
-
         }
 
         #[async_trait::async_trait]

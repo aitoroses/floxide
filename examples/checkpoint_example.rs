@@ -1,10 +1,10 @@
 //! Example demonstrating in-memory checkpointing and resume
-use floxide_core::{WorkflowCtx, CheckpointStore, Transition, Node, FloxideError};
+use floxide_core::{CheckpointStore, FloxideError, Node, Transition, WorkflowCtx};
 use floxide_macros::{node, workflow};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::sync::{Arc, LazyLock, Mutex, RwLock};
-use serde::{Serialize, Deserialize};
 
 // Global mutable failed flag
 static FAILED: LazyLock<Arc<Mutex<bool>>> = LazyLock::new(|| Arc::new(Mutex::new(false)));
@@ -17,7 +17,8 @@ struct Ctx {
 impl Serialize for Ctx {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer {
+        S: serde::Serializer,
+    {
         // get the failed value
         let failed = self.failed.lock().unwrap();
         // serialize the failed value
@@ -28,11 +29,14 @@ impl Serialize for Ctx {
 impl<'de> Deserialize<'de> for Ctx {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de> {
+        D: serde::Deserializer<'de>,
+    {
         // deserialize the failed value
         let failed = bool::deserialize(deserializer)?;
         // create a new Ctx
-        Ok(Ctx { failed: Arc::new(Mutex::new(failed)) })
+        Ok(Ctx {
+            failed: Arc::new(Mutex::new(failed)),
+        })
     }
 }
 
@@ -53,17 +57,23 @@ impl InMemoryStore {
 }
 
 impl CheckpointStore for InMemoryStore {
-    fn save(&self, workflow_id: &str, data: &[u8]) -> Result<(), floxide_core::checkpoint::CheckpointError> {
+    fn save(
+        &self,
+        workflow_id: &str,
+        data: &[u8],
+    ) -> Result<(), floxide_core::checkpoint::CheckpointError> {
         let mut map = self.0.write().unwrap();
         map.insert(workflow_id.to_string(), data.to_vec());
         Ok(())
     }
-    fn load(&self, workflow_id: &str) -> Result<Option<Vec<u8>>, floxide_core::checkpoint::CheckpointError> {
+    fn load(
+        &self,
+        workflow_id: &str,
+    ) -> Result<Option<Vec<u8>>, floxide_core::checkpoint::CheckpointError> {
         let map = self.0.read().unwrap();
         Ok(map.get(workflow_id).cloned())
     }
 }
-
 
 // Define the action enum for counter progress
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -98,7 +108,7 @@ node! {
 
 // Terminal node that outputs the final value
 node! {
-    pub struct TerminalNode {}; 
+    pub struct TerminalNode {};
     context = Ctx;
     input = i32;
     output = i32;
@@ -127,10 +137,16 @@ workflow! {
 
 /// Runs the checkpoint workflow example and returns Ok(()) if all scenarios succeed
 pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> {
+
     // Each job has its own context (e.g., job name)
-    let ctx = WorkflowCtx::new(Ctx { failed: Arc::new(Mutex::new(false)) });
+    let ctx = WorkflowCtx::new(Ctx {
+        failed: Arc::new(Mutex::new(false)),
+    });
     // Build the workflow with its nodes
-    let wf = CounterWorkflow { counter: CounterNode { max: 5 }, terminal: TerminalNode {} };
+    let wf = CounterWorkflow {
+        counter: CounterNode { max: 5 },
+        terminal: TerminalNode {},
+    };
     let store = InMemoryStore::new();
 
     // Run with checkpointing enabled
@@ -150,25 +166,36 @@ pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> 
     println!("Restarting workflow from scratch");
     let fresh_store = InMemoryStore::new();
     // This run_with_checkpoint sees no prior checkpoint and begins anew
-    let restarted = wf.run_with_checkpoint(&ctx, 0, &fresh_store, "job1").await?;
+    let restarted = wf
+        .run_with_checkpoint(&ctx, 0, &fresh_store, "job1")
+        .await?;
     println!("Restarted run result = {}", restarted);
 
     // Simulate a full restart: reset both checkpoint store and in-memory context
     println!("Restarting workflow from scratch (fresh context)");
     // New context to clear the failed flag
-    let fresh_ctx = WorkflowCtx::new(Ctx { failed: Arc::new(Mutex::new(false)) });
+    let fresh_ctx = WorkflowCtx::new(Ctx {
+        failed: Arc::new(Mutex::new(false)),
+    });
     let fresh_store = InMemoryStore::new();
     // This run_with_checkpoint sees no prior checkpoint and begins anew
-    let restarted = wf.run_with_checkpoint(&fresh_ctx, 0, &fresh_store, "job1").await?;
+    let restarted = wf
+        .run_with_checkpoint(&fresh_ctx, 0, &fresh_store, "job1")
+        .await?;
     println!("Restarted run result (fresh context) = {}", restarted);
 
     // Simulate already completed workflow: use resume to detect no pending work, then run again
     println!("Simulating running a completed workflow");
-    let already_completed = wf.run_with_checkpoint(&fresh_ctx, 0, &fresh_store, "job1").await;
+    let already_completed = wf
+        .run_with_checkpoint(&fresh_ctx, 0, &fresh_store, "job1")
+        .await;
+
+    assert!(already_completed.is_ok());
     println!("Already completed run result = {:?}", already_completed);
 
     // Resume again to detect already completed
     let resumed = wf.resume(&fresh_store, "job1").await;
+    assert!(resumed.is_err());
     println!("Resumed run result = {:?}", resumed);
 
     Ok(())
@@ -187,6 +214,8 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_checkpoint_example() {
-        run_checkpoint_example().await.expect("checkpoint workflow should run");
+        run_checkpoint_example()
+            .await
+            .expect("checkpoint workflow should run");
     }
 }
