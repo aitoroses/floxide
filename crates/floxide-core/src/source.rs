@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use tokio::sync::Mutex;
 use crate::error::FloxideError;
 use crate::workflow::Workflow;
+use crate::WorkflowCtx;
 
 
 // -----------------------------------------------------------------------------
@@ -30,7 +31,7 @@ where
 {
     /// Drive the provided workflow by pulling items from the channel and
     /// invoking `wf.run(ctx, item)` for each until the channel closes.
-    pub async fn run<W>(&self, wf: &W, ctx: &C) -> Result<(), FloxideError>
+    pub async fn run<W>(&self, wf: &W, ctx: &WorkflowCtx<C>) -> Result<(), FloxideError>
     where
         W: Workflow<C, Input = O>,
     {

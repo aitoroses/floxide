@@ -1,4 +1,4 @@
-use floxide_core::{node::Node, transition::Transition};
+use floxide_core::{node::Node, transition::Transition, Workflow};
 use floxide_macros::{node, workflow};
 
 // A simple stub node that just passes through a value or fails once for retry demo

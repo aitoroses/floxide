@@ -2,7 +2,7 @@
 // Demonstrates nesting a workflow as a Node via a local CompositeNode in an example
 
 use floxide_macros::workflow;
-use floxide_core::{Node, WorkflowCtx, Transition, FloxideError, CompositeNode};
+use floxide_core::{Node, Workflow, WorkflowCtx, Transition, FloxideError, CompositeNode};
 use async_trait::async_trait;
 
 /// A simple node that doubles its input
@@ -76,7 +76,7 @@ impl Node for PrintNode {
 // Outer workflow uses the CompositeNode to embed InnerWorkflow
 workflow! {
     pub struct OuterWorkflow {
-        sub: CompositeNode<InnerWorkflow>,
+        sub: CompositeNode<(), InnerWorkflow>,
         print: PrintNode,
     }
     start = sub;
@@ -91,8 +91,8 @@ workflow! {
 pub async fn run_nested_workflow_example() -> Result<(), Box<dyn std::error::Error>> {
     // Build the inner workflow and wrap it
     let inner = InnerWorkflow { double: DoubleNode, addten: AddTenNode };
-    let wf = OuterWorkflow { sub: CompositeNode::new(inner), print: PrintNode };
     let ctx = WorkflowCtx::new(());
+    let wf = OuterWorkflow { sub: CompositeNode::new(inner, &ctx), print: PrintNode };
     println!("Running nested workflow starting at 5:");
     wf.run(&ctx, 5).await?;
     Ok(())

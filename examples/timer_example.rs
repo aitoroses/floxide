@@ -2,9 +2,9 @@
 // Demonstrates a simple timer-driven workflow using a channel source node,
 // a mapping node, and a printing node.
 
-use floxide::workflow;
+use floxide::{workflow, WorkflowCtx};
 // use async_trait::async_trait;
-use floxide_core::{Node, source, transition::Transition, error::FloxideError};
+use floxide_core::{Node, source, transition::Transition, error::FloxideError, Workflow};
 use floxide_macros::node;
 use tokio::time::{sleep, Duration};
 
@@ -65,7 +65,7 @@ pub async fn run_timer_example() -> Result<(), FloxideError> {
     });
 
     // Create the workflow instance and context.
-    let ctx = ();
+    let ctx = WorkflowCtx::new(());
     let wf = PrintDouble {
         doubler: DoubleNode {},
         printer:  PrintNode  {},

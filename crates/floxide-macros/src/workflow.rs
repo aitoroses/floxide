@@ -500,26 +500,19 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             #(#work_variants),*
         }
 
-        impl #work_item_ident {
-            /// Export the workflow definition as a Graphviz DOT string.
-            pub fn to_dot() -> &'static str {
-                #dot_literal
-            }
-        }
-
         impl #name #generics {
             /// Export the workflow definition as a Graphviz DOT string.
-            pub fn to_dot(&self) -> &'static str {
+            fn _to_dot(&self) -> &'static str {
                 #dot_literal
             }
 
             #[allow(unreachable_code)]
-            async fn process_work_item<'a>(
+            async fn _process_work_item<'a>(
                 &'a self,
                 ctx: &'a floxide_core::WorkflowCtx<#context>,
                 item: #work_item_ident,
                 __q: &mut std::collections::VecDeque<#work_item_ident>
-            ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>
+            ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>           
             {
                 use floxide_core::transition::Transition;
                 use tracing::{debug, error, warn};
@@ -533,7 +526,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
             /// Execute the workflow, returning the output of the terminal branch
             #[allow(unreachable_code)]
-            pub async fn run(
+            async fn _run(
                 &self,
                 ctx: &floxide_core::WorkflowCtx<#context>,
                 input: <#start_ty as floxide_core::node::Node<#context>>::Input,
@@ -558,7 +551,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
             #[allow(unreachable_code)]
             /// Execute the workflow, checkpointing state after each step.
-            pub async fn run_with_checkpoint<CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>>(
+            async fn _run_with_checkpoint<CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>>(
                 &self,
                 ctx: &floxide_core::WorkflowCtx<#context>,
                 input: <#start_ty as floxide_core::node::Node<#context>>::Input,
@@ -615,7 +608,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
             #[allow(unreachable_code)]
             /// Resume a workflow run from its last checkpoint; context and queue are restored from store.
-            pub async fn resume<CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>>(
+            async fn _resume<CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>>(
                 &self,
                 store: &CS,
                 id: &str,
@@ -662,7 +655,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
         // ===== Distributed API =====
         /// Orchestrator: seed the distributed workflow (checkpoint + queue) but do not execute steps.
-        pub async fn start_distributed<CS, Q>(
+        async fn _start_distributed<CS, Q>(
             &self,
             ctx: &floxide_core::WorkflowCtx<#context>,
             input: <#start_ty as floxide_core::node::Node<#context>>::Input,
@@ -700,7 +693,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         }
 
         /// Worker: perform one distributed step (dequeue, process, enqueue successors, persist).
-        pub async fn step_distributed<CS, Q>(
+        async fn _step_distributed<CS, Q>(
             &self,
             store: &CS,
             queue: &Q,
@@ -781,16 +774,74 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         {
             type Input = <#start_ty as floxide_core::node::Node<#context>>::Input;
             type Output = <#terminal_ty as floxide_core::node::Node<#context>>::Output;
+            type WorkItem = #work_item_ident;
 
-            async fn run(
-                &self,
-                ctx: &#context,
+            async fn run<'a>(
+                &'a self,
+                ctx: &'a floxide_core::WorkflowCtx<#context>,
                 input: Self::Input,
             ) -> Result<Self::Output, floxide_core::error::FloxideError> {
-                // build a full WorkflowCtx<C> from the store
-                let wf_ctx = floxide_core::WorkflowCtx::new(ctx.clone());
-                // delegate to the inherent run method
-                self.run(&wf_ctx, input).await
+                self._run(ctx, input).await
+            }
+
+            async fn process_work_item<'a>(
+                &'a self,
+                ctx: &'a floxide_core::WorkflowCtx<#context>,
+                item: #work_item_ident,
+                __q: &mut std::collections::VecDeque<#work_item_ident>
+            ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>           
+            {
+                self._process_work_item(ctx, item, __q).await
+            }
+
+            async fn run_with_checkpoint<CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident> + Send + Sync>(
+                &self,
+                ctx: &floxide_core::WorkflowCtx<#context>,
+                input: Self::Input,
+                store: &CS,
+                id: &str,
+            ) -> Result<Self::Output, floxide_core::error::FloxideError> {
+                self._run_with_checkpoint(ctx, input, store, id).await
+            }
+
+            async fn resume<CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident> + Send + Sync>(
+                &self,
+                store: &CS,
+                id: &str,
+            ) -> Result<Self::Output, floxide_core::error::FloxideError> {
+                self._resume(store, id).await
+            }
+
+            async fn start_distributed<CS, Q>(
+                &self,
+                ctx: &floxide_core::WorkflowCtx<#context>,
+                input: Self::Input,
+                store: &CS,
+                queue: &Q,
+                id: &str,
+            ) -> Result<(), floxide_core::error::FloxideError>
+            where
+                CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident> + Send + Sync,
+                Q: floxide_core::distributed::WorkQueue<#work_item_ident> + Send + Sync,
+            {
+                self._start_distributed(ctx, input, store, queue, id).await
+            }
+
+            async fn step_distributed<CS, Q>(
+                &self,
+                store: &CS,
+                queue: &Q,
+                worker_id: usize,
+            ) -> Result<Option<(String, Self::Output)>, floxide_core::error::FloxideError>
+            where
+                CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident> + Send + Sync,
+                Q: floxide_core::distributed::WorkQueue<#work_item_ident> + Send + Sync,
+            {
+                self._step_distributed(store, queue, worker_id).await
+            }
+
+            fn to_dot(&self) -> &'static str {
+                self._to_dot()
             }
         }
     };

@@ -1,9 +1,9 @@
 // examples/batch_example.rs
 // Demonstrates batch processing with routing and the workflow macro
 
-use floxide_macros::workflow;
-use floxide_core::*;
 use async_trait::async_trait;
+use floxide_core::*;
+use floxide_macros::workflow;
 
 /// A simple node that multiplies its input by 2
 #[derive(Clone, Debug)]
@@ -18,8 +18,7 @@ impl Node for Multiply2 {
         &self,
         _ctx: &(),
         input: i32,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         let out = input * 2;
         println!("Multiply2: {} * 2 = {}", input, out);
         Ok(Transition::Next(out))
@@ -48,8 +47,7 @@ impl Node for BranchAfterMultiply {
         &self,
         _ctx: &(),
         inputs: Vec<i32>,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         // Sum and branch
         let sum: i32 = inputs.iter().sum();
         if sum > self.threshold {
@@ -75,8 +73,7 @@ impl Node for LargeNode {
         &self,
         _ctx: &(),
         inputs: Vec<i32>,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("LargeNode: {:?}", inputs);
         Ok(Transition::Next(()))
     }
@@ -95,8 +92,7 @@ impl Node for SmallNode {
         &self,
         _ctx: &(),
         inputs: Vec<i32>,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("SmallNode: {:?}", inputs);
         Ok(Transition::Next(()))
     }
@@ -153,6 +149,8 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_batch_example() {
-        run_batch_example().await.expect("batch workflow should run");
+        run_batch_example()
+            .await
+            .expect("batch workflow should run");
     }
 }

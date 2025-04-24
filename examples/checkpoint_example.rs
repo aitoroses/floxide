@@ -1,6 +1,6 @@
 //! Example demonstrating in-memory checkpointing and resume
 use async_trait::async_trait;
-use floxide_core::{Checkpoint, CheckpointError, CheckpointStore, FloxideError, Node, Transition, WorkflowCtx};
+use floxide_core::{Checkpoint, CheckpointError, CheckpointStore, FloxideError, Node, Transition, Workflow, WorkflowCtx};
 use floxide_macros::{node, workflow};
 use serde::{Deserialize, Serialize};
 use serde_json;
