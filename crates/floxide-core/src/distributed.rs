@@ -6,9 +6,9 @@ pub trait WorkQueue<W> {
     /// Returns Err(String) on failure.
     fn enqueue(&self, workflow_id: &str, work: W) -> Result<(), String>;
 
-    /// Dequeue one work‐item from the queue for `workflow_id`.
-    /// Returns Ok(Some(item)) if an item was dequeued,
+    /// Dequeue the next available work‐item from any workflow.
+    /// Returns Ok(Some((workflow_id, item))) if an item was dequeued,
     /// Ok(None) if the queue is empty,
     /// or Err(String) on failure.
-    fn dequeue(&self, workflow_id: &str) -> Result<Option<W>, String>;
+    fn dequeue(&self) -> Result<Option<(String, W)>, String>;
 }

@@ -698,34 +698,33 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             &self,
             store: &CS,
             queue: &Q,
-            id: &str,
             worker_id: usize,
-        ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>
+        ) -> Result<Option<(String, <#terminal_ty as floxide_core::node::Node<#context>>::Output)>, floxide_core::error::FloxideError>
         where
             CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>,
             Q: floxide_core::distributed::WorkQueue<#work_item_ident>,
         {
             use std::collections::VecDeque;
             use tracing::{debug, span, Level};
-            let step_span = span!(Level::DEBUG, "workflow_step_distributed",
-                workflow = stringify!(#name), checkpoint_id = %id, worker = worker_id);
-            let _enter = step_span.enter();
-            // 1) Dequeue
-            // 1) Dequeue one work item
-            let work = queue.dequeue(id)
+            // 1) Dequeue one work item from any workflow
+            let work = queue.dequeue()
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e))?;
-            let item = match work {
+            let (run_id, item) = match work {
                 None => return Ok(None),
-                Some(it) => it,
+                Some((rid, it)) => (rid, it),
             };
+            // create a span now that run_id is known
+            let step_span = span!(Level::DEBUG, "workflow_step_distributed",
+                workflow = stringify!(#name), checkpoint_id = %run_id, worker = worker_id);
+            let _enter = step_span.enter();
             // debug log
-            debug!(worker = worker_id, ?item, "Worker dequeued item from workflow {id}");
+            debug!(worker = worker_id, run_id = %run_id, ?item, "Worker dequeued item");
             // 2) Load checkpoint
-            let mut cp = store.load(id)
+            let mut cp = store.load(&run_id)
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?
                 .ok_or_else(|| floxide_core::error::FloxideError::NotStarted)?;
             // log checkpoint state
-            debug!(worker = worker_id, queue_len = cp.queue.len(), "Loaded checkpoint for workflow {id}");
+            debug!(worker = worker_id, run_id = %run_id, queue_len = cp.queue.len(), "Loaded checkpoint");
             // 3) Rebuild context
             let wf_ctx = floxide_core::WorkflowCtx::new(cp.context.clone());
             let ctx_ref = &wf_ctx;
@@ -737,12 +736,14 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             let old_tail = local_q.clone();
             // run the node logic, pushing successors into local_q
             if let Some(out) = self.process_work_item(ctx_ref, item, &mut local_q).await? {
-                // terminal reached: persist updated queue and return
+                // terminal reached: update checkpoint context + queue and return
+                cp.context = wf_ctx.store.clone();
                 cp.queue = local_q.clone();
-                store.save(id, &cp)
+                store.save(&run_id, &cp)
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
-                debug!(worker = worker_id, queue_len = cp.queue.len(), "Checkpoint saved for workflow {id}");
-                return Ok(Some(out));
+                debug!(worker = worker_id, run_id = %run_id, queue_len = cp.queue.len(), "Checkpoint saved (terminal)");
+                // terminal reached: return run_id with output
+                return Ok(Some((run_id.clone(), out)));
             }
             // successors are items appended after old_tail
             let mut appended = local_q.clone();
@@ -752,14 +753,15 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             }
             // 5) Enqueue only new successors into the distributed queue
             for succ in appended.iter() {
-                queue.enqueue(id, succ.clone())
+                queue.enqueue(&run_id, succ.clone())
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e))?;
             }
-            // 6) Persist updated queue (old tail + successors)
+            // 6) Persist updated context + queue
+            cp.context = wf_ctx.store.clone();
             cp.queue = local_q.clone();
-            store.save(id, &cp)
+            store.save(&run_id, &cp)
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
-            debug!(worker = worker_id, queue_len = cp.queue.len(), "Checkpoint saved for workflow {id}");
+            debug!(worker = worker_id, run_id = %run_id, queue_len = cp.queue.len(), "Checkpoint saved");
             Ok(None)
         }
         } // end of impl for distributed API

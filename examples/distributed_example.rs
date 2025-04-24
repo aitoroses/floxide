@@ -25,9 +25,15 @@ impl<W: Clone + Send + 'static> floxide_core::distributed::WorkQueue<W> for InMe
             .push_back(work);
         Ok(())
     }
-    fn dequeue(&self, workflow_id: &str) -> Result<Option<W>, String> {
+    fn dequeue(&self) -> Result<Option<(String, W)>, String> {
         let mut map = self.0.lock().unwrap();
-        Ok(map.get_mut(workflow_id).and_then(|q| q.pop_front()))
+        // find any non-empty queue entry
+        for (run_id, q) in map.iter_mut() {
+            if let Some(item) = q.pop_front() {
+                return Ok(Some((run_id.clone(), item)));
+            }
+        }
+        Ok(None)
     }
 }
 
@@ -211,14 +217,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let wf = wf.clone();
         let store = store.clone();
         let queue = queue.clone();
-        let id = run_id.to_string();
         tokio::spawn(async move {
             loop {
-                // each worker passes its own ID
-                let step = wf.step_distributed(&store, &queue, &id, i).await
+                // each worker passes its own ID; run_id is embedded in the work item
+                let step = wf.step_distributed(&store, &queue, i)
+                    .await
                     .expect("step_distributed failed");
-                if let Some(res) = step {
-                    println!("Worker {} terminal output: {:?}", i, res);
+                if let Some((run, res)) = step {
+                    println!("Worker {} completed run {} with result {:?}", i, run, res);
                     break;
                 }
                 tokio::time::sleep(Duration::from_millis(10)).await;
