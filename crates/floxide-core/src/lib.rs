@@ -8,7 +8,7 @@ pub mod source;
 pub mod retry;
 
 pub mod checkpoint;
-
+pub mod distributed;
 pub use context::WorkflowCtx;
 pub use transition::Transition;
 pub use node::Node;
