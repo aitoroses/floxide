@@ -212,12 +212,7 @@ workflow! {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize tracing
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .init();
+async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
     // Create in-memory runtime
     let store = InMemStore::<ParallelWorkflowWorkItem>::new();
     let queue = InMemQueue::<ParallelWorkflowWorkItem>::new();
@@ -272,6 +267,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // All work is done; print final context
     if let Some(cp) = store.load(run_id).await? {
         println!("Run {} completed; final context: {:?}", run_id, cp.context);
+        Ok(cp.context)
+    } else {
+        Err(FloxideError::NotStarted.into())
     }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+    run_distributed_example().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_distributed_example() {
+        let ctx = run_distributed_example().await.unwrap();
+        assert_eq!(*ctx.local_counter.0.lock().unwrap(), 27);
+        assert_eq!(*ctx.logs.0.lock().unwrap(), vec!["InitialNode: starting workflow", "SplitNode: spawning two branches", "BranchA executed", "BranchB executed"]);
+    }
 }
