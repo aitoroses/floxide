@@ -5,8 +5,7 @@ use floxide_core::*;
 use floxide_macros::workflow;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, VecDeque},
-    sync::{Arc, Mutex},
+    collections::{HashMap, VecDeque}, fmt::{self, Debug}, sync::{Arc, Mutex}
 };
 use tokio::time::Duration;
 
@@ -60,11 +59,52 @@ impl<C: Clone + Send + 'static, W: Clone + Send + 'static> CheckpointStore<C, W>
     }
 }
 
-// Simple workflow from simple_context_example
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MyCtx {
-    pub value: u64,
+#[derive(Clone)]
+pub struct ArcMutex<T>(Arc<Mutex<T>>);
+
+impl<T> ArcMutex<T> {
+    pub fn new(value: T) -> Self {
+        ArcMutex(Arc::new(Mutex::new(value)))
+    }
 }
+
+impl<T: Serialize + Clone> Serialize for ArcMutex<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("Arc<Mutex<T>>", 1)?;
+        let value = self.0.lock().unwrap();
+        state.serialize_field("value", &value.clone())?;
+        state.end()
+    }
+}
+
+impl<'de, T: Deserialize<'de> + Clone> Deserialize<'de> for ArcMutex<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = T::deserialize(deserializer)?;
+        Ok(ArcMutex(Arc::new(Mutex::new(value))))
+    }
+}
+
+impl<T: Debug> Debug for ArcMutex<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0.lock().unwrap())
+    }
+}
+
+// Simple workflow from simple_context_example
+#[derive(Clone, Debug)]
+pub struct MyCtx {
+    pub last_node: ArcMutex<Option<String>>,
+    pub value: ArcMutex<u64>,
+}
+
+
 #[derive(Clone, Debug)]
 pub enum FooAction {
     Above(u64),
@@ -101,9 +141,12 @@ impl Node<MyCtx> for BigNode {
     type Output = ();
     async fn process(
         &self,
-        _ctx: &MyCtx,
+        ctx: &MyCtx,
         input: u64,
     ) -> Result<Transition<Self::Output>, FloxideError> {
+        let mut value = ctx.value.0.lock().unwrap();
+        *value = input;
+        ctx.last_node.0.lock().unwrap().replace("BigNode".to_string());
         println!("BigNode got {}", input);
         Ok(Transition::Next(()))
     }
@@ -116,9 +159,10 @@ impl Node<MyCtx> for SmallNode {
     type Output = ();
     async fn process(
         &self,
-        _ctx: &MyCtx,
+        ctx: &MyCtx,
         input: String,
     ) -> Result<Transition<Self::Output>, FloxideError> {
+        ctx.last_node.0.lock().unwrap().replace("SmallNode".to_string());
         println!("SmallNode got {}", input);
         Ok(Transition::Next(()))
     }
@@ -157,7 +201,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         big: BigNode,
         small: SmallNode,
     };
-    let ctx = WorkflowCtx::new(MyCtx { value: 0 });
+    let ctx = WorkflowCtx::new(MyCtx { value: ArcMutex::new(0), last_node: ArcMutex::new(None) });
     let run_id = "run1";
     // Start distributed run (seed checkpoint+queue)
     wf.start_distributed(&ctx, 42u64, &store, &queue, run_id)
