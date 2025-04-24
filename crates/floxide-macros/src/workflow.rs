@@ -674,7 +674,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             use std::collections::VecDeque;
             use tracing::{span, Level};
             // Span for seeding the distributed run (debug level)
-            let seed_span = span!(Level::DEBUG, "workflow_start_distributed",
+            let seed_span = span!(Level::DEBUG, "start_distributed",
                 workflow = stringify!(#name), run_id = %id);
             let _enter = seed_span.enter();
             tracing::debug!(run_id = %id, "start_distributed seeding");
@@ -687,7 +687,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 let cp0 = floxide_core::Checkpoint::new(ctx.store.clone(), init_q.clone());
                 store.save(id, &cp0)
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
-                queue.enqueue(id, #work_item_ident::#start_var(input))
+                queue.enqueue(id, #work_item_ident::#start_var(input)).await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e))?;
             }
             Ok(())
@@ -703,18 +703,18 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         where
             CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>,
             Q: floxide_core::distributed::WorkQueue<#work_item_ident>,
-        {
+        {   
             use std::collections::VecDeque;
             use tracing::{debug, span, Level};
             // 1) Dequeue one work item from any workflow
-            let work = queue.dequeue()
+            let work = queue.dequeue().await
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e))?;
             let (run_id, item) = match work {
                 None => return Ok(None),
                 Some((rid, it)) => (rid, it),
             };
             // create a span now that run_id is known
-            let step_span = span!(Level::DEBUG, "workflow_step_distributed",
+            let step_span = span!(Level::DEBUG, "step_distributed",
                 workflow = stringify!(#name), run_id = %run_id, worker = worker_id);
             let _enter = step_span.enter();
             // debug log
@@ -753,7 +753,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             }
             // 5) Enqueue only new successors into the distributed queue
             for succ in appended.iter() {
-                queue.enqueue(&run_id, succ.clone())
+                queue.enqueue(&run_id, succ.clone()).await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e))?;
             }
             // 6) Persist updated context + queue

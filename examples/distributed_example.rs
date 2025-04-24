@@ -8,25 +8,28 @@ use std::{
     collections::{HashMap, VecDeque}, fmt::{self, Debug}, sync::{Arc, Mutex}
 };
 use tokio::time::Duration;
+use tracing::Instrument;
 
 // In-memory work-queue implementation
 #[derive(Clone)]
-struct InMemQueue<W>(Arc<Mutex<HashMap<String, VecDeque<W>>>>);
+struct InMemQueue<W>(Arc<tokio::sync::Mutex<HashMap<String, VecDeque<W>>>>);
 impl<W: Clone + Send + 'static> InMemQueue<W> {
     fn new() -> Self {
-        InMemQueue(Arc::new(Mutex::new(HashMap::new())))
+        InMemQueue(Arc::new(tokio::sync::Mutex::new(HashMap::new())))
     }
 }
+
+#[async_trait]
 impl<W: Clone + Send + 'static> floxide_core::distributed::WorkQueue<W> for InMemQueue<W> {
-    fn enqueue(&self, workflow_id: &str, work: W) -> Result<(), String> {
-        let mut map = self.0.lock().unwrap();
+    async fn enqueue(&self, workflow_id: &str, work: W) -> Result<(), String> {
+        let mut map = self.0.lock().await;
         map.entry(workflow_id.to_string())
             .or_default()
             .push_back(work);
         Ok(())
     }
-    fn dequeue(&self) -> Result<Option<(String, W)>, String> {
-        let mut map = self.0.lock().unwrap();
+    async fn dequeue(&self) -> Result<Option<(String, W)>, String> {
+        let mut map = self.0.lock().await;
         // find any non-empty queue entry
         for (run_id, q) in map.iter_mut() {
             if let Some(item) = q.pop_front() {
@@ -103,139 +106,125 @@ impl<T: Debug> Debug for ArcMutex<T> {
     }
 }
 
-// Simple workflow from simple_context_example
-#[derive(Clone, Debug)]
-pub struct MyCtx {
-    pub last_node: ArcMutex<Option<String>>,
-    pub value: ArcMutex<u64>,
-}
-
+// === Parallel workflow example illustrating worker collaboration ===
+// Define simple nodes: split into two parallel branches, then terminal nodes and an initial node
 
 #[derive(Clone, Debug)]
-pub enum FooAction {
-    Above(u64),
-    Below(String),
-}
-#[derive(Clone, Debug)]
-pub struct FooNode {
-    threshold: u64,
-}
+pub struct InitialNode;
 #[async_trait]
-impl Node<MyCtx> for FooNode {
-    type Input = u64;
-    type Output = FooAction;
-    async fn process(
-        &self,
-        _ctx: &MyCtx,
-        input: u64,
-    ) -> Result<Transition<Self::Output>, FloxideError> {
-        if input > self.threshold {
-            Ok(Transition::Next(FooAction::Above(input * 2)))
-        } else {
-            Ok(Transition::Next(FooAction::Below(format!(
-                "{} <= {}",
-                input, self.threshold
-            ))))
-        }
-    }
-}
-#[derive(Clone, Debug)]
-pub struct BigNode;
-#[async_trait]
-impl Node<MyCtx> for BigNode {
-    type Input = u64;
+impl Node<()> for InitialNode {
+    type Input = ();
     type Output = ();
     async fn process(
         &self,
-        ctx: &MyCtx,
-        input: u64,
+        _ctx: &(),
+        _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
-        let mut value = ctx.value.0.lock().unwrap();
-        *value = input;
-        ctx.last_node.0.lock().unwrap().replace("BigNode".to_string());
-        println!("BigNode got {}", input);
+        tracing::info!("InitialNode: starting workflow");
+        Ok(Transition::Next(()))
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SplitNode;
+#[async_trait]
+impl Node<()> for SplitNode {
+    type Input = ();
+    type Output = ();
+    async fn process(
+        &self,
+        _ctx: &(),
+        _input: (),
+    ) -> Result<Transition<Self::Output>, FloxideError> {
+        tracing::info!("SplitNode: spawning two branches");
         Ok(Transition::Next(()))
     }
 }
 #[derive(Clone, Debug)]
-pub struct SmallNode;
+pub struct BranchA;
 #[async_trait]
-impl Node<MyCtx> for SmallNode {
-    type Input = String;
+impl Node<()> for BranchA {
+    type Input = ();
     type Output = ();
     async fn process(
         &self,
-        ctx: &MyCtx,
-        input: String,
+        _ctx: &(),
+        _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
-        ctx.last_node.0.lock().unwrap().replace("SmallNode".to_string());
-        println!("SmallNode got {}", input);
+        tracing::info!("BranchA executed");
+        Ok(Transition::Next(()))
+    }
+}
+#[derive(Clone, Debug)]
+pub struct BranchB;
+#[async_trait]
+impl Node<()> for BranchB {
+    type Input = ();
+    type Output = ();
+    async fn process(
+        &self,
+        _ctx: &(),
+        _input: (),
+    ) -> Result<Transition<Self::Output>, FloxideError> {
+        tracing::info!("BranchB executed");
         Ok(Transition::Next(()))
     }
 }
 
 workflow! {
-    pub struct ThresholdWorkflow {
-        foo: FooNode,
-        big: BigNode,
-        small: SmallNode,
+    pub struct ParallelWorkflow {
+        initial: InitialNode,
+        split: SplitNode,
+        a: BranchA,
+        b: BranchB,
     }
-    start = foo;
-    context = MyCtx;
+    start = initial;
+    context = ();
     edges {
-        foo => {
-            FooAction::Above(v) => [ big ];
-            FooAction::Below(s) => [ small ];
-        };
-        big => {};
-        small => {};
+        initial => { [ split ] };
+        split => {[ a, b ]};
+        a => {};
+        b => {};
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .init();
-    
+    // Initialize tracing
+    tracing_subscriber::fmt().with_max_level(tracing::Level::DEBUG).init();
     // Create in-memory runtime
-    let store = InMemStore::<MyCtx, ThresholdWorkflowWorkItem>::new();
-    let queue = InMemQueue::<ThresholdWorkflowWorkItem>::new();
-    // Construct workflow & context
-    let wf = ThresholdWorkflow {
-        foo: FooNode { threshold: 10 },
-        big: BigNode,
-        small: SmallNode,
-    };
-    let ctx = WorkflowCtx::new(MyCtx { value: ArcMutex::new(0), last_node: ArcMutex::new(None) });
+    let store = InMemStore::<(), ParallelWorkflowWorkItem>::new();
+    let queue = InMemQueue::<ParallelWorkflowWorkItem>::new();
+    // Build workflow and context
+    let wf = ParallelWorkflow { initial: InitialNode, split: SplitNode, a: BranchA, b: BranchB };
+    let ctx = WorkflowCtx::new(());
     let run_id = "run1";
-    // Start distributed run (seed checkpoint+queue)
-    wf.start_distributed(&ctx, 42u64, &store, &queue, run_id)
-        .await?;
-    // Spawn workers to process steps
+    // Seed the single run, enqueuing the split node
+    wf.start_distributed(&ctx, (), &store, &queue, run_id).await?;
+    // Spawn two workers to process distributed steps
     for i in 0..2 {
         let wf = wf.clone();
         let store = store.clone();
         let queue = queue.clone();
+        let worker_span = tracing::span!(tracing::Level::DEBUG, "worker_task", worker = i);
         tokio::spawn(async move {
             loop {
-                // each worker passes its own ID; run_id is embedded in the work item
-                let step = wf.step_distributed(&store, &queue, i)
+                if let Some((run, _res)) = wf.step_distributed(&store, &queue, i)
                     .await
-                    .expect("step_distributed failed");
-                if let Some((run, res)) = step {
-                    println!("Worker {} completed run {} with result {:?}", i, run, res);
+                    .expect("step_distributed failed") {
+                    println!("Worker {} processed branch of run {}", i, run);
                     break;
                 }
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                tokio::time::sleep(Duration::from_millis(100)).await;
             }
-        });
+        }.instrument(worker_span));
     }
-    // Wait for completion by polling the checkpoint (simple example)
+    
+    // Wait for run completion by polling the checkpoint
     loop {
         if let Some(cp) = store.load(run_id)? {
             if cp.queue.is_empty() {
-                println!("Final context: {:?}", cp.context);
+                println!("Run {} completed; final context: {:?}", run_id, cp.context);
                 break;
             }
         }
@@ -243,3 +232,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
+ 
