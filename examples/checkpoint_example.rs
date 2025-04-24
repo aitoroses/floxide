@@ -1,7 +1,8 @@
 //! Example demonstrating in-memory checkpointing and resume
-use floxide_core::{CheckpointStore, FloxideError, Node, Transition, WorkflowCtx};
+use floxide_core::{Checkpoint, CheckpointError, CheckpointStore, FloxideError, Node, Transition, WorkflowCtx};
 use floxide_macros::{node, workflow};
 use serde::{Deserialize, Serialize};
+use serde_json;
 use std::collections::HashMap;
 use std::fmt::{self, Display};
 use std::sync::{Arc, LazyLock, Mutex, RwLock};
@@ -47,6 +48,7 @@ impl Display for Ctx {
 }
 
 /// A simple in-memory checkpoint store using a HashMap
+/// A simple in-memory checkpoint store using JSON serialization
 #[derive(Clone)]
 struct InMemoryStore(Arc<RwLock<HashMap<String, Vec<u8>>>>);
 
@@ -56,22 +58,32 @@ impl InMemoryStore {
     }
 }
 
-impl CheckpointStore for InMemoryStore {
+impl CheckpointStore<Ctx, CounterWorkflowWorkItem> for InMemoryStore {
     fn save(
         &self,
         workflow_id: &str,
-        data: &[u8],
-    ) -> Result<(), floxide_core::checkpoint::CheckpointError> {
+        checkpoint: &Checkpoint<Ctx, CounterWorkflowWorkItem>,
+    ) -> Result<(), CheckpointError> {
+        // serialize checkpoint to JSON bytes
+        let bytes = serde_json::to_vec(checkpoint)
+            .map_err(|e| CheckpointError::Store(e.to_string()))?;
         let mut map = self.0.write().unwrap();
-        map.insert(workflow_id.to_string(), data.to_vec());
+        map.insert(workflow_id.to_string(), bytes);
         Ok(())
     }
     fn load(
         &self,
         workflow_id: &str,
-    ) -> Result<Option<Vec<u8>>, floxide_core::checkpoint::CheckpointError> {
+    ) -> Result<Option<Checkpoint<Ctx, CounterWorkflowWorkItem>>, CheckpointError> {
         let map = self.0.read().unwrap();
-        Ok(map.get(workflow_id).cloned())
+        if let Some(bytes) = map.get(workflow_id) {
+            // deserialize JSON bytes to checkpoint
+            let cp: Checkpoint<Ctx, CounterWorkflowWorkItem> = serde_json::from_slice(bytes)
+                .map_err(|e| CheckpointError::Store(e.to_string()))?;
+            Ok(Some(cp))
+        } else {
+            Ok(None)
+        }
     }
 }
 

@@ -558,7 +558,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
             #[allow(unreachable_code)]
             /// Execute the workflow, checkpointing state after each step.
-            pub async fn run_with_checkpoint<CS: floxide_core::checkpoint::CheckpointStore>(
+            pub async fn run_with_checkpoint<CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>>(
                 &self,
                 ctx: &floxide_core::WorkflowCtx<#context>,
                 input: <#start_ty as floxide_core::node::Node<#context>>::Input,
@@ -575,16 +575,16 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 // load existing checkpoint or start new
                 let mut cp: floxide_core::Checkpoint<#context, #work_item_ident> = match store.load(id)
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))? {
-                    Some(bytes) => {
+                    Some(saved) => {
                         debug!("Loaded existing checkpoint");
-                        floxide_core::Checkpoint::from_bytes(&bytes)
-                            .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?
+                        saved
                     },
                     None => {
                         debug!("No checkpoint found, starting new");
                         let mut q = VecDeque::new();
                         q.push_back(#work_item_ident::#start_var(input));
-                        floxide_core::Checkpoint { context: ctx.store.clone(), queue: q }
+                        // create initial checkpoint
+                        floxide_core::Checkpoint::new(ctx.store.clone(), q)
                     }
                 };
                 // initialize working queue from checkpoint
@@ -603,9 +603,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     debug!(queue_len = __q.len(), "Queue state after processing");
                     // update checkpoint state and persist
                     cp.queue = __q.clone();
-                    let bytes = cp.to_bytes()
-                        .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
-                    store.save(id, &bytes)
+                    // persist checkpoint
+                    store.save(id, &cp)
                         .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
                     debug!("Checkpoint saved");
                 }
@@ -614,7 +613,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
             #[allow(unreachable_code)]
             /// Resume a workflow run from its last checkpoint; context and queue are restored from store.
-            pub async fn resume<CS: floxide_core::checkpoint::CheckpointStore>(
+            pub async fn resume<CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>>(
                 &self,
                 store: &CS,
                 id: &str,
@@ -625,13 +624,10 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 let span = span!(Level::INFO, "workflow_resume", workflow = stringify!(#name), checkpoint_id = id);
                 let _enter = span.enter();
                 // Load persisted checkpoint or error if never run
-                let bytes = store.load(id)
+                let cp: floxide_core::Checkpoint<#context, #work_item_ident> = store.load(id)
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?
                     .ok_or_else(|| floxide_core::error::FloxideError::NotStarted)?;
                 debug!("Loaded checkpoint for resume");
-                let cp: floxide_core::Checkpoint<#context, #work_item_ident> =
-                    floxide_core::Checkpoint::from_bytes(&bytes)
-                        .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
                 // Rebuild WorkflowCtx from saved context
                 let wf_ctx = floxide_core::WorkflowCtx::new(cp.context.clone());
                 let ctx = &wf_ctx;
