@@ -5,11 +5,15 @@ use floxide_core::*;
 use floxide_macros::workflow;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, VecDeque}, fmt::{self, Debug}, sync::{Arc, Mutex}
+    collections::{HashMap, VecDeque},
+    fmt::{self, Debug},
+    sync::{Arc, LazyLock},
 };
-use tokio::time::Duration;
+use tokio::{sync::Mutex, time::Duration};
 use tracing::Instrument;
 
+static SHOULD_FAIL: LazyLock<Arc<tokio::sync::Mutex<bool>>> =
+    LazyLock::new(|| Arc::new(tokio::sync::Mutex::new(false)));
 
 #[derive(Clone, Debug)]
 struct Ctx {
@@ -92,7 +96,7 @@ impl<T: Serialize + Clone> Serialize for ArcMutex<T> {
     {
         use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("Arc<Mutex<T>>", 1)?;
-        let value = self.0.lock().unwrap();
+        let value = self.0.try_lock().unwrap();
         state.serialize_field("value", &value.clone())?;
         state.end()
     }
@@ -110,7 +114,8 @@ impl<'de, T: Deserialize<'de> + Clone> Deserialize<'de> for ArcMutex<T> {
 
 impl<T: Debug> Debug for ArcMutex<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.0.lock().unwrap())
+        let value = self.0.try_lock().unwrap();
+        write!(f, "{:?}", value)
     }
 }
 
@@ -129,9 +134,9 @@ impl Node<Ctx> for InitialNode {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("InitialNode: starting workflow");
-        let mut counter = ctx.local_counter.0.lock().unwrap();
+        let mut counter = ctx.local_counter.0.lock().await;
         *counter += 1;
-        let mut logs = ctx.logs.0.lock().unwrap();
+        let mut logs = ctx.logs.0.lock().await;
         logs.push(format!("InitialNode: starting workflow"));
         Ok(Transition::Next(()))
     }
@@ -149,30 +154,31 @@ impl Node<Ctx> for SplitNode {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("SplitNode: spawning two branches");
-        let mut counter = ctx.local_counter.0.lock().unwrap();
+        let mut counter = ctx.local_counter.0.lock().await;
         *counter += 1;
-        let mut logs = ctx.logs.0.lock().unwrap();
+        let mut logs = ctx.logs.0.lock().await;
         logs.push(format!("SplitNode: spawning two branches"));
         Ok(Transition::Next(()))
     }
 }
+
 #[derive(Clone, Debug)]
 pub struct BranchA;
 #[async_trait]
 impl Node<Ctx> for BranchA {
     type Input = ();
-    type Output = ();
+    type Output = &'static str;
     async fn process(
         &self,
         ctx: &Ctx,
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchA executed");
-        let mut counter = ctx.local_counter.0.lock().unwrap();
+        let mut counter = ctx.local_counter.0.lock().await;
         *counter += 10;
-        let mut logs = ctx.logs.0.lock().unwrap();
+        let mut logs = ctx.logs.0.lock().await;
         logs.push(format!("BranchA executed"));
-        Ok(Transition::Next(()))
+        Ok(Transition::Next("branch_a_success"))
     }
 }
 #[derive(Clone, Debug)]
@@ -180,18 +186,23 @@ pub struct BranchB;
 #[async_trait]
 impl Node<Ctx> for BranchB {
     type Input = ();
-    type Output = ();
+    type Output = &'static str;
     async fn process(
         &self,
         ctx: &Ctx,
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchB executed");
-        let mut counter = ctx.local_counter.0.lock().unwrap();
+        let mut counter = ctx.local_counter.0.lock().await;
         *counter += 15;
-        let mut logs = ctx.logs.0.lock().unwrap();
+        let mut logs = ctx.logs.0.lock().await;
+        let should_fail = *SHOULD_FAIL.lock().await;
+        if should_fail {
+            logs.push(format!("BranchB failed"));
+            return Ok(Transition::Abort(FloxideError::Generic("branch_b_failed".to_string())))
+        }
         logs.push(format!("BranchB executed"));
-        Ok(Transition::Next(()))
+        Ok(Transition::Next("branch_b_success"))
     }
 }
 
@@ -243,13 +254,24 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
             async move {
                 // Process until this worker sees its terminal branch event
                 loop {
-                    if let Some((run, _res)) = wf
-                        .step_distributed(&store, &queue, i)
-                        .await
-                        .expect("step_distributed failed")
-                    {
-                        println!("Worker {} processed branch of run {}", i, run);
-                        break;
+                    let step_result = wf.step_distributed(&store, &queue, i).await;
+                    let mut should_fail = SHOULD_FAIL.lock().await;
+
+                    match (*should_fail, step_result) {
+                        (true, Err(e)) => {
+                            *should_fail = false; // reset the should_fail flag
+                            println!("Worker {} failed to process branch of run {} with error: {}", i, run_id, e);
+                        }
+                        (false, Err(_)) => {
+                            unreachable!();
+                        }
+                        (_, Ok(Some((run_id, res)))) => {
+                            println!("Worker {} processed branch of run {} with result: {:?}", i, run_id, res);
+                            break;
+                        }
+                        (_, Ok(None)) => {
+                        
+                        }
                     }
                     tokio::time::sleep(Duration::from_millis(100)).await;
                 }
@@ -288,7 +310,15 @@ mod tests {
     #[tokio::test]
     async fn test_distributed_example() {
         let ctx = run_distributed_example().await.unwrap();
-        assert_eq!(*ctx.local_counter.0.lock().unwrap(), 27);
-        assert_eq!(*ctx.logs.0.lock().unwrap(), vec!["InitialNode: starting workflow", "SplitNode: spawning two branches", "BranchA executed", "BranchB executed"]);
+        assert_eq!(*ctx.local_counter.0.lock().await, 27);
+        assert_eq!(
+            *ctx.logs.0.lock().await,
+            vec![
+                "InitialNode: starting workflow",
+                "SplitNode: spawning two branches",
+                "BranchA executed",
+                "BranchB executed"
+            ]
+        );
     }
 }

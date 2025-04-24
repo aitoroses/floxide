@@ -5,7 +5,6 @@ use floxide_macros::workflow;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-/// A node that fails a set number of times before succeeding
 /// A node that fails a fixed number of times before succeeding
 #[derive(Clone, Debug)]
 pub struct FlakyNode {
