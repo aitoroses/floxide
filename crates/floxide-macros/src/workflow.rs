@@ -574,6 +574,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 debug!(?input, "Starting workflow run with checkpoint");
                 // load existing checkpoint or start new
                 let mut cp: floxide_core::Checkpoint<#context, #work_item_ident> = match store.load(id)
+                    .await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))? {
                     Some(saved) => {
                         debug!("Loaded existing checkpoint");
@@ -605,6 +606,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     cp.queue = __q.clone();
                     // persist checkpoint
                     store.save(id, &cp)
+                        .await
                         .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
                     debug!("Checkpoint saved");
                 }
@@ -625,6 +627,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 let _enter = span.enter();
                 // Load persisted checkpoint or error if never run
                 let cp: floxide_core::Checkpoint<#context, #work_item_ident> = store.load(id)
+                    .await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?
                     .ok_or_else(|| floxide_core::error::FloxideError::NotStarted)?;
                 debug!("Loaded checkpoint for resume");
@@ -680,14 +683,17 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             tracing::debug!(run_id = %id, "start_distributed seeding");
             // Seed initial checkpoint+queue if not already started
             let saved = store.load(id)
+                .await
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
             if saved.is_none() {
                 let mut init_q = VecDeque::new();
                 init_q.push_back(#work_item_ident::#start_var(input.clone()));
                 let cp0 = floxide_core::Checkpoint::new(ctx.store.clone(), init_q.clone());
                 store.save(id, &cp0)
+                    .await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
-                queue.enqueue(id, #work_item_ident::#start_var(input)).await
+                queue.enqueue(id, #work_item_ident::#start_var(input))
+                    .await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e))?;
             }
             Ok(())
@@ -721,6 +727,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             debug!(worker = worker_id, run_id = %run_id, ?item, "Worker dequeued item");
             // 2) Load checkpoint
             let mut cp = store.load(&run_id)
+                .await
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?
                 .ok_or_else(|| floxide_core::error::FloxideError::NotStarted)?;
             // log checkpoint state
@@ -740,6 +747,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 cp.context = wf_ctx.store.clone();
                 cp.queue = local_q.clone();
                 store.save(&run_id, &cp)
+                    .await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
                 debug!(worker = worker_id, run_id = %run_id, queue_len = cp.queue.len(), "Checkpoint saved (terminal)");
                 // terminal reached: return run_id with output
@@ -753,13 +761,15 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             }
             // 5) Enqueue only new successors into the distributed queue
             for succ in appended.iter() {
-                queue.enqueue(&run_id, succ.clone()).await
+                queue.enqueue(&run_id, succ.clone())
+                    .await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e))?;
             }
             // 6) Persist updated context + queue
             cp.context = wf_ctx.store.clone();
             cp.queue = local_q.clone();
             store.save(&run_id, &cp)
+                .await
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
             debug!(worker = worker_id, run_id = %run_id, queue_len = cp.queue.len(), "Checkpoint saved");
             Ok(None)

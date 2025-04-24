@@ -10,6 +10,13 @@ use std::{
 use tokio::time::Duration;
 use tracing::Instrument;
 
+
+#[derive(Clone, Debug)]
+struct Ctx {
+    local_counter: ArcMutex<i32>,
+    logs: ArcMutex<Vec<String>>,
+}
+
 // In-memory work-queue implementation
 #[derive(Clone)]
 struct InMemQueue<W>(Arc<tokio::sync::Mutex<HashMap<String, VecDeque<W>>>>);
@@ -42,28 +49,29 @@ impl<W: Clone + Send + 'static> floxide_core::distributed::WorkQueue<W> for InMe
 
 // In-memory checkpoint store
 #[derive(Clone)]
-struct InMemStore<C: Clone + Send + 'static, W: Clone + Send + 'static>(
-    Arc<Mutex<HashMap<String, Checkpoint<C, W>>>>,
+struct InMemStore<W: Clone + Send + 'static>(
+    Arc<tokio::sync::Mutex<HashMap<String, Checkpoint<Ctx, W>>>>,
 );
-impl<C: Clone + Send + 'static, W: Clone + Send + 'static> InMemStore<C, W> {
+
+impl<W: Clone + Send + 'static> InMemStore<W> {
     fn new() -> Self {
-        InMemStore(Arc::new(Mutex::new(HashMap::new())))
+        InMemStore(Arc::new(tokio::sync::Mutex::new(HashMap::new())))
     }
 }
-impl<C: Clone + Send + 'static, W: Clone + Send + 'static> CheckpointStore<C, W>
-    for InMemStore<C, W>
-{
-    fn save(
+
+#[async_trait]
+impl<W: Clone + Send + Sync> CheckpointStore<Ctx, W> for InMemStore<W> {
+    async fn save(
         &self,
         workflow_id: &str,
-        checkpoint: &Checkpoint<C, W>,
+        checkpoint: &Checkpoint<Ctx, W>,
     ) -> Result<(), CheckpointError> {
-        let mut map = self.0.lock().unwrap();
+        let mut map = self.0.lock().await;
         map.insert(workflow_id.to_string(), checkpoint.clone());
         Ok(())
     }
-    fn load(&self, workflow_id: &str) -> Result<Option<Checkpoint<C, W>>, CheckpointError> {
-        let map = self.0.lock().unwrap();
+    async fn load(&self, workflow_id: &str) -> Result<Option<Checkpoint<Ctx, W>>, CheckpointError> {
+        let map = self.0.lock().await;
         Ok(map.get(workflow_id).cloned())
     }
 }
@@ -112,15 +120,19 @@ impl<T: Debug> Debug for ArcMutex<T> {
 #[derive(Clone, Debug)]
 pub struct InitialNode;
 #[async_trait]
-impl Node<()> for InitialNode {
+impl Node<Ctx> for InitialNode {
     type Input = ();
     type Output = ();
     async fn process(
         &self,
-        _ctx: &(),
+        ctx: &Ctx,
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("InitialNode: starting workflow");
+        let mut counter = ctx.local_counter.0.lock().unwrap();
+        *counter += 1;
+        let mut logs = ctx.logs.0.lock().unwrap();
+        logs.push(format!("InitialNode: starting workflow"));
         Ok(Transition::Next(()))
     }
 }
@@ -128,45 +140,57 @@ impl Node<()> for InitialNode {
 #[derive(Clone, Debug)]
 pub struct SplitNode;
 #[async_trait]
-impl Node<()> for SplitNode {
+impl Node<Ctx> for SplitNode {
     type Input = ();
     type Output = ();
     async fn process(
         &self,
-        _ctx: &(),
+        ctx: &Ctx,
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("SplitNode: spawning two branches");
+        let mut counter = ctx.local_counter.0.lock().unwrap();
+        *counter += 1;
+        let mut logs = ctx.logs.0.lock().unwrap();
+        logs.push(format!("SplitNode: spawning two branches"));
         Ok(Transition::Next(()))
     }
 }
 #[derive(Clone, Debug)]
 pub struct BranchA;
 #[async_trait]
-impl Node<()> for BranchA {
+impl Node<Ctx> for BranchA {
     type Input = ();
     type Output = ();
     async fn process(
         &self,
-        _ctx: &(),
+        ctx: &Ctx,
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchA executed");
+        let mut counter = ctx.local_counter.0.lock().unwrap();
+        *counter += 10;
+        let mut logs = ctx.logs.0.lock().unwrap();
+        logs.push(format!("BranchA executed"));
         Ok(Transition::Next(()))
     }
 }
 #[derive(Clone, Debug)]
 pub struct BranchB;
 #[async_trait]
-impl Node<()> for BranchB {
+impl Node<Ctx> for BranchB {
     type Input = ();
     type Output = ();
     async fn process(
         &self,
-        _ctx: &(),
+        ctx: &Ctx,
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchB executed");
+        let mut counter = ctx.local_counter.0.lock().unwrap();
+        *counter += 15;
+        let mut logs = ctx.logs.0.lock().unwrap();
+        logs.push(format!("BranchB executed"));
         Ok(Transition::Next(()))
     }
 }
@@ -179,7 +203,7 @@ workflow! {
         b: BranchB,
     }
     start = initial;
-    context = ();
+    context = Ctx;
     edges {
         initial => { [ split ] };
         split => {[ a, b ]};
@@ -191,45 +215,63 @@ workflow! {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
-    tracing_subscriber::fmt().with_max_level(tracing::Level::DEBUG).init();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
     // Create in-memory runtime
-    let store = InMemStore::<(), ParallelWorkflowWorkItem>::new();
+    let store = InMemStore::<ParallelWorkflowWorkItem>::new();
     let queue = InMemQueue::<ParallelWorkflowWorkItem>::new();
+
     // Build workflow and context
-    let wf = ParallelWorkflow { initial: InitialNode, split: SplitNode, a: BranchA, b: BranchB };
-    let ctx = WorkflowCtx::new(());
+    let wf = ParallelWorkflow {
+        initial: InitialNode,
+        split: SplitNode,
+        a: BranchA,
+        b: BranchB,
+    };
+    let ctx = WorkflowCtx::new(Ctx {
+        local_counter: ArcMutex::new(0),
+        logs: ArcMutex::new(Vec::new()),
+    });
     let run_id = "run1";
     // Seed the single run, enqueuing the split node
-    wf.start_distributed(&ctx, (), &store, &queue, run_id).await?;
-    // Spawn two workers to process distributed steps
+    wf.start_distributed(&ctx, (), &store, &queue, run_id)
+        .await?;
+    // Spawn two workers to process distributed steps and collect their JoinHandles
+    let mut handles = Vec::new();
     for i in 0..2 {
         let wf = wf.clone();
         let store = store.clone();
         let queue = queue.clone();
         let worker_span = tracing::span!(tracing::Level::DEBUG, "worker_task", worker = i);
-        tokio::spawn(async move {
-            loop {
-                if let Some((run, _res)) = wf.step_distributed(&store, &queue, i)
-                    .await
-                    .expect("step_distributed failed") {
-                    println!("Worker {} processed branch of run {}", i, run);
-                    break;
+        let handle = tokio::spawn(
+            async move {
+                // Process until this worker sees its terminal branch event
+                loop {
+                    if let Some((run, _res)) = wf
+                        .step_distributed(&store, &queue, i)
+                        .await
+                        .expect("step_distributed failed")
+                    {
+                        println!("Worker {} processed branch of run {}", i, run);
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(100)).await;
                 }
-                tokio::time::sleep(Duration::from_millis(100)).await;
             }
-        }.instrument(worker_span));
+            .instrument(worker_span),
+        );
+        handles.push(handle);
     }
-    
-    // Wait for run completion by polling the checkpoint
-    loop {
-        if let Some(cp) = store.load(run_id)? {
-            if cp.queue.is_empty() {
-                println!("Run {} completed; final context: {:?}", run_id, cp.context);
-                break;
-            }
-        }
-        tokio::time::sleep(Duration::from_millis(20)).await;
+
+    // Wait for all workers to finish processing
+    for handle in handles {
+        handle.await.expect("worker task panicked");
+    }
+
+    // All work is done; print final context
+    if let Some(cp) = store.load(run_id).await? {
+        println!("Run {} completed; final context: {:?}", run_id, cp.context);
     }
     Ok(())
 }
- 

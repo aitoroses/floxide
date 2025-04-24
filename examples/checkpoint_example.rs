@@ -1,4 +1,5 @@
 //! Example demonstrating in-memory checkpointing and resume
+use async_trait::async_trait;
 use floxide_core::{Checkpoint, CheckpointError, CheckpointStore, FloxideError, Node, Transition, WorkflowCtx};
 use floxide_macros::{node, workflow};
 use serde::{Deserialize, Serialize};
@@ -58,8 +59,9 @@ impl InMemoryStore {
     }
 }
 
+#[async_trait]
 impl CheckpointStore<Ctx, CounterWorkflowWorkItem> for InMemoryStore {
-    fn save(
+    async fn save(
         &self,
         workflow_id: &str,
         checkpoint: &Checkpoint<Ctx, CounterWorkflowWorkItem>,
@@ -71,7 +73,7 @@ impl CheckpointStore<Ctx, CounterWorkflowWorkItem> for InMemoryStore {
         map.insert(workflow_id.to_string(), bytes);
         Ok(())
     }
-    fn load(
+    async fn load(
         &self,
         workflow_id: &str,
     ) -> Result<Option<Checkpoint<Ctx, CounterWorkflowWorkItem>>, CheckpointError> {

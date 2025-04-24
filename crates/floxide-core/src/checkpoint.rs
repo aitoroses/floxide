@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use async_trait::async_trait;
 
 /// A snapshot of a workflow’s pending work and its context.
 #[derive(Serialize, Deserialize, Clone)]
@@ -34,9 +35,10 @@ pub enum CheckpointError {
 }
 
 /// A trait for persisting and loading workflow checkpoints.
+#[async_trait]
 pub trait CheckpointStore<C, W> {
     /// Persist the given checkpoint under `workflow_id`.
-    fn save(&self, workflow_id: &str, checkpoint: &Checkpoint<C, W>) -> Result<(), CheckpointError>;
+    async fn save(&self, workflow_id: &str, checkpoint: &Checkpoint<C, W>) -> Result<(), CheckpointError>;
     /// Load the last‐saved checkpoint for `workflow_id`, if any.
-    fn load(&self, workflow_id: &str) -> Result<Option<Checkpoint<C, W>>, CheckpointError>;
+    async fn load(&self, workflow_id: &str) -> Result<Option<Checkpoint<C, W>>, CheckpointError>;
 }
