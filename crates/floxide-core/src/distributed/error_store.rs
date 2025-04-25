@@ -6,7 +6,7 @@
 use async_trait::async_trait;
 use crate::distributed::{WorkflowError, ErrorStoreError};
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tokio::sync::Mutex;
 
 /// Trait for a distributed workflow error store.
@@ -38,3 +38,9 @@ impl ErrorStore for InMemoryErrorStore {
         Ok(map.get(run_id).cloned().unwrap_or_default())
     }
 } 
+
+pub static IN_MEMORY_ERROR_STORE: LazyLock<InMemoryErrorStore> = LazyLock::new(|| InMemoryErrorStore::default());
+
+pub fn in_memory_error_store_singleton() -> &'static InMemoryErrorStore {
+    &IN_MEMORY_ERROR_STORE
+}

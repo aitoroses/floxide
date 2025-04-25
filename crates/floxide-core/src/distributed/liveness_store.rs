@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use crate::distributed::LivenessStoreError;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use tokio::sync::Mutex;
 
 /// Health and status information for a workflow worker.
@@ -77,4 +77,10 @@ impl LivenessStore for InMemoryLivenessStore {
         let map = self.health.lock().await;
         Ok(map.values().cloned().collect())
     }
-} 
+}
+
+pub static IN_MEMORY_LIVENESS_STORE: LazyLock<InMemoryLivenessStore> = LazyLock::new(|| InMemoryLivenessStore::default());
+
+pub fn in_memory_liveness_store_singleton() -> &'static InMemoryLivenessStore {
+    &IN_MEMORY_LIVENESS_STORE
+}

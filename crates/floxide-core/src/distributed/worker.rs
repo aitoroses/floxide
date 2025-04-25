@@ -10,6 +10,8 @@ use crate::retry::{RetryPolicy, BackoffStrategy, RetryError};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
+use super::{in_memory_error_store_singleton, in_memory_liveness_store_singleton, in_memory_metrics_store_singleton, in_memory_run_info_store_singleton};
+
 /// A distributed workflow worker that polls a work queue, processes workflow steps, and updates state in distributed stores.
 ///
 /// # Example
@@ -316,10 +318,10 @@ impl<W, C, Q, S, RIS, MS, ES, LS> WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS> {
             workflow: None,
             queue: None,
             checkpoint_store: None,
-            run_info_store: Some(crate::distributed::InMemoryRunInfoStore::default()),
-            metrics_store: Some(crate::distributed::InMemoryMetricsStore::default()),
-            error_store: Some(crate::distributed::InMemoryErrorStore::default()),
-            liveness_store: Some(crate::distributed::InMemoryLivenessStore::default()),
+            run_info_store: Some(in_memory_run_info_store_singleton().clone()),
+            metrics_store: Some(in_memory_metrics_store_singleton().clone()),
+            error_store: Some(in_memory_error_store_singleton().clone()),
+            liveness_store: Some(in_memory_liveness_store_singleton().clone()),
             retry_policy: None,
             _phantom: std::marker::PhantomData,
         }

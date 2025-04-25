@@ -9,6 +9,7 @@ use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use std::sync::LazyLock;
 
 /// Errors that can occur in a RunInfoStore implementation.
 #[derive(Debug, thiserror::Error)]
@@ -81,4 +82,10 @@ impl RunInfoStore for InMemoryRunInfoStore {
             .collect();
         Ok(runs)
     }
+}
+
+pub static IN_MEMORY_RUN_INFO_STORE: LazyLock<InMemoryRunInfoStore> = LazyLock::new(|| InMemoryRunInfoStore::default());
+
+pub fn in_memory_run_info_store_singleton() -> &'static InMemoryRunInfoStore {
+    &IN_MEMORY_RUN_INFO_STORE
 } 

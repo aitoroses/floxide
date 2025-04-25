@@ -9,6 +9,8 @@ use uuid;
 use chrono::Utc;
 use std::time::Duration;
 
+use super::{in_memory_error_store_singleton, in_memory_liveness_store_singleton, in_memory_metrics_store_singleton, in_memory_run_info_store_singleton};
+
 pub struct DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS>
 where
     W: Workflow<C>,
@@ -249,6 +251,18 @@ impl<W, C, Q, S, RIS, MS, ES, LS> OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, L
     pub fn metrics_store(mut self, ms: MS) -> Self { self.metrics_store = Some(ms); self }
     pub fn error_store(mut self, es: ES) -> Self { self.error_store = Some(es); self }
     pub fn liveness_store(mut self, ls: LS) -> Self { self.liveness_store = Some(ls); self }
+    pub fn with_in_memory_stores() -> OrchestratorBuilder<W, C, Q, S, crate::distributed::InMemoryRunInfoStore, crate::distributed::InMemoryMetricsStore, crate::distributed::InMemoryErrorStore, crate::distributed::InMemoryLivenessStore> {
+        OrchestratorBuilder {
+            workflow: None,
+            queue: None,
+            store: None,
+            run_info_store: Some(in_memory_run_info_store_singleton().clone()),
+            metrics_store: Some(in_memory_metrics_store_singleton().clone()),
+            error_store: Some(in_memory_error_store_singleton().clone()),
+            liveness_store: Some(in_memory_liveness_store_singleton().clone()),
+            _phantom: std::marker::PhantomData,
+        }
+    }
     pub fn build(self) -> Result<DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS>, String>
     where
         W: Workflow<C>,
