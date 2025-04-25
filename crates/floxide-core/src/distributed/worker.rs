@@ -193,11 +193,13 @@ where
                             let now = chrono::Utc::now();
                             self.run_info_store.update_status(&run_id, crate::distributed::RunStatus::Failed).await.ok();
                             self.run_info_store.update_finished_at(&run_id, now).await.ok();
+                            self.queue.purge_run(&run_id).await.ok();
                         }
                     } else {
                         let now = chrono::Utc::now();
                         self.run_info_store.update_status(&run_id, crate::distributed::RunStatus::Failed).await.ok();
                         self.run_info_store.update_finished_at(&run_id, now).await.ok();
+                        self.queue.purge_run(&run_id).await.ok();
                     }
                     // Retry or break
                     if let Some(policy) = policy {
