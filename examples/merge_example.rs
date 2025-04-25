@@ -73,7 +73,7 @@ workflow! {
     }
 }
 
-async fn run_merge_example() -> Result<(), FloxideError> {
+async fn run_merge_example() -> Result<Vec<i32>, FloxideError> {
     let ctx = MergeContext {
         values: SharedState::new(Vec::new()),
         expected: 3,
@@ -84,8 +84,9 @@ async fn run_merge_example() -> Result<(), FloxideError> {
         merge: MergeNode,
         terminal: TerminalNode,
     };
-    wf.run(&wf_ctx, 10).await?;
-    Ok(())
+    let result = wf.run(&wf_ctx, 10).await?;
+    tracing::info!("Result: {:?}", result);
+    Ok(result)
 }
 
 #[tokio::main]
@@ -103,6 +104,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_merge_example() {
-        run_merge_example().await.expect("merge example failed");
+        let result = run_merge_example().await.expect("merge example failed");
+        assert_eq!(result, vec![9, 10, 11]);
     }
 }
