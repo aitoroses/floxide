@@ -28,7 +28,7 @@ pub enum WorkQueueError {
 ///
 /// Implementations provide FIFO queueing of work items for distributed workers.
 #[async_trait]
-pub trait WorkQueue<C: Context, WI: WorkItem> {
+pub trait WorkQueue<C: Context, WI: WorkItem>: Clone + Send + Sync + 'static {
     /// Enqueue one work-item under this `workflow_id`.
     /// Returns Err(WorkQueueError) on failure.
     async fn enqueue(&self, workflow_id: &str, work: WI) -> Result<(), WorkQueueError>;
@@ -48,6 +48,9 @@ pub trait WorkQueue<C: Context, WI: WorkItem> {
     /// Purge all work items for a given workflow run.
     /// Removes all queued work for the specified run_id.
     async fn purge_run(&self, run_id: &str) -> Result<(), WorkQueueError>;
+
+    /// Get pending work for a run.
+    async fn pending_work(&self, run_id: &str) -> Result<Vec<WI>, WorkQueueError>;
 }
 
 /// In-memory implementation of WorkQueue for testing and local development.
@@ -67,7 +70,7 @@ impl<WI: WorkItem> Default for InMemoryWorkQueue<WI> {
 }
 
 #[async_trait]
-impl<C: Context, WI: WorkItem> WorkQueue<C, WI> for InMemoryWorkQueue<WI> {
+impl<C: Context, WI: WorkItem + 'static> WorkQueue<C, WI> for InMemoryWorkQueue<WI> {
     async fn enqueue(&self, workflow_id: &str, work: WI) -> Result<(), WorkQueueError> {
         let mut map = self.0.lock().await;
         map.entry(workflow_id.to_string())
@@ -97,6 +100,11 @@ impl<C: Context, WI: WorkItem> WorkQueue<C, WI> for InMemoryWorkQueue<WI> {
         let mut map = self.0.lock().await;
         map.remove(run_id);
         Ok(())
+    }
+    async fn pending_work(&self, run_id: &str) -> Result<Vec<WI>, WorkQueueError> {
+        let map = self.0.lock().await;
+        let q = map.get(run_id).ok_or(WorkQueueError::Empty)?;
+        Ok(q.iter().cloned().collect())
     }
 }
 

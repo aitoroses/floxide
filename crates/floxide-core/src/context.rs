@@ -115,7 +115,7 @@ impl<T: Serialize + Clone> Serialize for SharedState<T> {
     {
         use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("Arc<Mutex<T>>", 1)?;
-        let value = self.0.try_lock().unwrap();
+        let value = self.0.try_lock().expect("Failed to lock mutex on SharedState while serializing");
         state.serialize_field("value", &value.clone())?;
         state.end()
     }
@@ -133,7 +133,9 @@ impl<'de, T: Deserialize<'de> + Clone> Deserialize<'de> for SharedState<T> {
 
 impl<T: Debug> Debug for SharedState<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let value = self.0.try_lock().unwrap();
-        write!(f, "{:?}", value)
+        match self.0.try_lock() {
+            Ok(value) => write!(f, "{:?}", value),
+            Err(_) => write!(f, "SharedState(Locked)"),
+        }
     }
 }

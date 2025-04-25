@@ -544,7 +544,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         #struct_def
 
         #[allow(non_camel_case_types)]
-        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+        #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
         #vis enum #work_item_ident {
             #(#work_variants),*
         }

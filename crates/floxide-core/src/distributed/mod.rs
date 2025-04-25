@@ -6,6 +6,7 @@ pub mod metrics_store;
 pub mod error_store;
 pub mod liveness_store;
 pub mod types;
+pub mod work_item_store;
 
 pub use orchestrator::*;
 pub use worker::*;
@@ -14,4 +15,5 @@ pub use run_info_store::*;
 pub use metrics_store::*;
 pub use error_store::*;
 pub use liveness_store::*;
-pub use types::*; 
+pub use types::*;
+pub use work_item_store::*; 

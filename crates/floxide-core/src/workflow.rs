@@ -43,9 +43,9 @@ use crate::CheckpointStore;
 /// Trait for a workflow work item.
 ///
 /// Implementations provide a way to serialize and deserialize work items.
-pub trait WorkItem: Debug + Send + Sync + Serialize + DeserializeOwned + Clone {}
+pub trait WorkItem: Debug + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq + Eq {}
 
-impl<T: Debug + Send + Sync + Serialize + DeserializeOwned + Clone> WorkItem for T {}
+impl<T: Debug + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq + Eq> WorkItem for T {}
 
 /// Trait for a workflow.
 ///

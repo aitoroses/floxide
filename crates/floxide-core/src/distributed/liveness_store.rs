@@ -10,6 +10,15 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+#[derive(Debug, Clone, Default)]
+pub enum WorkerStatus {
+    #[default]
+    Idle,
+    InProgress,
+    Retrying(usize, usize), // (attempt, max_attempts)
+    PermanentlyFailed,
+}
+
 /// Health and status information for a workflow worker.
 #[derive(Debug, Clone, Default)]
 pub struct WorkerHealth {
@@ -20,7 +29,7 @@ pub struct WorkerHealth {
     /// Number of errors encountered by this worker.
     pub error_count: usize,
     /// Optional custom status string (e.g., "in progress", "permanently failed").
-    pub custom_status: Option<String>,
+    pub status: WorkerStatus,
 }
 
 /// Trait for a distributed workflow liveness/health store.

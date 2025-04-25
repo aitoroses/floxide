@@ -2,17 +2,20 @@ use crate::checkpoint::CheckpointStore;
 use crate::context::{Context, WorkflowCtx};
 use crate::distributed::{
     ErrorStore, LivenessStatus, LivenessStore, LivenessStoreError, MetricsStore, RunInfo,
-    RunInfoError, RunInfoStore, RunMetrics, RunStatus, WorkQueue, WorkflowError,
+    RunInfoError, RunInfoStore, RunMetrics, RunStatus, WorkItemStateStore, WorkQueue, WorkflowError,
 };
 use crate::error::FloxideError;
 use crate::workflow::Workflow;
+use crate::Checkpoint;
 use chrono::Utc;
 use std::marker::PhantomData;
 use std::time::Duration;
 use uuid;
 
+use super::WorkerHealth;
 
-pub struct DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS>
+
+pub struct DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>
 where
     W: Workflow<C>,
     C: Context,
@@ -22,6 +25,7 @@ where
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
+    WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
 {
     workflow: W,
     queue: Q,
@@ -30,10 +34,11 @@ where
     metrics_store: MS,
     error_store: ES,
     liveness_store: LS,
+    work_item_state_store: WIS,
     phantom: PhantomData<C>,
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS> DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS>
+impl<W, C, Q, S, RIS, MS, ES, LS, WIS> DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>
 where
     W: Workflow<C>,
     C: Context,
@@ -43,6 +48,7 @@ where
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
+    WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
 {
     /// Create a new orchestrator.
     pub fn new(
@@ -53,6 +59,7 @@ where
         metrics_store: MS,
         error_store: ES,
         liveness_store: LS,
+        work_item_state_store: WIS,
     ) -> Self {
         Self {
             workflow,
@@ -62,6 +69,7 @@ where
             metrics_store,
             error_store,
             liveness_store,
+            work_item_state_store,
             phantom: PhantomData,
         }
     }
@@ -138,6 +146,7 @@ where
             .purge_run(run_id)
             .await
             .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
+        self.work_item_state_store.purge_run(run_id).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
         Ok(())
     }
 
@@ -160,13 +169,46 @@ where
     where
         C: std::fmt::Debug + Clone + Send + Sync,
     {
-        self.run_info_store
-            .update_status(run_id, RunStatus::Running)
-            .await
-            .map_err(|e| match e {
-                RunInfoError::NotFound => FloxideError::NotStarted,
-                e => FloxideError::Generic(format!("run_info_store error: {e}")),
-            })
+        let run_info = self.run_info_store.get_run(run_id).await.map_err(|e| match e {
+            RunInfoError::NotFound => FloxideError::NotStarted,
+            e => FloxideError::Generic(format!("run_info_store error: {e}")),
+        })?;
+
+        if run_info.is_none() {
+            return Err(FloxideError::NotStarted);
+        }
+
+        match run_info.unwrap().status {
+            RunStatus::Running => {
+                return Ok(());
+            }
+            RunStatus::Failed => {
+                self.run_info_store
+                    .update_status(run_id, RunStatus::Running)
+                    .await
+                    .map_err(|e| match e {
+                            RunInfoError::NotFound => FloxideError::NotStarted,
+                            e => FloxideError::Generic(format!("run_info_store error: {e}")),
+                        })
+            }
+            RunStatus::Completed => {
+                return Err(FloxideError::Generic("run already completed".to_string()));
+            }
+            RunStatus::Cancelled => {
+                return Err(FloxideError::AlreadyCompleted);
+            }
+            RunStatus::Paused => {
+                // Clear the work item state for the run
+                self.work_item_state_store.purge_run(run_id).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
+                self.run_info_store
+                    .update_status(run_id, RunStatus::Running)
+                    .await
+                    .map_err(|e| match e {
+                        RunInfoError::NotFound => FloxideError::NotStarted,
+                        e => FloxideError::Generic(format!("run_info_store error: {e}")),
+                    })
+            }
+        }
     }
 
     /// Get all errors for a run.
@@ -180,6 +222,27 @@ where
             .map_err(|e| FloxideError::Generic(format!("error_store error: {e}")))
     }
 
+    // Get liveness status for a run.
+    pub async fn liveness(&self) -> Result<Vec<WorkerHealth>, FloxideError>
+    where
+        C: std::fmt::Debug + Clone + Send + Sync,
+    {
+        self.liveness_store.list_health().await
+            .map_err(|e| FloxideError::Generic(format!("liveness_store error: {e}")))
+    }
+
+    // Get checkpoint for a run.
+    pub async fn checkpoint(&self, run_id: &str) -> Result<Checkpoint<C, W::WorkItem>, FloxideError>
+    where
+        C: std::fmt::Debug + Clone + Send + Sync,
+    {
+        match self.store.load(run_id).await {
+            Ok(Some(checkpoint)) => Ok(checkpoint),
+            Ok(None) => Err(FloxideError::NotStarted),
+            Err(e) => Err(FloxideError::Generic(format!("checkpoint_store error: {e}"))),
+        }
+    }
+
     /// Get progress/metrics for a run.
     pub async fn metrics(&self, run_id: &str) -> Result<RunMetrics, FloxideError>
     where
@@ -190,6 +253,15 @@ where
             Ok(None) => Err(FloxideError::NotStarted),
             Err(e) => Err(FloxideError::Generic(format!("metrics_store error: {e}"))),
         }
+    }
+
+    /// Get pending work for a run.
+    pub async fn pending_work(&self, run_id: &str) -> Result<Vec<W::WorkItem>, FloxideError>
+    where
+        C: std::fmt::Debug + Clone + Send + Sync,
+    {
+        self.queue.pending_work(run_id).await
+            .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))
     }
 
     /// Check liveness status of a list of workers.
@@ -267,7 +339,7 @@ where
     }
 }
 
-pub struct OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS>
+pub struct OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS, WIS>
 where
     W: Workflow<C>,
     C: Context,
@@ -277,6 +349,7 @@ where
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
+    WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
 {
     workflow: Option<W>,
     queue: Option<Q>,
@@ -285,10 +358,11 @@ where
     metrics_store: Option<MS>,
     error_store: Option<ES>,
     liveness_store: Option<LS>,
+    work_item_state_store: Option<WIS>,
     _phantom: std::marker::PhantomData<C>,
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS> OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS>
+impl<W, C, Q, S, RIS, MS, ES, LS, WIS> OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS, WIS>
 where
     W: Workflow<C>,
     C: Context,
@@ -298,6 +372,7 @@ where
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
+    WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
 {
     pub fn new() -> Self {
         Self {
@@ -308,6 +383,7 @@ where
             metrics_store: None,
             error_store: None,
             liveness_store: None,
+            work_item_state_store: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -339,7 +415,11 @@ where
         self.liveness_store = Some(ls);
         self
     }
-    pub fn build(self) -> Result<DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS>, String>
+    pub fn work_item_state_store(mut self, wiss: WIS) -> Self {
+        self.work_item_state_store = Some(wiss);
+        self
+    }
+    pub fn build(self) -> Result<DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>, String>
     where
         W: Workflow<C>,
         C: Context,
@@ -349,6 +429,7 @@ where
         MS: MetricsStore + Send + Sync,
         ES: ErrorStore + Send + Sync,
         LS: LivenessStore + Send + Sync,
+        WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
     {
         Ok(DistributedOrchestrator {
             workflow: self.workflow.ok_or("workflow is required")?,
@@ -358,6 +439,7 @@ where
             metrics_store: self.metrics_store.ok_or("metrics_store is required")?,
             error_store: self.error_store.ok_or("error_store is required")?,
             liveness_store: self.liveness_store.ok_or("liveness_store is required")?,
+            work_item_state_store: self.work_item_state_store.ok_or("work_item_state_store is required")?,
             phantom: std::marker::PhantomData,
         })
     }

@@ -7,7 +7,7 @@ use thiserror::Error;
 use crate::{context::Context, workflow::WorkItem};
 
 /// A snapshot of a workflow's pending work and its context.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Checkpoint<C: Context, WI: WorkItem> {
     /// The user-provided context for the workflow
     pub context: C,
