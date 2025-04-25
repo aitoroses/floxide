@@ -1,7 +1,7 @@
 use thiserror::Error;
 use std::time::Duration;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone)]
 pub enum FloxideError {
     #[error("Generic error: {0}")]
     Generic(String),

@@ -141,12 +141,13 @@ use floxide_core::*;
 use floxide_macros::workflow;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     fmt::{self, Debug},
     sync::{Arc, LazyLock},
 };
 use tokio::{sync::Mutex, time::Duration};
 use tracing::Instrument;
+use floxide_core::distributed::InMemoryWorkQueue;
 
 // Global flag to simulate failure in BranchB for demonstration purposes
 static SHOULD_FAIL: LazyLock<Arc<tokio::sync::Mutex<bool>>> =
@@ -160,39 +161,7 @@ struct Ctx {
     logs: ArcMutex<Vec<String>>,  // Shared log, records node activity
 }
 
-/// In-memory work-queue implementation for distributed workflow steps.
-/// Each workflow run ID maps to a queue of work items.
-#[derive(Clone)]
-struct InMemQueue<W>(Arc<tokio::sync::Mutex<HashMap<String, VecDeque<W>>>>);
-impl<W: Clone + Send + 'static> InMemQueue<W> {
-    /// Create a new, empty in-memory queue
-    fn new() -> Self {
-        InMemQueue(Arc::new(tokio::sync::Mutex::new(HashMap::new())))
-    }
-}
 
-#[async_trait]
-impl<W: Clone + Send + 'static> floxide_core::distributed::WorkQueue<W> for InMemQueue<W> {
-    /// Enqueue a work item for a given workflow run
-    async fn enqueue(&self, workflow_id: &str, work: W) -> Result<(), String> {
-        let mut map = self.0.lock().await;
-        map.entry(workflow_id.to_string())
-            .or_default()
-            .push_back(work);
-        Ok(())
-    }
-    /// Dequeue a work item from any non-empty queue
-    async fn dequeue(&self) -> Result<Option<(String, W)>, String> {
-        let mut map = self.0.lock().await;
-        // Find any non-empty queue entry
-        for (run_id, q) in map.iter_mut() {
-            if let Some(item) = q.pop_front() {
-                return Ok(Some((run_id.clone(), item)));
-            }
-        }
-        Ok(None)
-    }
-}
 
 /// In-memory checkpoint store for workflow state.
 /// Each workflow run ID maps to its latest checkpoint.
@@ -381,7 +350,7 @@ workflow! {
 async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
     // Create in-memory runtime (queue and checkpoint store)
     let store = InMemStore::<ParallelWorkflowWorkItem>::new();
-    let queue = InMemQueue::<ParallelWorkflowWorkItem>::new();
+    let queue = InMemoryWorkQueue::<ParallelWorkflowWorkItem>::new();
 
     // Build workflow and context
     let wf = ParallelWorkflow {
@@ -415,7 +384,7 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
                     match (*should_fail, step_result) {
                         (true, Err(e)) => {
                             *should_fail = false; // Reset the should_fail flag after simulating failure
-                            println!("Worker {} failed to process branch of run {} with error: {}", i, run_id, e);
+                            println!("Worker {} failed to process branch of run {} with error: {:?}", i, run_id, e);
                         }
                         (false, Err(_)) => {
                             unreachable!();

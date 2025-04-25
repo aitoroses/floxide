@@ -1,0 +1,82 @@
+//! Work queue for distributed workflow execution.
+//!
+//! This module defines the WorkQueue trait for enqueuing and dequeuing workflow work items,
+//! and provides an in-memory implementation for testing and local development.
+
+use async_trait::async_trait;
+use std::collections::{HashMap, VecDeque};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use thiserror::Error;
+
+/// Errors that can occur in a WorkQueue implementation.
+#[derive(Debug, Error)]
+pub enum WorkQueueError {
+    #[error("I/O error: {0}")]
+    Io(String),
+    #[error("Queue is empty")]
+    Empty,
+    #[error("Other error: {0}")]
+    Other(String),
+}
+
+/// Trait for a distributed workflow work queue.
+///
+/// Implementations provide FIFO queueing of work items for distributed workers.
+#[async_trait]
+pub trait WorkQueue<W> {
+    /// Enqueue one work-item under this `workflow_id`.
+    /// Returns Err(WorkQueueError) on failure.
+    async fn enqueue(&self, workflow_id: &str, work: W) -> Result<(), WorkQueueError>;
+
+    /// Dequeue the next available work-item from any workflow.
+    /// Returns Ok(Some((workflow_id, item))) if an item was dequeued,
+    /// Ok(None) if the queue is empty,
+    /// or Err(WorkQueueError) on failure.
+    async fn dequeue(&self) -> Result<Option<(String, W)>, WorkQueueError>;
+
+    /// Peek at the next available work-item from any workflow.
+    /// Returns Ok(Some((workflow_id, item))) if an item was peeked,
+    /// Ok(None) if the queue is empty,
+    /// or Err(WorkQueueError) on failure.
+    async fn peek(&self) -> Result<Option<(String, W)>, WorkQueueError>;
+}
+
+/// In-memory implementation of WorkQueue for testing and local development.
+#[derive(Clone)]
+pub struct InMemoryWorkQueue<W>(Arc<Mutex<HashMap<String, VecDeque<W>>>>);
+
+impl<W: Clone + Send + 'static> InMemoryWorkQueue<W> {
+    pub fn new() -> Self {
+        InMemoryWorkQueue(Arc::new(Mutex::new(HashMap::new())))
+    }
+}
+
+#[async_trait]
+impl<W: Clone + Send + 'static> WorkQueue<W> for InMemoryWorkQueue<W> {
+    async fn enqueue(&self, workflow_id: &str, work: W) -> Result<(), WorkQueueError> {
+        let mut map = self.0.lock().await;
+        map.entry(workflow_id.to_string())
+            .or_default()
+            .push_back(work);
+        Ok(())
+    }
+    async fn dequeue(&self) -> Result<Option<(String, W)>, WorkQueueError> {
+        let mut map = self.0.lock().await;
+        for (run_id, q) in map.iter_mut() {
+            if let Some(item) = q.pop_front() {
+                return Ok(Some((run_id.clone(), item)));
+            }
+        }
+        Ok(None)
+    }
+    async fn peek(&self) -> Result<Option<(String, W)>, WorkQueueError> {
+        let map = self.0.lock().await;
+        for (run_id, q) in map.iter() {
+            if let Some(item) = q.front() {
+                return Ok(Some((run_id.clone(), item.clone())));
+            }
+        }
+        Ok(None)
+    }
+} 

@@ -6,17 +6,18 @@ pub mod error;
 pub mod batch;
 pub mod source;
 pub mod retry;
+pub mod composite;
 
 pub mod checkpoint;
 pub mod distributed;
 pub use context::WorkflowCtx;
 pub use transition::Transition;
 pub use node::Node;
-pub use workflow::{Workflow, CompositeNode};
+pub use workflow::Workflow;
 pub use error::FloxideError;
 pub use batch::BatchNode;
 pub use source::{Source, source};
 pub use retry::{RetryPolicy, BackoffStrategy, RetryError};
 pub use retry::{with_retry, RetryNode};
-
+pub use composite::CompositeNode;
 pub use checkpoint::{Checkpoint, CheckpointError, CheckpointStore};

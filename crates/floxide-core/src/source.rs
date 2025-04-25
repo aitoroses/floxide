@@ -1,4 +1,3 @@
-// Abstraction for value-producing (source) nodes: nodes with Input=() that generate outputs
 //! Abstraction for value-producing (source) nodes: nodes with Input=() that emit a stream of outputs.
 use std::sync::Arc;
 use std::fmt::Debug;

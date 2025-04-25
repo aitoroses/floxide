@@ -3,10 +3,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use async_trait::async_trait;
 
-/// A snapshot of a workflow’s pending work and its context.
+/// A snapshot of a workflow's pending work and its context.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Checkpoint<C, W> {
-    /// The user‐provided context for the workflow
+    /// The user-provided context for the workflow
     pub context: C,
     /// The queue of pending work items
     pub queue: VecDeque<W>,
@@ -39,6 +39,6 @@ pub enum CheckpointError {
 pub trait CheckpointStore<C, W> {
     /// Persist the given checkpoint under `workflow_id`.
     async fn save(&self, workflow_id: &str, checkpoint: &Checkpoint<C, W>) -> Result<(), CheckpointError>;
-    /// Load the last‐saved checkpoint for `workflow_id`, if any.
+    /// Load the last-saved checkpoint for `workflow_id`, if any.
     async fn load(&self, workflow_id: &str) -> Result<Option<Checkpoint<C, W>>, CheckpointError>;
 }

@@ -16,81 +16,7 @@ pub trait RetryDelay {
     async fn wait(&self, dur: Duration) -> Result<(), FloxideError>;
 }
 
-// Unit tests for RetryPolicy backoff and retry logic
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::time::Duration;
 
-    #[test]
-    fn test_linear_backoff() {
-        let policy = RetryPolicy::new(
-            5,
-            Duration::from_millis(100),
-            Duration::from_millis(1000),
-            BackoffStrategy::Linear,
-            RetryError::All,
-        );
-        assert_eq!(policy.backoff_duration(1), Duration::from_millis(100));
-        assert_eq!(policy.backoff_duration(3), Duration::from_millis(300));
-        // capped at max_backoff
-        assert_eq!(policy.backoff_duration(20), Duration::from_millis(1000));
-    }
-
-    #[test]
-    fn test_exponential_backoff() {
-        let policy = RetryPolicy::new(
-            5,
-            Duration::from_millis(50),
-            Duration::from_millis(400),
-            BackoffStrategy::Exponential,
-            RetryError::All,
-        );
-        // 1 -> 50ms, 2 -> 100ms, 3 -> 200ms, 4 -> 400ms, capped thereafter
-        assert_eq!(policy.backoff_duration(1), Duration::from_millis(50));
-        assert_eq!(policy.backoff_duration(2), Duration::from_millis(100));
-        assert_eq!(policy.backoff_duration(3), Duration::from_millis(200));
-        assert_eq!(policy.backoff_duration(4), Duration::from_millis(400));
-        assert_eq!(policy.backoff_duration(5), Duration::from_millis(400));
-    }
-
-    #[test]
-    fn test_jitter_addition() {
-        let mut policy = RetryPolicy::new(
-            3,
-            Duration::from_millis(100),
-            Duration::from_millis(1000),
-            BackoffStrategy::Linear,
-            RetryError::All,
-        );
-        policy = policy.with_jitter(Duration::from_millis(25));
-        assert_eq!(policy.backoff_duration(2), Duration::from_millis(100*2 + 25));
-    }
-
-    #[test]
-    fn test_retry_predicates() {
-        let mut policy = RetryPolicy::new(
-            3,
-            Duration::from_millis(10),
-            Duration::from_millis(100),
-            BackoffStrategy::Linear,
-            RetryError::Generic,
-        );
-        let gen_err = FloxideError::Generic("oops".into());
-        let cancel_err = FloxideError::Cancelled;
-        let timeout_err = FloxideError::Timeout(Duration::from_secs(1));
-        // Generic only
-        assert!(policy.should_retry(&gen_err, 1));
-        assert!(!policy.should_retry(&cancel_err, 1));
-        assert!(!policy.should_retry(&timeout_err, 1));
-        // Exhausted attempts
-        assert!(!policy.should_retry(&gen_err, 3));
-        // RetryError::All
-        policy.retry_error = RetryError::All;
-        assert!(policy.should_retry(&cancel_err, 2));
-        assert!(policy.should_retry(&timeout_err, 2));
-    }
-}
 
 #[async_trait]
 impl<S> RetryDelay for WorkflowCtx<S>
@@ -303,5 +229,81 @@ where
                 }
             }
         }
+    }
+}
+
+// Unit tests for RetryPolicy backoff and retry logic
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn test_linear_backoff() {
+        let policy = RetryPolicy::new(
+            5,
+            Duration::from_millis(100),
+            Duration::from_millis(1000),
+            BackoffStrategy::Linear,
+            RetryError::All,
+        );
+        assert_eq!(policy.backoff_duration(1), Duration::from_millis(100));
+        assert_eq!(policy.backoff_duration(3), Duration::from_millis(300));
+        // capped at max_backoff
+        assert_eq!(policy.backoff_duration(20), Duration::from_millis(1000));
+    }
+
+    #[test]
+    fn test_exponential_backoff() {
+        let policy = RetryPolicy::new(
+            5,
+            Duration::from_millis(50),
+            Duration::from_millis(400),
+            BackoffStrategy::Exponential,
+            RetryError::All,
+        );
+        // 1 -> 50ms, 2 -> 100ms, 3 -> 200ms, 4 -> 400ms, capped thereafter
+        assert_eq!(policy.backoff_duration(1), Duration::from_millis(50));
+        assert_eq!(policy.backoff_duration(2), Duration::from_millis(100));
+        assert_eq!(policy.backoff_duration(3), Duration::from_millis(200));
+        assert_eq!(policy.backoff_duration(4), Duration::from_millis(400));
+        assert_eq!(policy.backoff_duration(5), Duration::from_millis(400));
+    }
+
+    #[test]
+    fn test_jitter_addition() {
+        let mut policy = RetryPolicy::new(
+            3,
+            Duration::from_millis(100),
+            Duration::from_millis(1000),
+            BackoffStrategy::Linear,
+            RetryError::All,
+        );
+        policy = policy.with_jitter(Duration::from_millis(25));
+        assert_eq!(policy.backoff_duration(2), Duration::from_millis(100*2 + 25));
+    }
+
+    #[test]
+    fn test_retry_predicates() {
+        let mut policy = RetryPolicy::new(
+            3,
+            Duration::from_millis(10),
+            Duration::from_millis(100),
+            BackoffStrategy::Linear,
+            RetryError::Generic,
+        );
+        let gen_err = FloxideError::Generic("oops".into());
+        let cancel_err = FloxideError::Cancelled;
+        let timeout_err = FloxideError::Timeout(Duration::from_secs(1));
+        // Generic only
+        assert!(policy.should_retry(&gen_err, 1));
+        assert!(!policy.should_retry(&cancel_err, 1));
+        assert!(!policy.should_retry(&timeout_err, 1));
+        // Exhausted attempts
+        assert!(!policy.should_retry(&gen_err, 3));
+        // RetryError::All
+        policy.retry_error = RetryError::All;
+        assert!(policy.should_retry(&cancel_err, 2));
+        assert!(policy.should_retry(&timeout_err, 2));
     }
 }
