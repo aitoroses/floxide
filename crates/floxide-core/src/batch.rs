@@ -61,6 +61,7 @@ impl<N> BatchNode<N> {
                     match res {
                         Ok(Ok(Transition::Next(o))) => outputs.push(o),
                         Ok(Ok(Transition::NextAll(os))) => outputs.extend(os),
+                        Ok(Ok(Transition::Hold)) => {},
                         Ok(Ok(Transition::Abort(e))) => {
                             error!(?e, "Node aborted during batch");
                             return Err(e)
@@ -85,6 +86,7 @@ impl<N> BatchNode<N> {
                 match res {
                     Ok(Ok(Transition::Next(o))) => outputs.push(o),
                     Ok(Ok(Transition::NextAll(os))) => outputs.extend(os),
+                    Ok(Ok(Transition::Hold)) => {},
                     Ok(Ok(Transition::Abort(e))) => {
                         error!(?e, "Node aborted during final batch");
                         return Err(e)

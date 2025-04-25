@@ -365,6 +365,11 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                             tracing::error!(error = ?e, "Node process returned error");
                             #push_failure
                         },
+                        // Hold: pause without emitting successors
+                        Ok(Transition::Hold) => {
+                            tracing::debug!("Node produced Transition::Hold");
+                            return Ok(None);
+                        },
                         // Unexpected fan-out in non-split node
                         _ => unreachable!("Unexpected Transition variant"),
                     }
@@ -380,6 +385,11 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let _node_enter = node_span.enter();
                         tracing::debug!(store = ?ctx.store, ?x, "Node input and store");
                         match ctx.run_future(__node.process(__store, x)).await? {
+                            // Hold: pause without emitting successors
+                            Transition::Hold => {
+                                tracing::debug!("Node produced Transition::Hold");
+                                return Ok(None);
+                            }
                             Transition::Next(action) => {
                                 tracing::debug!(?action, "Node produced Transition::Next (terminal composite)");
                                 return Ok(Some(action));
@@ -434,6 +444,10 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let _node_enter = node_span.enter();
                         tracing::debug!(store = ?ctx.store, ?x, "Node input and store");
                         match ctx.run_future(__node.process(__store, x)).await? {
+                            Transition::Hold => {
+                                tracing::debug!("Node produced Transition::Hold");
+                                return Ok(None);
+                            }
                             Transition::Next(action) => {
                                 tracing::debug!(?action, "Node produced Transition::Next (composite)");
                                 match action {

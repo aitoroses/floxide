@@ -137,15 +137,15 @@ Let us know if you want a diagram, code comments, or further breakdown of any pa
 //   - Log and checkpoint state after each node
 
 use async_trait::async_trait;
+use floxide::context::SharedState;
 use floxide_core::*;
 use floxide_macros::workflow;
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    fmt::{self, Debug},
+    fmt::Debug,
     sync::{Arc, LazyLock},
 };
-use tokio::{sync::Mutex, time::Duration};
+use tokio::time::Duration;
 use tracing::Instrument;
 use floxide_core::distributed::InMemoryWorkQueue;
 
@@ -157,8 +157,8 @@ static SHOULD_FAIL: LazyLock<Arc<tokio::sync::Mutex<bool>>> =
 /// Contains a counter and a log of node activity.
 #[derive(Clone, Debug)]
 struct Ctx {
-    local_counter: ArcMutex<i32>, // Shared counter, updated by each node
-    logs: ArcMutex<Vec<String>>,  // Shared log, records node activity
+    local_counter: SharedState<i32>, // Shared counter, updated by each node
+    logs: SharedState<Vec<String>>,  // Shared log, records node activity
 }
 
 
@@ -196,46 +196,6 @@ impl<W: Clone + Send + Sync> CheckpointStore<Ctx, W> for InMemStore<W> {
     }
 }
 
-/// Arc<Mutex<T>> wrapper with custom (de)serialization and debug support
-#[derive(Clone)]
-pub struct ArcMutex<T>(Arc<Mutex<T>>);
-
-impl<T> ArcMutex<T> {
-    pub fn new(value: T) -> Self {
-        ArcMutex(Arc::new(Mutex::new(value)))
-    }
-}
-
-impl<T: Serialize + Clone> Serialize for ArcMutex<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("Arc<Mutex<T>>", 1)?;
-        let value = self.0.try_lock().unwrap();
-        state.serialize_field("value", &value.clone())?;
-        state.end()
-    }
-}
-
-impl<'de, T: Deserialize<'de> + Clone> Deserialize<'de> for ArcMutex<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let value = T::deserialize(deserializer)?;
-        Ok(ArcMutex(Arc::new(Mutex::new(value))))
-    }
-}
-
-impl<T: Debug> Debug for ArcMutex<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let value = self.0.try_lock().unwrap();
-        write!(f, "{:?}", value)
-    }
-}
-
 // === Parallel workflow example illustrating worker collaboration ===
 // Define simple nodes: split into two parallel branches, then terminal nodes and an initial node
 
@@ -252,9 +212,9 @@ impl Node<Ctx> for InitialNode {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("InitialNode: starting workflow");
-        let mut counter = ctx.local_counter.0.lock().await;
+        let mut counter = ctx.local_counter.get().await;
         *counter += 1;
-        let mut logs = ctx.logs.0.lock().await;
+        let mut logs = ctx.logs.get().await;
         logs.push(format!("InitialNode: starting workflow"));
         Ok(Transition::Next(()))
     }
@@ -273,9 +233,9 @@ impl Node<Ctx> for SplitNode {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("SplitNode: spawning two branches");
-        let mut counter = ctx.local_counter.0.lock().await;
+        let mut counter = ctx.local_counter.get().await;
         *counter += 1;
-        let mut logs = ctx.logs.0.lock().await;
+        let mut logs = ctx.logs.get().await;
         logs.push(format!("SplitNode: spawning two branches"));
         Ok(Transition::Next(()))
     }
@@ -294,9 +254,9 @@ impl Node<Ctx> for BranchA {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchA executed");
-        let mut counter = ctx.local_counter.0.lock().await;
+        let mut counter = ctx.local_counter.get().await;
         *counter += 10;
-        let mut logs = ctx.logs.0.lock().await;
+        let mut logs = ctx.logs.get().await;
         logs.push(format!("BranchA executed"));
         Ok(Transition::Next("branch_a_success"))
     }
@@ -315,9 +275,9 @@ impl Node<Ctx> for BranchB {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchB executed");
-        let mut counter = ctx.local_counter.0.lock().await;
+        let mut counter = ctx.local_counter.get().await;
         *counter += 15;
-        let mut logs = ctx.logs.0.lock().await;
+        let mut logs = ctx.logs.get().await;
         let should_fail = *SHOULD_FAIL.lock().await;
         if should_fail {
             logs.push(format!("BranchB failed"));
@@ -360,8 +320,8 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
         b: BranchB,
     };
     let ctx = WorkflowCtx::new(Ctx {
-        local_counter: ArcMutex::new(0),
-        logs: ArcMutex::new(Vec::new()),
+        local_counter: SharedState::new(0),
+        logs: SharedState::new(Vec::new()),
     });
     let run_id = "run1";
     // Seed the single run, enqueuing the split node
@@ -434,9 +394,9 @@ mod tests {
     #[tokio::test]
     async fn test_distributed_example() {
         let ctx = run_distributed_example().await.unwrap();
-        assert_eq!(*ctx.local_counter.0.lock().await, 27);
+        assert_eq!(*ctx.local_counter.get().await, 27);
         assert_eq!(
-            *ctx.logs.0.lock().await,
+            *ctx.logs.get().await,
             vec![
                 "InitialNode: starting workflow",
                 "SplitNode: spawning two branches",

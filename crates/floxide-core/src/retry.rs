@@ -210,10 +210,11 @@ where
         input: Self::Input,
     ) -> Result<Transition<Self::Output>, FloxideError> {
         let mut attempt = 1;
-        loop {
+            loop {
             match self.inner.process(ctx, input.clone()).await {
                 Ok(Transition::NextAll(vs)) => return Ok(Transition::NextAll(vs)),
                 Ok(Transition::Next(out)) => return Ok(Transition::Next(out)),
+                Ok(Transition::Hold) => return Ok(Transition::Hold),
                 Ok(Transition::Abort(e)) | Err(e) => {
                     // emit tracing event for retry evaluation
                     tracing::debug!(attempt, error=%e, "RetryNode: caught error, evaluating retry policy");
