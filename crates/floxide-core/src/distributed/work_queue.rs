@@ -40,6 +40,10 @@ pub trait WorkQueue<W> {
     /// Ok(None) if the queue is empty,
     /// or Err(WorkQueueError) on failure.
     async fn peek(&self) -> Result<Option<(String, W)>, WorkQueueError>;
+
+    /// Purge all work items for a given workflow run.
+    /// Removes all queued work for the specified run_id.
+    async fn purge_run(&self, run_id: &str) -> Result<(), WorkQueueError>;
 }
 
 /// In-memory implementation of WorkQueue for testing and local development.
@@ -78,5 +82,10 @@ impl<W: Clone + Send + 'static> WorkQueue<W> for InMemoryWorkQueue<W> {
             }
         }
         Ok(None)
+    }
+    async fn purge_run(&self, run_id: &str) -> Result<(), WorkQueueError> {
+        let mut map = self.0.lock().await;
+        map.remove(run_id);
+        Ok(())
     }
 } 

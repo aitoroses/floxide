@@ -107,7 +107,15 @@ where
             .map_err(|e| match e {
                 RunInfoError::NotFound => FloxideError::NotStarted,
                 e => FloxideError::Generic(format!("run_info_store error: {e}")),
-            })
+            })?;
+        let now = chrono::Utc::now();
+        self.run_info_store.update_finished_at(run_id, now)
+            .await
+            .map_err(|e| FloxideError::Generic(format!("run_info_store error: {e}")))?;
+        self.queue.purge_run(run_id)
+            .await
+            .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
+        Ok(())
     }
 
     /// Pause a run.
