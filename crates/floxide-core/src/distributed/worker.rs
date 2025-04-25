@@ -7,6 +7,8 @@ use std::marker::PhantomData;
 use tokio::time::{sleep, Duration};
 use tracing::error;
 use crate::retry::{RetryPolicy, BackoffStrategy, RetryError};
+use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
 /// A distributed workflow worker that polls a work queue, processes workflow steps, and updates state in distributed stores.
 ///
@@ -27,6 +29,7 @@ use crate::retry::{RetryPolicy, BackoffStrategy, RetryError};
 /// ```
 ///
 /// Use [`run_once`] to process a single work item, or [`run_forever`] to continuously poll for work.
+#[derive(Clone)]
 pub struct DistributedWorker<W, C, Q, S, RIS, MS, ES, LS>
 where
     W: Workflow<C>,
@@ -349,5 +352,84 @@ impl<W, C, Q, S, RIS, MS, ES, LS> WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS> {
             ))),
             phantom: std::marker::PhantomData,
         })
+    }
+}
+
+/// A pool of distributed workflow workers, each running in its own async task.
+///
+/// The pool manages worker lifecycles, graceful shutdown, and health reporting.
+pub struct WorkerPool<W, C, Q, S, RIS, MS, ES, LS>
+where
+    W: Workflow<C>,
+    C: Debug + Clone + Send + Sync,
+    Q: WorkQueue<W::WorkItem> + Send + Sync,
+    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
+    RIS: RunInfoStore + Send + Sync,
+    MS: MetricsStore + Send + Sync,
+    ES: ErrorStore + Send + Sync,
+    LS: LivenessStore + Send + Sync,
+{
+    worker: DistributedWorker<W, C, Q, S, RIS, MS, ES, LS>,
+    num_workers: usize,
+    handles: Vec<JoinHandle<()>>,
+    cancel_tokens: Vec<CancellationToken>,
+}
+
+impl<W, C, Q, S, RIS, MS, ES, LS> WorkerPool<W, C, Q, S, RIS, MS, ES, LS>
+where
+    W: Workflow<C> + 'static,
+    C: Debug + Clone + Send + Sync + 'static,
+    Q: WorkQueue<W::WorkItem> + Send + Sync + Clone + 'static,
+    S: CheckpointStore<C, W::WorkItem> + Send + Sync + Clone + 'static,
+    RIS: RunInfoStore + Send + Sync + Clone + 'static,
+    MS: MetricsStore + Send + Sync + Clone + 'static,
+    ES: ErrorStore + Send + Sync + Clone + 'static,
+    LS: LivenessStore + Send + Sync + Clone + 'static,
+{
+    /// Create a new worker pool with the given worker and number of workers.
+    pub fn new(worker: DistributedWorker<W, C, Q, S, RIS, MS, ES, LS>, num_workers: usize) -> Self {
+        Self {
+            worker,
+            num_workers,
+            handles: Vec::new(),
+            cancel_tokens: Vec::new(),
+        }
+    }
+
+    /// Start all workers in the pool. Each worker runs in its own async task.
+    pub fn start(&mut self) {
+        for worker_id in 0..self.num_workers {
+            let cancel_token = CancellationToken::new();
+            let cancel_token_child = cancel_token.child_token();
+            let worker = self.worker.clone();
+            let handle = tokio::spawn(async move {
+                let token = cancel_token_child;
+                tokio::select! {
+                    _ = worker.run_forever(worker_id) => {},
+                    _ = token.cancelled() => {},
+                }
+            });
+            self.handles.push(handle);
+            self.cancel_tokens.push(cancel_token);
+        }
+    }
+
+    /// Gracefully stop all workers by signalling cancellation.
+    pub async fn stop(&mut self) {
+        for token in &self.cancel_tokens {
+            token.cancel();
+        }
+    }
+
+    /// Wait for all workers to finish.
+    pub async fn join(&mut self) {
+        for handle in self.handles.drain(..) {
+            let _ = handle.await;
+        }
+    }
+
+    /// Get health/status of all workers from the liveness store.
+    pub async fn health(&self) -> Vec<WorkerHealth> {
+        self.worker.liveness_store.list_health().await.unwrap_or_default()
     }
 } 
