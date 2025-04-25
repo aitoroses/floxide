@@ -5,9 +5,13 @@
 
 use async_trait::async_trait;
 use std::collections::{HashMap, VecDeque};
+use std::fmt::Debug;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use thiserror::Error;
+
+use crate::context::Context;
+use crate::workflow::WorkItem;
 
 /// Errors that can occur in a WorkQueue implementation.
 #[derive(Debug, Error)]
@@ -24,22 +28,22 @@ pub enum WorkQueueError {
 ///
 /// Implementations provide FIFO queueing of work items for distributed workers.
 #[async_trait]
-pub trait WorkQueue<W> {
+pub trait WorkQueue<C: Context, WI: WorkItem> {
     /// Enqueue one work-item under this `workflow_id`.
     /// Returns Err(WorkQueueError) on failure.
-    async fn enqueue(&self, workflow_id: &str, work: W) -> Result<(), WorkQueueError>;
+    async fn enqueue(&self, workflow_id: &str, work: WI) -> Result<(), WorkQueueError>;
 
     /// Dequeue the next available work-item from any workflow.
     /// Returns Ok(Some((workflow_id, item))) if an item was dequeued,
     /// Ok(None) if the queue is empty,
     /// or Err(WorkQueueError) on failure.
-    async fn dequeue(&self) -> Result<Option<(String, W)>, WorkQueueError>;
+    async fn dequeue(&self) -> Result<Option<(String, WI)>, WorkQueueError>;
 
     /// Peek at the next available work-item from any workflow.
     /// Returns Ok(Some((workflow_id, item))) if an item was peeked,
     /// Ok(None) if the queue is empty,
     /// or Err(WorkQueueError) on failure.
-    async fn peek(&self) -> Result<Option<(String, W)>, WorkQueueError>;
+    async fn peek(&self) -> Result<Option<(String, WI)>, WorkQueueError>;
 
     /// Purge all work items for a given workflow run.
     /// Removes all queued work for the specified run_id.
@@ -48,24 +52,30 @@ pub trait WorkQueue<W> {
 
 /// In-memory implementation of WorkQueue for testing and local development.
 #[derive(Clone)]
-pub struct InMemoryWorkQueue<W>(Arc<Mutex<HashMap<String, VecDeque<W>>>>);
+pub struct InMemoryWorkQueue<WI: WorkItem>(Arc<Mutex<HashMap<String, VecDeque<WI>>>>);
 
-impl<W: Clone + Send + 'static> InMemoryWorkQueue<W> {
+impl<WI: WorkItem> InMemoryWorkQueue<WI> {
     pub fn new() -> Self {
-        InMemoryWorkQueue(Arc::new(Mutex::new(HashMap::new())))
+        Self(Arc::new(Mutex::new(HashMap::new())))
+    }
+}
+
+impl<WI: WorkItem> Default for InMemoryWorkQueue<WI> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 #[async_trait]
-impl<W: Clone + Send + 'static> WorkQueue<W> for InMemoryWorkQueue<W> {
-    async fn enqueue(&self, workflow_id: &str, work: W) -> Result<(), WorkQueueError> {
+impl<C: Context, WI: WorkItem> WorkQueue<C, WI> for InMemoryWorkQueue<WI> {
+    async fn enqueue(&self, workflow_id: &str, work: WI) -> Result<(), WorkQueueError> {
         let mut map = self.0.lock().await;
         map.entry(workflow_id.to_string())
             .or_default()
             .push_back(work);
         Ok(())
     }
-    async fn dequeue(&self) -> Result<Option<(String, W)>, WorkQueueError> {
+    async fn dequeue(&self) -> Result<Option<(String, WI)>, WorkQueueError> {
         let mut map = self.0.lock().await;
         for (run_id, q) in map.iter_mut() {
             if let Some(item) = q.pop_front() {
@@ -74,7 +84,7 @@ impl<W: Clone + Send + 'static> WorkQueue<W> for InMemoryWorkQueue<W> {
         }
         Ok(None)
     }
-    async fn peek(&self) -> Result<Option<(String, W)>, WorkQueueError> {
+    async fn peek(&self) -> Result<Option<(String, WI)>, WorkQueueError> {
         let map = self.0.lock().await;
         for (run_id, q) in map.iter() {
             if let Some(item) = q.front() {
@@ -88,4 +98,5 @@ impl<W: Clone + Send + 'static> WorkQueue<W> for InMemoryWorkQueue<W> {
         map.remove(run_id);
         Ok(())
     }
-} 
+}
+

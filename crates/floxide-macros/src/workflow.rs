@@ -714,7 +714,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         ) -> Result<(), floxide_core::error::FloxideError>
         where
             CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>,
-            Q: floxide_core::distributed::WorkQueue<#work_item_ident>,
+            Q: floxide_core::distributed::WorkQueue<#context, #work_item_ident>,
         {
             use std::collections::VecDeque;
             use tracing::{span, Level};
@@ -750,7 +750,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         ) -> Result<Option<(String, <#terminal_ty as floxide_core::node::Node<#context>>::Output)>, floxide_core::distributed::StepError<#work_item_ident>>
         where
             CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident>,
-            Q: floxide_core::distributed::WorkQueue<#work_item_ident>,
+            Q: floxide_core::distributed::WorkQueue<#context, #work_item_ident>,
         {
             use std::collections::VecDeque;
             use tracing::{debug, span, Level};
@@ -891,7 +891,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             ) -> Result<(), floxide_core::error::FloxideError>
             where
                 CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident> + Send + Sync,
-                Q: floxide_core::distributed::WorkQueue<#work_item_ident> + Send + Sync,
+                Q: floxide_core::distributed::WorkQueue<#context, #work_item_ident> + Send + Sync,
             {
                 self._start_distributed(ctx, input, store, queue, id).await
             }
@@ -904,7 +904,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             ) -> Result<Option<(String, Self::Output)>, floxide_core::distributed::StepError<Self::WorkItem>>
             where
                 CS: floxide_core::checkpoint::CheckpointStore<#context, #work_item_ident> + Send + Sync,
-                Q: floxide_core::distributed::WorkQueue<#work_item_ident> + Send + Sync,
+                Q: floxide_core::distributed::WorkQueue<#context, #work_item_ident> + Send + Sync,
             {
                 self._step_distributed(store, queue, worker_id).await
             }

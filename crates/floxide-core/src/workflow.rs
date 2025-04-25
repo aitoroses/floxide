@@ -33,21 +33,31 @@ use std::fmt::Debug;
 
 // crates/floxide-core/src/workflow.rs
 use async_trait::async_trait;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use crate::context::Context;
 use crate::error::FloxideError;
-use crate::distributed::StepError;
+use crate::distributed::{StepError, WorkQueue};
+use crate::CheckpointStore;
 
+/// Trait for a workflow work item.
+///
+/// Implementations provide a way to serialize and deserialize work items.
+pub trait WorkItem: Debug + Send + Sync + Serialize + DeserializeOwned + Clone {}
 
+impl<T: Debug + Send + Sync + Serialize + DeserializeOwned + Clone> WorkItem for T {}
+
+/// Trait for a workflow.
+///
 #[async_trait]
-pub trait Workflow<C>: Debug + Clone + Send + Sync
-where
-    C: Debug + Clone + Send + Sync,
+pub trait Workflow<C: Context>: Debug + Clone + Send + Sync
 {
     /// Input type for the workflow
-    type Input: Send + Sync;
+    type Input: Send + Sync + Serialize + DeserializeOwned;
     /// Output type returned by the workflow's terminal branch
-    type Output: Send + Sync;
+    type Output: Send + Sync + Serialize + DeserializeOwned;
     /// Workflow-specific work item type (macro-generated enum)
-    type WorkItem: Send + Sync + Clone + Debug + 'static;
+    type WorkItem: WorkItem;
 
     /// Execute the workflow, returning the output of the terminal branch.
     ///
@@ -102,7 +112,7 @@ where
     /// # Returns
     /// * `Ok(Self::Output)` - The output of the terminal node if the workflow completes successfully.
     /// * `Err(FloxideError)` - If any node returns an error or aborts.
-    async fn run_with_checkpoint<CS: crate::checkpoint::CheckpointStore<C, Self::WorkItem> + Send + Sync>(
+    async fn run_with_checkpoint<CS: CheckpointStore<C, Self::WorkItem> + Send + Sync>(
         &self,
         ctx: &crate::WorkflowCtx<C>,
         input: Self::Input,
@@ -119,7 +129,7 @@ where
     /// # Returns
     /// * `Ok(Self::Output)` - The output of the terminal node if the workflow completes successfully.
     /// * `Err(FloxideError)` - If any node returns an error or aborts, or if no checkpoint is found.
-    async fn resume<CS: crate::checkpoint::CheckpointStore<C, Self::WorkItem> + Send + Sync>(
+    async fn resume<CS: CheckpointStore<C, Self::WorkItem> + Send + Sync>(
         &self,
         store: &CS,
         id: &str,
@@ -149,8 +159,8 @@ where
         id: &str,
     ) -> Result<(), FloxideError>
     where
-        CS: crate::checkpoint::CheckpointStore<C, Self::WorkItem> + Send + Sync,
-        Q: crate::distributed::WorkQueue<Self::WorkItem> + Send + Sync;
+        CS: CheckpointStore<C, Self::WorkItem> + Send + Sync,
+        Q: WorkQueue<C, Self::WorkItem> + Send + Sync;
 
     /// Worker primitive: perform one distributed step (dequeue, process, enqueue successors, persist).
     ///
@@ -175,7 +185,7 @@ where
     ) -> Result<Option<(String, Self::Output)>, StepError<Self::WorkItem>>
     where
         CS: crate::checkpoint::CheckpointStore<C, Self::WorkItem> + Send + Sync,
-        Q: crate::distributed::WorkQueue<Self::WorkItem> + Send + Sync;
+        Q: crate::distributed::WorkQueue<C, Self::WorkItem> + Send + Sync;
 
     /// Export the workflow definition as a Graphviz DOT string.
     ///

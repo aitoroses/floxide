@@ -1,11 +1,9 @@
-use crate::transition::Transition;
+use crate::{context::Context, transition::Transition};
 use async_trait::async_trait;
 
 /// A node takes an input and a context, and returns a transition.
 #[async_trait]
-pub trait Node<C=()>: Send + Sync
-where
-    C: Send + Sync,
+pub trait Node<C: Context=()>: Send + Sync
 {
     /// Input type for the node
     type Input: Send + Sync;

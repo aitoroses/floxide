@@ -4,7 +4,7 @@
 //! Users can opt in by wrapping nodes in `RetryNode`, which applies the `RetryPolicy`.
 use std::time::Duration;
 use crate::error::FloxideError;
-use crate::context::WorkflowCtx;
+use crate::context::{Context, WorkflowCtx};
 use async_trait::async_trait;
 use crate::node::Node;
 use crate::transition::Transition;
@@ -19,9 +19,7 @@ pub trait RetryDelay {
 
 
 #[async_trait]
-impl<S> RetryDelay for WorkflowCtx<S>
-where
-    S: Send + Sync + 'static,
+impl<S: Context> RetryDelay for WorkflowCtx<S>
 {
     async fn wait(&self, dur: Duration) -> Result<(), FloxideError> {
         self.run_future(async {
@@ -196,7 +194,7 @@ impl<N> RetryNode<N> {
 #[async_trait]
 impl<C, N> Node<C> for RetryNode<N>
 where
-    C: Clone + Send + Sync + RetryDelay + 'static,
+    C: Context + RetryDelay,
     N: Node<C> + Clone + Send + Sync + 'static,
     N::Input: Clone + Send + 'static,
     N::Output: Send + 'static,

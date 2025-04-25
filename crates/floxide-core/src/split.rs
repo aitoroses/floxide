@@ -1,3 +1,4 @@
+use crate::context::Context;
 use crate::node::Node;
 use crate::transition::Transition;
 use crate::error::FloxideError;
@@ -30,7 +31,7 @@ where
 #[async_trait]
 impl<C, I, O, F> Node<C> for SplitNode<I, O, F>
 where
-    C: Send + Sync + 'static,
+    C: Context,
     I: Send + Sync + 'static,
     O: Send + Sync + 'static,
     F: Fn(I) -> Vec<O> + Send + Sync,

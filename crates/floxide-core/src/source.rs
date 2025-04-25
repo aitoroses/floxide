@@ -4,6 +4,7 @@ use std::fmt::Debug;
 use tokio::sync::Mutex;
 use crate::error::FloxideError;
 use crate::workflow::Workflow;
+use crate::context::Context;
 use crate::WorkflowCtx;
 
 
@@ -16,7 +17,7 @@ pub struct Source<C, O> {
     _phantom: std::marker::PhantomData<C>,
 }
 
-impl<C, O> Source<C, O> {
+impl<C: Context, O> Source<C, O> {
     /// Wrap an existing receiver into a Source
     pub fn new(rx: tokio::sync::mpsc::Receiver<O>) -> Self {
         Self { receiver: Arc::new(Mutex::new(rx)), _phantom: std::marker::PhantomData }
@@ -25,7 +26,7 @@ impl<C, O> Source<C, O> {
 
 impl<C, O> Source<C, O>
 where
-    C: Debug + Clone + Send + Sync,
+    C: Context,
     O: Send + Sync,
 {
     /// Drive the provided workflow by pulling items from the channel and
@@ -48,7 +49,7 @@ where
 /// `capacity` sets the mpsc buffer size. Returns `(sender, source_node)`.
 pub fn source<C, O>(capacity: usize) -> (tokio::sync::mpsc::Sender<O>, Source<C, O>)
 where
-    C: Send + Sync,
+    C: Context,
     O: Send + Sync,
 {
     let (tx, rx) = tokio::sync::mpsc::channel(capacity);

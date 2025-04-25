@@ -1,24 +1,24 @@
-use crate::{Workflow, Node, Transition, WorkflowCtx, error::FloxideError};
+use crate::{context::Context, error::FloxideError, Node, Transition, Workflow, WorkflowCtx};
 use std::fmt::Debug;
 use async_trait::async_trait;
-
+use serde::{Serialize, de::DeserializeOwned};
 /// CompositeNode wraps a Workflow so it implements Node
 #[derive(Clone, Debug)]
-pub struct CompositeNode<C, W> {
+pub struct CompositeNode<C: Context, W> {
     ctx: WorkflowCtx<C>,
     workflow: W,
 }
 
-impl<C: Clone, W> CompositeNode<C, W> {
+impl<C: Context, W> CompositeNode<C, W> {
     pub fn new(workflow: W, ctx: &WorkflowCtx<C>) -> Self {
         CompositeNode { ctx: ctx.clone(), workflow }
     }
 }
 
 #[async_trait]
-impl<C, W> Node<C> for CompositeNode<C, W>
+impl<C: Context, W> Node<C> for CompositeNode<C, W>
 where
-    C: Debug + Clone + Send + Sync,
+    C: Serialize + DeserializeOwned + Debug + Clone + Send + Sync,
     W: Workflow<C> + Clone + Send + Sync,
     W::Input: Send + Sync,
     W::Output: Send + Sync,

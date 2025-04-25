@@ -1,8 +1,8 @@
+use crate::context::Context;
 use crate::workflow::Workflow;
 use crate::checkpoint::CheckpointStore;
 use crate::distributed::{WorkQueue, RunInfoStore, MetricsStore, ErrorStore, WorkflowError, LivenessStore, WorkerHealth};
 use crate::error::FloxideError;
-use std::fmt::Debug;
 use std::marker::PhantomData;
 use tokio::time::{sleep, Duration};
 use tracing::error;
@@ -10,33 +10,15 @@ use crate::retry::{RetryPolicy, BackoffStrategy, RetryError};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 
-use super::{in_memory_error_store_singleton, in_memory_liveness_store_singleton, in_memory_metrics_store_singleton, in_memory_run_info_store_singleton};
-
 /// A distributed workflow worker that polls a work queue, processes workflow steps, and updates state in distributed stores.
-///
-/// # Example
-///
-/// ```rust
-/// use floxide_core::distributed::{DistributedWorker, InMemoryWorkQueue, InMemoryRunInfoStore, InMemoryMetricsStore, InMemoryErrorStore, InMemoryLivenessStore};
-/// // ... setup workflow, context, and stores ...
-/// let worker = DistributedWorker::new(
-///     workflow,
-///     InMemoryWorkQueue::default(),
-///     checkpoint_store,
-///     InMemoryRunInfoStore::default(),
-///     InMemoryMetricsStore::default(),
-///     InMemoryErrorStore::default(),
-///     InMemoryLivenessStore::default(),
-/// );
-/// ```
 ///
 /// Use [`run_once`] to process a single work item, or [`run_forever`] to continuously poll for work.
 #[derive(Clone)]
 pub struct DistributedWorker<W, C, Q, S, RIS, MS, ES, LS>
 where
     W: Workflow<C>,
-    C: Debug + Clone + Send + Sync,
-    Q: WorkQueue<W::WorkItem> + Send + Sync,
+    C: Context,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync,
     S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
@@ -57,8 +39,8 @@ where
 impl<W, C, Q, S, RIS, MS, ES, LS> DistributedWorker<W, C, Q, S, RIS, MS, ES, LS>
 where
     W: Workflow<C>,
-    C: Debug + Clone + Send + Sync,
-    Q: WorkQueue<W::WorkItem> + Send + Sync,
+    C: Context,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync,
     S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
@@ -291,7 +273,17 @@ pub struct WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS> {
     _phantom: std::marker::PhantomData<C>,
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS> WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS> {
+impl<W, C, Q, S, RIS, MS, ES, LS> WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS>
+where
+    W: Workflow<C>,
+    C: Context,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync,
+    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
+    RIS: RunInfoStore + Send + Sync,
+    MS: MetricsStore + Send + Sync,
+    ES: ErrorStore + Send + Sync,
+    LS: LivenessStore + Send + Sync,
+{
     pub fn new() -> Self {
         Self {
             workflow: None,
@@ -313,24 +305,11 @@ impl<W, C, Q, S, RIS, MS, ES, LS> WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS> {
     pub fn error_store(mut self, es: ES) -> Self { self.error_store = Some(es); self }
     pub fn liveness_store(mut self, ls: LS) -> Self { self.liveness_store = Some(ls); self }
     pub fn retry_policy(mut self, policy: RetryPolicy) -> Self { self.retry_policy = Some(policy); self }
-    pub fn with_in_memory_defaults() -> WorkerBuilder<W, C, Q, S, crate::distributed::InMemoryRunInfoStore, crate::distributed::InMemoryMetricsStore, crate::distributed::InMemoryErrorStore, crate::distributed::InMemoryLivenessStore> {
-        WorkerBuilder {
-            workflow: None,
-            queue: None,
-            checkpoint_store: None,
-            run_info_store: Some(in_memory_run_info_store_singleton().clone()),
-            metrics_store: Some(in_memory_metrics_store_singleton().clone()),
-            error_store: Some(in_memory_error_store_singleton().clone()),
-            liveness_store: Some(in_memory_liveness_store_singleton().clone()),
-            retry_policy: None,
-            _phantom: std::marker::PhantomData,
-        }
-    }
     pub fn build(self) -> Result<DistributedWorker<W, C, Q, S, RIS, MS, ES, LS>, String>
     where
         W: Workflow<C>,
         C: std::fmt::Debug + Clone + Send + Sync,
-        Q: WorkQueue<W::WorkItem> + Send + Sync,
+        Q: WorkQueue<C, W::WorkItem> + Send + Sync,
         S: CheckpointStore<C, W::WorkItem> + Send + Sync,
         RIS: crate::distributed::RunInfoStore + Send + Sync,
         MS: crate::distributed::MetricsStore + Send + Sync,
@@ -363,8 +342,8 @@ impl<W, C, Q, S, RIS, MS, ES, LS> WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS> {
 pub struct WorkerPool<W, C, Q, S, RIS, MS, ES, LS>
 where
     W: Workflow<C>,
-    C: Debug + Clone + Send + Sync,
-    Q: WorkQueue<W::WorkItem> + Send + Sync,
+    C: Context,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync,
     S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
@@ -380,8 +359,8 @@ where
 impl<W, C, Q, S, RIS, MS, ES, LS> WorkerPool<W, C, Q, S, RIS, MS, ES, LS>
 where
     W: Workflow<C> + 'static,
-    C: Debug + Clone + Send + Sync + 'static,
-    Q: WorkQueue<W::WorkItem> + Send + Sync + Clone + 'static,
+    C: Context + 'static,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync + Clone + 'static,
     S: CheckpointStore<C, W::WorkItem> + Send + Sync + Clone + 'static,
     RIS: RunInfoStore + Send + Sync + Clone + 'static,
     MS: MetricsStore + Send + Sync + Clone + 'static,

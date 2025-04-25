@@ -101,7 +101,7 @@ impl Node for SmallNode {
 // Define a workflow that ties together batch processing and routing
 workflow! {
     pub struct BatchWorkflow {
-        multiply: BatchNode<Multiply2>,
+        multiply: BatchNode<(), Multiply2>,
         branch: BranchAfterMultiply,
         large: LargeNode,
         small: SmallNode,

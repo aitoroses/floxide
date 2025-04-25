@@ -1,17 +1,15 @@
 //! Example demonstrating in-memory checkpointing and resume
-use async_trait::async_trait;
-use floxide_core::{Checkpoint, CheckpointError, CheckpointStore, FloxideError, Node, Transition, Workflow, WorkflowCtx};
+use floxide::checkpoint::InMemoryCheckpointStore;
+use floxide_core::{FloxideError, Node, Transition, Workflow, WorkflowCtx};
 use floxide_macros::{node, workflow};
 use serde::{Deserialize, Serialize};
-use serde_json;
-use std::collections::HashMap;
 use std::fmt::{self, Display};
-use std::sync::{Arc, LazyLock, Mutex, RwLock};
+use std::sync::{Arc, LazyLock, Mutex};
 
 // Global mutable failed flag
 static FAILED: LazyLock<Arc<Mutex<bool>>> = LazyLock::new(|| Arc::new(Mutex::new(false)));
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct Ctx {
     failed: Arc<Mutex<bool>>,
 }
@@ -45,47 +43,6 @@ impl<'de> Deserialize<'de> for Ctx {
 impl Display for Ctx {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Ctx {{ failed: {} }}", self.failed.lock().unwrap())
-    }
-}
-
-/// A simple in-memory checkpoint store using a HashMap
-/// A simple in-memory checkpoint store using JSON serialization
-#[derive(Clone)]
-struct InMemoryStore(Arc<RwLock<HashMap<String, Vec<u8>>>>);
-
-impl InMemoryStore {
-    fn new() -> Self {
-        InMemoryStore(Arc::new(RwLock::new(HashMap::new())))
-    }
-}
-
-#[async_trait]
-impl CheckpointStore<Ctx, CounterWorkflowWorkItem> for InMemoryStore {
-    async fn save(
-        &self,
-        workflow_id: &str,
-        checkpoint: &Checkpoint<Ctx, CounterWorkflowWorkItem>,
-    ) -> Result<(), CheckpointError> {
-        // serialize checkpoint to JSON bytes
-        let bytes = serde_json::to_vec(checkpoint)
-            .map_err(|e| CheckpointError::Store(e.to_string()))?;
-        let mut map = self.0.write().unwrap();
-        map.insert(workflow_id.to_string(), bytes);
-        Ok(())
-    }
-    async fn load(
-        &self,
-        workflow_id: &str,
-    ) -> Result<Option<Checkpoint<Ctx, CounterWorkflowWorkItem>>, CheckpointError> {
-        let map = self.0.read().unwrap();
-        if let Some(bytes) = map.get(workflow_id) {
-            // deserialize JSON bytes to checkpoint
-            let cp: Checkpoint<Ctx, CounterWorkflowWorkItem> = serde_json::from_slice(bytes)
-                .map_err(|e| CheckpointError::Store(e.to_string()))?;
-            Ok(Some(cp))
-        } else {
-            Ok(None)
-        }
     }
 }
 
@@ -161,7 +118,7 @@ pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> 
         counter: CounterNode { max: 5 },
         terminal: TerminalNode {},
     };
-    let store = InMemoryStore::new();
+    let store = InMemoryCheckpointStore::default();
 
     // Run with checkpointing enabled
     let result = wf.run_with_checkpoint(&ctx, 0, &store, "job1").await;
@@ -178,7 +135,7 @@ pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> 
 
     // Simulate process restart: start over by clearing the checkpoint store
     println!("Restarting workflow from scratch");
-    let fresh_store = InMemoryStore::new();
+    let fresh_store = InMemoryCheckpointStore::default();
     // This run_with_checkpoint sees no prior checkpoint and begins anew
     let restarted = wf
         .run_with_checkpoint(&ctx, 0, &fresh_store, "job1")
@@ -191,7 +148,7 @@ pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> 
     let fresh_ctx = WorkflowCtx::new(Ctx {
         failed: Arc::new(Mutex::new(false)),
     });
-    let fresh_store = InMemoryStore::new();
+    let fresh_store = InMemoryCheckpointStore::new();
     // This run_with_checkpoint sees no prior checkpoint and begins anew
     let restarted = wf
         .run_with_checkpoint(&fresh_ctx, 0, &fresh_store, "job1")

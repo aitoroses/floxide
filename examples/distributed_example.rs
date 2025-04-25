@@ -137,11 +137,11 @@ Let us know if you want a diagram, code comments, or further breakdown of any pa
 //   - Log and checkpoint state after each node
 
 use async_trait::async_trait;
-use floxide::context::SharedState;
+use floxide::{checkpoint::InMemoryCheckpointStore, context::SharedState};
 use floxide_core::*;
 use floxide_macros::workflow;
+use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
     fmt::Debug,
     sync::{Arc, LazyLock},
 };
@@ -155,46 +155,12 @@ static SHOULD_FAIL: LazyLock<Arc<tokio::sync::Mutex<bool>>> =
 
 /// Shared workflow context, accessible and mutable by all nodes.
 /// Contains a counter and a log of node activity.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 struct Ctx {
     local_counter: SharedState<i32>, // Shared counter, updated by each node
     logs: SharedState<Vec<String>>,  // Shared log, records node activity
 }
 
-
-
-/// In-memory checkpoint store for workflow state.
-/// Each workflow run ID maps to its latest checkpoint.
-#[derive(Clone)]
-struct InMemStore<W: Clone + Send + 'static>(
-    Arc<tokio::sync::Mutex<HashMap<String, Checkpoint<Ctx, W>>>>,
-);
-
-impl<W: Clone + Send + 'static> InMemStore<W> {
-    /// Create a new, empty in-memory checkpoint store
-    fn new() -> Self {
-        InMemStore(Arc::new(tokio::sync::Mutex::new(HashMap::new())))
-    }
-}
-
-#[async_trait]
-impl<W: Clone + Send + Sync> CheckpointStore<Ctx, W> for InMemStore<W> {
-    /// Save a checkpoint for a workflow run
-    async fn save(
-        &self,
-        workflow_id: &str,
-        checkpoint: &Checkpoint<Ctx, W>,
-    ) -> Result<(), CheckpointError> {
-        let mut map = self.0.lock().await;
-        map.insert(workflow_id.to_string(), checkpoint.clone());
-        Ok(())
-    }
-    /// Load the latest checkpoint for a workflow run
-    async fn load(&self, workflow_id: &str) -> Result<Option<Checkpoint<Ctx, W>>, CheckpointError> {
-        let map = self.0.lock().await;
-        Ok(map.get(workflow_id).cloned())
-    }
-}
 
 // === Parallel workflow example illustrating worker collaboration ===
 // Define simple nodes: split into two parallel branches, then terminal nodes and an initial node
@@ -247,7 +213,7 @@ pub struct BranchA;
 #[async_trait]
 impl Node<Ctx> for BranchA {
     type Input = ();
-    type Output = &'static str;
+    type Output = String;
     async fn process(
         &self,
         ctx: &Ctx,
@@ -258,7 +224,7 @@ impl Node<Ctx> for BranchA {
         *counter += 10;
         let mut logs = ctx.logs.get().await;
         logs.push(format!("BranchA executed"));
-        Ok(Transition::Next("branch_a_success"))
+        Ok(Transition::Next("branch_a_success".to_string()))
     }
 }
 
@@ -268,7 +234,7 @@ pub struct BranchB;
 #[async_trait]
 impl Node<Ctx> for BranchB {
     type Input = ();
-    type Output = &'static str;
+    type Output = String;
     async fn process(
         &self,
         ctx: &Ctx,
@@ -284,7 +250,7 @@ impl Node<Ctx> for BranchB {
             return Ok(Transition::Abort(FloxideError::Generic("branch_b_failed".to_string())))
         }
         logs.push(format!("BranchB executed"));
-        Ok(Transition::Next("branch_b_success"))
+        Ok(Transition::Next("branch_b_success".to_string()))
     }
 }
 
@@ -309,8 +275,8 @@ workflow! {
 /// Runs the distributed example: seeds the workflow, spawns workers, prints final context
 async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
     // Create in-memory runtime (queue and checkpoint store)
-    let store = InMemStore::<ParallelWorkflowWorkItem>::new();
-    let queue = InMemoryWorkQueue::<ParallelWorkflowWorkItem>::new();
+    let store = InMemoryCheckpointStore::<Ctx, ParallelWorkflowWorkItem>::default();
+    let queue = InMemoryWorkQueue::<ParallelWorkflowWorkItem>::default();
 
     // Build workflow and context
     let wf = ParallelWorkflow {

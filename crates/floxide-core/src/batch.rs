@@ -1,3 +1,4 @@
+use crate::context::Context;
 use crate::node::Node;
 use crate::transition::Transition;
 use crate::error::FloxideError;
@@ -5,35 +6,37 @@ use async_trait::async_trait;
 use tokio::task;
 use futures::future::join_all;
 use std::vec::Vec;
+use std::marker::PhantomData;
 use tracing;
 
 /// A node adapter that runs an inner node on a batch of inputs, collecting outputs in parallel
 #[derive(Clone, Debug)]
-pub struct BatchNode<N> {
+pub struct BatchNode<C: Context, N: Node<C>> {
     pub node: N,
     pub batch_size: usize,
+    _phantom: PhantomData<C>,
 }
 
-impl<N> BatchNode<N> {
+impl<C: Context, N: Node<C>> BatchNode<C, N> {
     /// Wraps an existing node into a batch adapter with a batch size
     pub fn new(node: N, batch_size: usize) -> Self {
-        BatchNode { node, batch_size }
+        BatchNode { node, batch_size, _phantom: PhantomData }
     }
 }
 
-impl<N> BatchNode<N> {
+impl<C: Context, N: Node<C>> BatchNode<C, N> {
     /// Process a batch of inputs, where the associated Input/Output types are Vecs
-    pub async fn process_batch<CTX>(
+    pub async fn process_batch(
         &self,
         // take ownership of the context so it can be cloned into blocking tasks
-        ctx: CTX,
-        inputs: <Self as Node<CTX>>::Input,
-    ) -> Result<<Self as Node<CTX>>::Output, FloxideError>
+        ctx: C,
+        inputs: <Self as Node<C>>::Input,
+    ) -> Result<<Self as Node<C>>::Output, FloxideError>
     where
-        CTX: Clone + Send + Sync + 'static,
-        N: Node<CTX> + Clone + Send + Sync + 'static,
-        <N as Node<CTX>>::Input: Clone + Send + 'static,
-        <N as Node<CTX>>::Output: Send + 'static,
+        C: Context+ 'static,
+        N: Node<C> + Clone + Send + Sync + 'static,
+        <N as Node<C>>::Input: Clone + Send + 'static,
+        <N as Node<C>>::Output: Send + 'static,
     {
         use tracing::{debug, error};
         debug!(batch_size = self.batch_size, num_inputs = inputs.len(), "Starting batch processing");
@@ -109,9 +112,9 @@ impl<N> BatchNode<N> {
 }
 
 #[async_trait]
-impl<C, N> Node<C> for BatchNode<N>
+impl<C, N> Node<C> for BatchNode<C, N>
 where
-    C: Clone + Send + Sync + 'static,
+    C: Context + 'static,
     N: Node<C> + Clone + Send + Sync + 'static,
     <N as Node<C>>::Input: Clone + Send + 'static,
     <N as Node<C>>::Output: Send + 'static,

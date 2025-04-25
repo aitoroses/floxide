@@ -1,41 +1,41 @@
 //! Example: defining retries via the `workflow!` macro annotation
 use async_trait::async_trait;
+use floxide::context::SharedState;
 use floxide_core::*;
 use floxide_macros::workflow;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 /// A node that fails a fixed number of times before succeeding
 #[derive(Clone, Debug)]
 pub struct FlakyNode {
     max_failures: usize,
-    state: Arc<Mutex<usize>>,
+    state: SharedState<usize>,
 }
 
 impl FlakyNode {
     fn new(max_failures: usize) -> Self {
-        FlakyNode { max_failures, state: Arc::new(Mutex::new(0)) }
+        FlakyNode { max_failures, state: SharedState::new(0) }
     }
 }
 
 #[async_trait]
 impl Node<()> for FlakyNode {
     type Input = ();
-    type Output = &'static str;
+    type Output = String;
 
     async fn process(
         &self,
         _ctx: &(),
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
-        let mut count = self.state.lock().unwrap();
+        let mut count = self.state.get().await;
         *count += 1;
         println!("FlakyNode: attempt {}", *count);
         if *count <= self.max_failures {
             Err(FloxideError::Generic(format!("failure #{}", *count)))
         } else {
             println!("FlakyNode: success on attempt {}", *count);
-            Ok(Transition::Next("success"))
+            Ok(Transition::Next("success".to_string()))
         }
     }
 }
@@ -55,7 +55,7 @@ workflow! {
 }
 
 /// Runs the macro retry workflow and returns the result string
-pub async fn run_retry_macro_example() -> Result<&'static str, Box<dyn std::error::Error>> {
+pub async fn run_retry_macro_example() -> Result<String, Box<dyn std::error::Error>> {
     // Create policy: 3 attempts, linear backoff 50ms
     let policy = RetryPolicy::new(
         3,

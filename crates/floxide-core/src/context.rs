@@ -4,16 +4,20 @@ use std::fmt;
 use std::{fmt::Debug, sync::Arc};
 use std::time::Duration;
 use std::future::Future;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 use crate::error::FloxideError;
 
+pub trait Context: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync {}
+impl<T: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync > Context for T {}
+
 /// The context for a workflow execution.
 #[derive(Clone, Debug)]
 ///
 /// The context contains the store, cancellation token, and optional timeout.
-pub struct WorkflowCtx<S> {
+pub struct WorkflowCtx<S: Context> {
     /// The store for the workflow.
     pub store: S,
     /// The cancellation token for the workflow.
@@ -22,9 +26,7 @@ pub struct WorkflowCtx<S> {
     timeout: Option<Duration>,
 }
 
-impl<S> WorkflowCtx<S>
-where
-    S: Send + Sync + 'static,
+impl<S: Context> WorkflowCtx<S>
 {
     /// Creates a new workflow context with the given store.
     pub fn new(store: S) -> Self {
@@ -89,7 +91,7 @@ where
 }
 
 /// Arc<Mutex<T>> wrapper with custom (de)serialization and debug support
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct SharedState<T>(Arc<Mutex<T>>);
 
 impl<T> SharedState<T> {

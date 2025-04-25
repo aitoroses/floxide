@@ -8,7 +8,6 @@ use crate::distributed::RunMetrics;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use std::sync::LazyLock;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MetricsError {
@@ -49,9 +48,3 @@ impl MetricsStore for InMemoryMetricsStore {
         Ok(map.get(run_id).cloned())
     }
 }
-
-pub static IN_MEMORY_METRICS_STORE: LazyLock<InMemoryMetricsStore> = LazyLock::new(|| InMemoryMetricsStore::default());
-
-pub fn in_memory_metrics_store_singleton() -> &'static InMemoryMetricsStore {
-    &IN_MEMORY_METRICS_STORE
-} 

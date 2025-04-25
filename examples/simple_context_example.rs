@@ -4,7 +4,7 @@ use floxide_core::*;
 use floxide_macros::workflow;
 use serde::{Serialize, Deserialize};
 /// Context type for the workflow
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct MyCtx {
     pub value: u64,
 }   
