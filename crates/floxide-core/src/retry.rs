@@ -212,6 +212,7 @@ where
         let mut attempt = 1;
         loop {
             match self.inner.process(ctx, input.clone()).await {
+                Ok(Transition::NextAll(vs)) => return Ok(Transition::NextAll(vs)),
                 Ok(Transition::Next(out)) => return Ok(Transition::Next(out)),
                 Ok(Transition::Abort(e)) | Err(e) => {
                     // emit tracing event for retry evaluation

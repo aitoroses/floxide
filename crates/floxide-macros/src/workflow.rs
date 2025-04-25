@@ -317,6 +317,30 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 } else {
                     quote! { return Err(e) }
                 };
+                // Build tokens for NextAll (fan-out) path
+                let push_all = {
+                    if succs.is_empty() {
+                        // no successors: just return
+                        quote! {
+                            tracing::debug!(?actions, "Node produced Transition::NextAll");
+                            return Ok(None);
+                        }
+                    } else {
+                        // For each emitted action_item, push to all successors
+                        let pushes_all = succs.iter().map(|succ| {
+                            let var_name = to_camel_case(&succ.to_string());
+                            let succ_var = format_ident!("{}", var_name);
+                            quote! { __q.push_back(#work_item_ident::#succ_var(action_item.clone())); }
+                        });
+                        quote! {
+                            tracing::debug!(?actions, "Node produced Transition::NextAll");
+                            for action_item in actions {
+                                #(#pushes_all)*
+                            }
+                            return Ok(None);
+                        }
+                    }
+                };
                 // Generate match with explicit error handling and tracing logs
                 quote! {
                     #wrapper
@@ -325,6 +349,10 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     let _node_enter = node_span.enter();
                     tracing::debug!(ctx = ?ctx.store, ?x, "Node input and context");
                     match ctx.run_future(__node.process(__store, x)).await {
+                        Ok(Transition::NextAll(actions)) => {
+                            // Fan-out: multiple outputs
+                            #push_all
+                        },
                         Ok(Transition::Next(action)) => {
                             tracing::debug!(?action, "Node produced Transition::Next");
                             #push_success
@@ -337,13 +365,15 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                             tracing::error!(error = ?e, "Node process returned error");
                             #push_failure
                         },
+                        // Unexpected fan-out in non-split node
+                        _ => unreachable!("Unexpected Transition variant"),
                     }
                 }
             }
             EdgeKind::Composite(composite) => {
                 if composite.is_empty() {
                     // terminal composite branch: return the output value as Ok(Some(action))
-                    quote! {
+                        quote! {
                         #wrapper
                         let __store = &ctx.store;
                         let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
@@ -352,12 +382,13 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         match ctx.run_future(__node.process(__store, x)).await? {
                             Transition::Next(action) => {
                                 tracing::debug!(?action, "Node produced Transition::Next (terminal composite)");
-                                return Ok(Some(action))
-                            },
+                                return Ok(Some(action));
+                            }
                             Transition::Abort(e) => {
                                 tracing::warn!(error = ?e, "Node produced Transition::Abort (terminal composite)");
-                                return Err(e)
-                            },
+                                return Err(e);
+                            }
+                            Transition::NextAll(_) => unreachable!("Unexpected Transition::NextAll in terminal composite node"),
                         }
                     }
                 } else {
@@ -408,13 +439,17 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                                 match action {
                                     #(#pats_terminal)*
                                     #(#pats_non_terminal)*
-                                    _ => {tracing::warn!("Composite arm: unmatched variant"); return Ok(None);}
+                                    _ => {
+                                        tracing::warn!("Composite arm: unmatched variant");
+                                        return Ok(None);
+                                    }
                                 }
                             }
                             Transition::Abort(e) => {
                                 tracing::warn!(error = ?e, "Node produced Transition::Abort (composite)");
                                 return Err(e);
                             }
+                            Transition::NextAll(_) => unreachable!("Unexpected Transition::NextAll in composite node"),
                         }
                     }
                 }

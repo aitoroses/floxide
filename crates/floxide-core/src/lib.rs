@@ -10,6 +10,7 @@ pub mod composite;
 
 pub mod checkpoint;
 pub mod distributed;
+pub mod split;
 pub use context::WorkflowCtx;
 pub use transition::Transition;
 pub use node::Node;
@@ -20,4 +21,5 @@ pub use source::{Source, source};
 pub use retry::{RetryPolicy, BackoffStrategy, RetryError};
 pub use retry::{with_retry, RetryNode};
 pub use composite::CompositeNode;
+pub use split::SplitNode;
 pub use checkpoint::{Checkpoint, CheckpointError, CheckpointStore};
