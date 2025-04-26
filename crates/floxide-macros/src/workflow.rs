@@ -255,8 +255,14 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         // Variant name: CamelCase from field name
         let var_name = to_camel_case(&fld.to_string());
         let var_ident = format_ident!("{}", var_name);
-        quote! { #var_ident(<#ty as floxide_core::node::Node<#context>>::Input) }
+        // Each variant carries a unique UUID string and the node input payload
+        quote! { #var_ident(String, <#ty as floxide_core::node::Node<#context>>::Input) }
     });
+    // Collect variant idents for Display and WorkItem impl
+    let work_variant_idents: Vec<_> = node_fields.iter().map(|(fld, _, _)| {
+        let var_name = to_camel_case(&fld.to_string());
+        format_ident!("{}", var_name)
+    }).collect();
     // Compute the WorkItem variant name for the terminal field
     let terminal_var = {
         let var_name = to_camel_case(&terminal_src.to_string());
@@ -303,44 +309,46 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     let pushes = succs.iter().map(|succ| {
                         let var_name = to_camel_case(&succ.to_string());
                         let succ_var = format_ident!("{}", var_name);
-                        quote! { __q.push_back(#work_item_ident::#succ_var(action.clone())); }
+                        quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), action.clone())); }
                     });
                     quote! { #(#pushes)* return Ok(None) }
                 };
                 // Build tokens for failure/fallback path
                 let push_failure = if let Some(fails) = on_failure {
-                    let succ_vars: Vec<_> = fails.iter().map(|succ| {
+                    // Schedule fallback successors with new UUID and same input
+                    let pushes = fails.iter().map(|succ| {
                         let var_name = to_camel_case(&succ.to_string());
-                        format_ident!("{}", var_name)
-                    }).collect();
-                    quote! { #( __q.push_back(#work_item_ident::#succ_vars({})); )* return Ok(None) }
+                        let succ_var = format_ident!("{}", var_name);
+                        quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), x.clone())); }
+                    });
+                    quote! { #(#pushes)* return Ok(None) }
                 } else {
                     quote! { return Err(e) }
                 };
                 // Build tokens for NextAll (fan-out) path
-                let push_all = {
-                    if succs.is_empty() {
-                        // no successors: just return
-                        quote! {
-                            tracing::debug!(?actions, "Node produced Transition::NextAll");
-                            return Ok(None);
-                        }
-                    } else {
-                        // For each emitted action_item, push to all successors
-                        let pushes_all = succs.iter().map(|succ| {
-                            let var_name = to_camel_case(&succ.to_string());
-                            let succ_var = format_ident!("{}", var_name);
-                            quote! { __q.push_back(#work_item_ident::#succ_var(action_item.clone())); }
-                        });
-                        quote! {
-                            tracing::debug!(?actions, "Node produced Transition::NextAll");
-                            for action_item in actions {
-                                #(#pushes_all)*
+                    let push_all = {
+                        if succs.is_empty() {
+                            // no successors: just return
+                            quote! {
+                                tracing::debug!(?actions, "Node produced Transition::NextAll");
+                                return Ok(None);
                             }
-                            return Ok(None);
+                        } else {
+                            // For each emitted action_item, push to all successors
+                            let pushes_all = succs.iter().map(|succ| {
+                                let var_name = to_camel_case(&succ.to_string());
+                                let succ_var = format_ident!("{}", var_name);
+                                quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), action_item.clone())); }
+                            });
+                            quote! {
+                                tracing::debug!(?actions, "Node produced Transition::NextAll");
+                                for action_item in actions {
+                                    #(#pushes_all)*
+                                }
+                                return Ok(None);
+                            }
                         }
-                    }
-                };
+                    };
                 // Generate match with explicit error handling and tracing logs
                 quote! {
                     #wrapper
@@ -424,7 +432,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                             let succ_pushes = succs.iter().map(|succ| {
                                 let var_name = to_camel_case(&succ.to_string());
                                 let succ_var = format_ident!("{}", var_name);
-                                quote! { __q.push_back(#work_item_ident::#succ_var(#binding)); }
+                                quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), #binding)); }
                             });
                             Some(quote! {
                                 #pat => {
@@ -470,7 +478,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             }
         };
         quote! {
-            #work_item_ident::#var_ident(x) => {
+            #work_item_ident::#var_ident(_id, x) => {
                 #arm_tokens
             }
         }
@@ -548,6 +556,28 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         #vis enum #work_item_ident {
             #(#work_variants),*
         }
+        // Display impl renders only the variant name and payload (ignoring the UUID)
+        impl std::fmt::Display for #work_item_ident {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    #(
+                        #work_item_ident::#work_variant_idents(_, x) => {
+                            write!(f, "{}({:?})", stringify!(#work_variant_idents), x)
+                        }
+                    ),*
+                }
+            }
+        }
+        // WorkItem impl uses the embedded UUID as the unique instance ID
+        impl floxide_core::workflow::WorkItem for #work_item_ident {
+            fn instance_id(&self) -> String {
+                match self {
+                    #(
+                        #work_item_ident::#work_variant_idents(id, _) => id.clone(),
+                    )*
+                }
+            }
+        }
 
         impl #name #generics {
             /// Export the workflow definition as a Graphviz DOT string.
@@ -587,7 +617,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 let _enter = span.enter();
                 debug!(?input, store = ?ctx.store, "Starting workflow run");
                 let mut __q = VecDeque::new();
-                __q.push_back(#work_item_ident::#start_var(input));
+                __q.push_back(#work_item_ident::#start_var(::uuid::Uuid::new_v4().to_string(), input));
                 while let Some(item) = __q.pop_front() {
                     debug!(?item, queue_len = __q.len(), "Processing work item");
                     if let Some(output) = self.process_work_item(ctx, item, &mut __q).await? {
@@ -625,7 +655,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     None => {
                         debug!("No checkpoint found, starting new");
                         let mut q = VecDeque::new();
-                        q.push_back(#work_item_ident::#start_var(input));
+                        q.push_back(#work_item_ident::#start_var(::uuid::Uuid::new_v4().to_string(), input));
                         // create initial checkpoint
                         floxide_core::Checkpoint::new(ctx.store.clone(), q)
                     }
@@ -685,7 +715,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 }
                 // if the only pending work is the terminal node, treat as completed
                 if __q.len() == 1 {
-                    if let #work_item_ident::#terminal_var(_) = __q.front().unwrap() {
+                    if let #work_item_ident::#terminal_var(_, _) = __q.front().unwrap() {
                         info!("Workflow already completed (terminal node)");
                         return Err(floxide_core::error::FloxideError::AlreadyCompleted);
                     }
@@ -729,12 +759,12 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
             if saved.is_none() {
                 let mut init_q = VecDeque::new();
-                init_q.push_back(#work_item_ident::#start_var(input.clone()));
+                init_q.push_back(#work_item_ident::#start_var(::uuid::Uuid::new_v4().to_string(), input.clone()));
                 let cp0 = floxide_core::Checkpoint::new(ctx.store.clone(), init_q.clone());
                 store.save(id, &cp0)
                     .await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
-                queue.enqueue(id, #work_item_ident::#start_var(input))
+                queue.enqueue(id, #work_item_ident::#start_var(::uuid::Uuid::new_v4().to_string(), input))
                     .await
                     .map_err(|e| floxide_core::error::FloxideError::Generic(e.to_string()))?;
             }

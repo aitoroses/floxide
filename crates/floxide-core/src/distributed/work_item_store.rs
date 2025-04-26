@@ -76,7 +76,7 @@ impl<W: WorkItem> WorkItemStateStore<W> for InMemoryWorkItemStateStore<W> {
     async fn get_status(&self, run_id: &str, item: &W) -> Result<WorkItemStatus, WorkItemStateStoreError> {
         let mut store = self.store.lock().await;
         let run_store = store.entry(run_id.to_string()).or_insert_with(HashMap::new);
-        let item_status = run_store.entry(format!("{:?}", item)).or_insert(WorkItemState::new(item.clone()));
+        let item_status = run_store.entry(item.instance_id()).or_insert(WorkItemState::new(item.clone()));
         Ok(item_status.status.clone())
     }
 
@@ -84,7 +84,7 @@ impl<W: WorkItem> WorkItemStateStore<W> for InMemoryWorkItemStateStore<W> {
         let mut store = self.store.lock().await;
         let run_store = store.entry(run_id.to_string()).or_insert_with(HashMap::new);
         // TODO: run_id is not enough, we need work_item_id, else reentering into the same node will reuse
-        let item_status = run_store.entry(format!("{:?}", item)).or_insert(WorkItemState::new(item.clone()));
+        let item_status = run_store.entry(item.instance_id()).or_insert(WorkItemState::new(item.clone()));
         item_status.status = status;
         Ok(())
     }
@@ -92,14 +92,14 @@ impl<W: WorkItem> WorkItemStateStore<W> for InMemoryWorkItemStateStore<W> {
     async fn get_attempts(&self, run_id: &str, item: &W) -> Result<u32, WorkItemStateStoreError> {
         let mut store = self.store.lock().await;
         let run_store = store.entry(run_id.to_string()).or_insert_with(HashMap::new);
-        let item_status = run_store.entry(format!("{:?}", item)).or_insert(WorkItemState::new(item.clone()));
+        let item_status = run_store.entry(item.instance_id()).or_insert(WorkItemState::new(item.clone()));
         Ok(item_status.attempts)
     }
 
     async fn increment_attempts(&self, run_id: &str, item: &W) -> Result<u32, WorkItemStateStoreError> {
         let mut store = self.store.lock().await;
         let run_store = store.entry(run_id.to_string()).or_insert_with(HashMap::new);
-        let item_status = run_store.entry(format!("{:?}", item)).or_insert(WorkItemState::new(item.clone()));
+        let item_status = run_store.entry(item.instance_id()).or_insert(WorkItemState::new(item.clone()));
         item_status.attempts += 1;
         Ok(item_status.attempts)
     }
@@ -107,7 +107,7 @@ impl<W: WorkItem> WorkItemStateStore<W> for InMemoryWorkItemStateStore<W> {
     async fn reset_attempts(&self, run_id: &str, item: &W) -> Result<(), WorkItemStateStoreError> {
         let mut store = self.store.lock().await;
         let run_store = store.entry(run_id.to_string()).or_insert_with(HashMap::new);
-        let item_status = run_store.entry(format!("{:?}", item)).or_insert(WorkItemState::new(item.clone()));
+        let item_status = run_store.entry(item.instance_id()).or_insert(WorkItemState::new(item.clone()));
         item_status.attempts = 0;
         Ok(())
     }

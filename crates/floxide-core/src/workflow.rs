@@ -29,7 +29,7 @@
 //!
 //! These distributed methods are the core primitives for building scalable, fault-tolerant workflow systems in Floxide.
 //!
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::sync::Arc;
 
 // crates/floxide-core/src/workflow.rs
@@ -43,10 +43,12 @@ use crate::CheckpointStore;
 
 /// Trait for a workflow work item.
 ///
-/// Implementations provide a way to serialize and deserialize work items.
-pub trait WorkItem: Debug + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq + Eq {}
-
-impl<T: Debug + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq + Eq> WorkItem for T {}
+/// Implementations provide a way to serialize and deserialize work items, and
+/// track unique instances within a workflow run.
+pub trait WorkItem: Debug + Display + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq + Eq {
+    /// Returns a unique identifier for this work item instance.
+    fn instance_id(&self) -> String;
+}
 
 /// Trait for a workflow.
 ///
