@@ -77,6 +77,7 @@ pub trait WorkItemStateStore<W: WorkItem>: Send + Sync {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::type_complexity)]
 pub struct InMemoryWorkItemStateStore<W: WorkItem> {
     store: Arc<Mutex<HashMap<String, HashMap<String, WorkItemState<W>>>>>,
 }

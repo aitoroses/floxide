@@ -36,7 +36,7 @@ echo -e "${GREEN}✓ Clippy check passed${NC}"
 
 # Step 3: Run tests
 echo -e "\n${YELLOW}Step 3/5: Running tests...${NC}"
-cargo test --all-features
+cargo test --examples --all-features
 echo -e "${GREEN}✓ Tests passed${NC}"
 
 # Step 4: Build documentation

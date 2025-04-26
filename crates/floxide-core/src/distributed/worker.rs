@@ -61,6 +61,7 @@ where
     /// Create a new distributed worker with all required stores and workflow.
     ///
     /// See [`WorkerBuilder`] for ergonomic construction with defaults.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         workflow: W,
         queue: Q,
@@ -90,16 +91,16 @@ where
         self.retry_policy = Some(policy);
     }
 
+    #[allow(clippy::type_complexity)]
     fn build_callbacks(
         &self,
         worker_id: usize,
     ) -> Arc<StepCallbacksImpl<C, W, Q, S, RIS, MS, ES, LS, WISS>> {
         let cloned_worker = self.clone();
-        let callbacks = Arc::new(StepCallbacksImpl {
+        Arc::new(StepCallbacksImpl {
             worker: Arc::new(cloned_worker),
             worker_id,
-        });
-        callbacks
+        })
     }
 
     // --- Callback-style state update methods ---
@@ -378,7 +379,7 @@ where
             .get_attempts(run_id, work_item)
             .await
             .unwrap_or(0) as usize;
-        let should_retry = policy.map(|p| p.should_retry(&e, attempt)).unwrap_or(false);
+        let should_retry = policy.map(|p| p.should_retry(e, attempt)).unwrap_or(false);
         let max_attempts = policy.map(|p| p.max_attempts).unwrap_or(5);
         let mut is_permanent = false;
         if should_retry {
@@ -695,6 +696,7 @@ where
         self.retry_policy = Some(policy);
         self
     }
+    #[allow(clippy::type_complexity)]
     pub fn build(self) -> Result<DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>, String>
     where
         W: Workflow<C, WorkItem: 'static>,
@@ -754,6 +756,7 @@ where
 /// A pool of distributed workflow workers, each running in its own async task.
 ///
 /// The pool manages worker lifecycles, graceful shutdown, and health reporting.
+#[allow(clippy::type_complexity)]
 pub struct WorkerPool<W, C, Q, S, RIS, MS, ES, LS, WISS>
 where
     W: Workflow<C, WorkItem: 'static>,
@@ -842,6 +845,7 @@ where
     }
 }
 
+#[allow(clippy::type_complexity)]
 struct StepCallbacksImpl<C: Context, W: Workflow<C>, Q, S, RIS, MS, ES, LS, WISS>
 where
     W: Workflow<C, WorkItem: 'static>,

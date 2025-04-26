@@ -51,6 +51,7 @@ where
     WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
 {
     /// Create a new orchestrator.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         workflow: W,
         queue: Q,
@@ -182,9 +183,7 @@ where
         }
 
         match run_info.unwrap().status {
-            RunStatus::Running => {
-                Ok(())
-            }
+            RunStatus::Running => Ok(()),
             RunStatus::Failed => {
                 // Re-establish the work queue from the work item state store
                 for item in self.list_work_items(run_id).await.map_err(|e| {
@@ -219,12 +218,8 @@ where
                         e => FloxideError::Generic(format!("run_info_store error: {e}")),
                     })
             }
-            RunStatus::Completed => {
-                Err(FloxideError::Generic("run already completed".to_string()))
-            }
-            RunStatus::Cancelled => {
-                Err(FloxideError::AlreadyCompleted)
-            }
+            RunStatus::Completed => Err(FloxideError::Generic("run already completed".to_string())),
+            RunStatus::Cancelled => Err(FloxideError::AlreadyCompleted),
             RunStatus::Paused => {
                 // Change the status of all work items to Pending
                 for item in self.list_work_items(run_id).await.map_err(|e| {
@@ -471,6 +466,7 @@ where
         self.work_item_state_store = Some(wiss);
         self
     }
+    #[allow(clippy::type_complexity)]
     pub fn build(self) -> Result<DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>, String>
     where
         W: Workflow<C>,
@@ -499,7 +495,8 @@ where
     }
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS, WIS> Default for OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS, WIS>
+impl<W, C, Q, S, RIS, MS, ES, LS, WIS> Default
+    for OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS, WIS>
 where
     W: Workflow<C>,
     C: Context,
