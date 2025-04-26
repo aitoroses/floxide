@@ -1,226 +1,225 @@
+//! Retry integration is handled via a wrapper node (`RetryNode`) around any `Node`.
+//! This preserves the existing `Transition` API without adding a retry variant.
+//!
+//! Users can opt in by wrapping nodes in `RetryNode`, which applies the `RetryPolicy`.
+use crate::context::{Context, WorkflowCtx};
+use crate::error::FloxideError;
+use crate::node::Node;
+use crate::transition::Transition;
 use async_trait::async_trait;
-use std::fmt::{self, Debug, Formatter};
-use std::marker::PhantomData;
 use std::time::Duration;
 
-use crate::action::ActionType;
-use crate::error::FloxideError;
-use crate::node::{Node, NodeId, NodeOutcome};
-
-/// Backoff strategy for retries
-#[derive(Clone)]
-pub enum BackoffStrategy {
-    /// Constant time between retries
-    Constant(Duration),
-    /// Linear increase in time between retries
-    Linear { base: Duration, increment: Duration },
-    /// Exponential increase in time between retries (base * 2^attempt)
-    Exponential { base: Duration, max: Duration },
-    /// Custom backoff strategy implemented as a function
-    Custom(CustomBackoff),
+/// Helper trait: run a delay respecting cancellation and timeouts if available.
+#[async_trait]
+pub trait RetryDelay {
+    /// Wait the given duration, returning an error if cancelled or timed out.
+    async fn wait(&self, dur: Duration) -> Result<(), FloxideError>;
 }
 
-/// A wrapper for custom backoff functions that can be cloned and debugged
-pub struct CustomBackoff {
-    func: Box<dyn Fn(usize) -> Duration + Send + Sync>,
-}
-
-impl Clone for CustomBackoff {
-    fn clone(&self) -> Self {
-        // We can't actually clone the function, so this is a hack
-        // In practice, RetryNode should be created just once and not cloned
-        Self {
-            func: Box::new(|attempt| Duration::from_millis(100 * attempt as u64)),
-        }
-    }
-}
-
-impl Debug for CustomBackoff {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("CustomBackoff")
-            .field("func", &"<function>")
-            .finish()
-    }
-}
-
-impl BackoffStrategy {
-    /// Calculate the delay for a given attempt
-    pub fn calculate_delay(&self, attempt: usize) -> Duration {
-        match self {
-            Self::Constant(duration) => *duration,
-            Self::Linear { base, increment } => *base + (*increment * attempt as u32),
-            Self::Exponential { base, max } => {
-                let calculated = *base * u32::pow(2, attempt as u32);
-                std::cmp::min(calculated, *max)
-            }
-            Self::Custom(custom) => (custom.func)(attempt),
-        }
-    }
-}
-
-impl Debug for BackoffStrategy {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Constant(duration) => f.debug_tuple("Constant").field(duration).finish(),
-            Self::Linear { base, increment } => f
-                .debug_struct("Linear")
-                .field("base", base)
-                .field("increment", increment)
-                .finish(),
-            Self::Exponential { base, max } => f
-                .debug_struct("Exponential")
-                .field("base", base)
-                .field("max", max)
-                .finish(),
-            Self::Custom(custom) => f.debug_tuple("Custom").field(custom).finish(),
-        }
-    }
-}
-
-/// A node that retries another node if it fails
-pub struct RetryNode<N, Context, A = crate::action::DefaultAction>
-where
-    N: Node<Context, A>,
-    Context: Send + Sync + 'static,
-    A: ActionType + Send + Sync + 'static,
-{
-    /// The node to retry
-    inner_node: N,
-    /// Maximum number of retry attempts
-    max_retries: usize,
-    /// Backoff strategy
-    backoff_strategy: BackoffStrategy,
-    /// Type markers
-    _context: PhantomData<Context>,
-    _action: PhantomData<A>,
-}
-
-impl<N, Context, A> RetryNode<N, Context, A>
-where
-    N: Node<Context, A>,
-    Context: Send + Sync + 'static,
-    A: ActionType + Send + Sync + 'static,
-{
-    /// Create a new retry node with a constant backoff
-    pub fn with_constant_backoff(inner_node: N, max_retries: usize, delay: Duration) -> Self {
-        Self {
-            inner_node,
-            max_retries,
-            backoff_strategy: BackoffStrategy::Constant(delay),
-            _context: PhantomData,
-            _action: PhantomData,
-        }
-    }
-
-    /// Create a new retry node with linear backoff
-    pub fn with_linear_backoff(
-        inner_node: N,
-        max_retries: usize,
-        base: Duration,
-        increment: Duration,
-    ) -> Self {
-        Self {
-            inner_node,
-            max_retries,
-            backoff_strategy: BackoffStrategy::Linear { base, increment },
-            _context: PhantomData,
-            _action: PhantomData,
-        }
-    }
-
-    /// Create a new retry node with exponential backoff
-    pub fn with_exponential_backoff(
-        inner_node: N,
-        max_retries: usize,
-        base: Duration,
-        max: Duration,
-    ) -> Self {
-        Self {
-            inner_node,
-            max_retries,
-            backoff_strategy: BackoffStrategy::Exponential { base, max },
-            _context: PhantomData,
-            _action: PhantomData,
-        }
-    }
-
-    /// Create a new retry node with a custom backoff strategy
-    pub fn with_custom_backoff<F>(inner_node: N, max_retries: usize, f: F) -> Self
-    where
-        F: Fn(usize) -> Duration + Send + Sync + 'static,
-    {
-        Self {
-            inner_node,
-            max_retries,
-            backoff_strategy: BackoffStrategy::Custom(CustomBackoff { func: Box::new(f) }),
-            _context: PhantomData,
-            _action: PhantomData,
-        }
+#[async_trait]
+impl<S: Context> RetryDelay for WorkflowCtx<S> {
+    async fn wait(&self, dur: Duration) -> Result<(), FloxideError> {
+        self.run_future(async {
+            tokio::time::sleep(dur).await;
+            Ok(())
+        })
+        .await
     }
 }
 
 #[async_trait]
-impl<N, Context, A> Node<Context, A> for RetryNode<N, Context, A>
-where
-    N: Node<Context, A> + std::fmt::Debug + Send + Sync,
-    Context: std::fmt::Debug + Send + Sync + 'static,
-    A: crate::action::ActionType + Default + std::fmt::Debug + Send + Sync + 'static,
-    N::Output: Clone + Send + Sync + 'static,
-{
-    type Output = N::Output;
-
-    fn id(&self) -> NodeId {
-        self.inner_node.id()
+impl RetryDelay for () {
+    async fn wait(&self, dur: Duration) -> Result<(), FloxideError> {
+        tokio::time::sleep(dur).await;
+        Ok(())
     }
+}
+
+/// Strategy for computing backoff durations.
+#[derive(Clone, Copy, Debug)]
+pub enum BackoffStrategy {
+    /// Delay = initial_backoff * attempt_count
+    Linear,
+    /// Delay = initial_backoff * 2^(attempt_count - 1)
+    Exponential,
+}
+
+/// Which errors should be retried.
+#[derive(Clone, Copy, Debug)]
+pub enum RetryError {
+    /// Retry on any error.
+    All,
+    /// Retry only on cancellation.
+    Cancelled,
+    /// Retry only on timeout.
+    Timeout,
+    /// Retry only on generic errors.
+    Generic,
+}
+
+/// Policy controlling retry behavior for nodes.
+#[derive(Clone, Debug)]
+pub struct RetryPolicy {
+    /// Maximum number of attempts (including the first).
+    pub max_attempts: usize,
+    /// Initial backoff duration between retries.
+    pub initial_backoff: Duration,
+    /// Maximum backoff duration allowed.
+    pub max_backoff: Duration,
+    /// Strategy to compute backoff durations.
+    pub strategy: BackoffStrategy,
+    /// Optional fixed jitter to add to each backoff.
+    pub jitter: Option<Duration>,
+    /// Error predicate controlling which errors to retry.
+    pub retry_error: RetryError,
+}
+
+impl RetryPolicy {
+    /// Construct a new RetryPolicy.
+    pub fn new(
+        max_attempts: usize,
+        initial_backoff: Duration,
+        max_backoff: Duration,
+        strategy: BackoffStrategy,
+        retry_error: RetryError,
+    ) -> Self {
+        RetryPolicy {
+            max_attempts,
+            initial_backoff,
+            max_backoff,
+            strategy,
+            jitter: None,
+            retry_error,
+        }
+    }
+
+    /// Specify a fixed jitter offset to add to each backoff.
+    pub fn with_jitter(mut self, jitter: Duration) -> Self {
+        self.jitter = Some(jitter);
+        self
+    }
+
+    /// Determine whether an error should be retried for the given attempt (1-based).
+    pub fn should_retry(&self, error: &FloxideError, attempt: usize) -> bool {
+        if attempt >= self.max_attempts {
+            return false;
+        }
+        match self.retry_error {
+            RetryError::All => true,
+            RetryError::Cancelled => matches!(error, FloxideError::Cancelled),
+            RetryError::Timeout => matches!(error, FloxideError::Timeout(_)),
+            RetryError::Generic => matches!(error, FloxideError::Generic(_)),
+        }
+    }
+
+    /// Compute the backoff duration before the next retry given the attempt count (1-based).
+    pub fn backoff_duration(&self, attempt: usize) -> Duration {
+        let base = match self.strategy {
+            BackoffStrategy::Linear => self.initial_backoff.saturating_mul(attempt as u32),
+            BackoffStrategy::Exponential => {
+                // Compute 2^(attempt-1) with shift, saturating at 32 bits
+                let exp = attempt.saturating_sub(1);
+                let factor = if exp < 32 { 1_u32 << exp } else { u32::MAX };
+                self.initial_backoff.saturating_mul(factor)
+            }
+        };
+        let capped = if base > self.max_backoff {
+            self.max_backoff
+        } else {
+            base
+        };
+        if let Some(j) = self.jitter {
+            capped.saturating_add(j)
+        } else {
+            capped
+        }
+    }
+}
+
+// Ergonomic retry helpers
+/// Wrap an existing node with retry behavior according to the given policy.
+///
+/// # Example
+///
+/// ```rust
+/// use floxide_core::*;
+/// use std::time::Duration;
+/// // Define a policy: up to 3 attempts, exponential backoff 100ms→200ms→400ms
+/// let policy = RetryPolicy::new(
+///     3,
+///     Duration::from_millis(100),
+///     Duration::from_secs(1),
+///     BackoffStrategy::Exponential,
+///     RetryError::All,
+/// );
+/// let my_node = FooNode::new();
+/// let retry_node = with_retry(my_node, policy.clone());
+/// ```
+///
+/// In future macro syntax you could write:
+///
+/// ```ignore
+/// #[node(retry = "my_policy")]
+/// foo: FooNode;
+/// ```
+pub fn with_retry<N>(node: N, policy: RetryPolicy) -> RetryNode<N> {
+    RetryNode::new(node, policy)
+}
+
+/// Wrapper node that applies a `RetryPolicy` on inner node failures.
+///
+/// Internally it will re-run the inner node up to `policy.max_attempts`,
+/// using backoff delays between attempts.
+#[derive(Clone, Debug)]
+pub struct RetryNode<N> {
+    /// Inner node to invoke.
+    pub inner: N,
+    /// Policy controlling retry attempts and backoff.
+    pub policy: RetryPolicy,
+}
+
+impl<N> RetryNode<N> {
+    /// Create a new retry wrapper around `inner` with the given `policy`.
+    pub fn new(inner: N, policy: RetryPolicy) -> Self {
+        RetryNode { inner, policy }
+    }
+}
+// RetryNode implements Node by looping on errors according to its policy.
+
+#[async_trait]
+impl<C, N> Node<C> for RetryNode<N>
+where
+    C: Context + RetryDelay,
+    N: Node<C> + Clone + Send + Sync + 'static,
+    N::Input: Clone + Send + 'static,
+    N::Output: Send + 'static,
+{
+    type Input = N::Input;
+    type Output = N::Output;
 
     async fn process(
         &self,
-        ctx: &mut Context,
-    ) -> Result<NodeOutcome<Self::Output, A>, FloxideError> {
-        let mut attempt = 0;
+        ctx: &C,
+        input: Self::Input,
+    ) -> Result<Transition<Self::Output>, FloxideError> {
+        let mut attempt = 1;
         loop {
-            attempt += 1;
-            match self.inner_node.process(ctx).await {
-                Ok(outcome) => {
-                    tracing::debug!(
-                        attempt = attempt,
-                        node_id = %self.id(),
-                        "Node completed successfully after {} attempts",
-                        attempt
-                    );
-                    return Ok(outcome);
-                }
-                Err(err) => {
-                    if attempt >= self.max_retries {
-                        tracing::error!(
-                            attempt = attempt,
-                            max_retries = self.max_retries,
-                            node_id = %self.id(),
-                            error = %err,
-                            "Maximum retry attempts reached, failing"
-                        );
-                        return Err(err);
-                    }
-
-                    let delay = self.backoff_strategy.calculate_delay(attempt);
-                    tracing::warn!(
-                        attempt = attempt,
-                        node_id = %self.id(),
-                        error = %err,
-                        delay_ms = delay.as_millis(),
-                        "Node execution failed, retrying after {:?}",
-                        delay
-                    );
-
-                    #[cfg(feature = "async")]
-                    {
-                        tokio::time::sleep(delay).await;
-                    }
-
-                    #[cfg(not(feature = "async"))]
-                    {
-                        // For compatibility with sync execution, we just delay using std
-                        std::thread::sleep(delay);
+            match self.inner.process(ctx, input.clone()).await {
+                Ok(Transition::NextAll(vs)) => return Ok(Transition::NextAll(vs)),
+                Ok(Transition::Next(out)) => return Ok(Transition::Next(out)),
+                Ok(Transition::Hold) => return Ok(Transition::Hold),
+                Ok(Transition::Abort(e)) | Err(e) => {
+                    // emit tracing event for retry evaluation
+                    tracing::debug!(attempt, error=%e, "RetryNode: caught error, evaluating retry policy");
+                    if self.policy.should_retry(&e, attempt) {
+                        let backoff = self.policy.backoff_duration(attempt);
+                        tracing::info!(attempt, backoff=?backoff, "RetryNode: retrying after backoff");
+                        ctx.wait(backoff).await?;
+                        attempt += 1;
+                        continue;
+                    } else {
+                        tracing::warn!(attempt, error=%e, "RetryNode: aborting after reaching retry limit or non-retryable error");
+                        return Err(e);
                     }
                 }
             }
@@ -228,142 +227,81 @@ where
     }
 }
 
+// Unit tests for RetryPolicy backoff and retry logic
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
 
-    use crate::DefaultAction;
-
-    #[derive(Debug, Clone)]
-    struct TestContext {
-        counter: usize,
-        should_fail_until: usize,
-    }
-
-    #[tokio::test]
-    async fn test_retry_success_after_failures() {
-        // Create a custom node implementation for testing retry logic
-        #[derive(Debug)]
-        struct TestNodeImpl {
-            id: NodeId,
-        }
-
-        #[async_trait]
-        impl Node<TestContext, DefaultAction> for TestNodeImpl {
-            type Output = String;
-
-            fn id(&self) -> NodeId {
-                self.id.clone()
-            }
-
-            async fn process(
-                &self,
-                ctx: &mut TestContext,
-            ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FloxideError> {
-                ctx.counter += 1;
-                if ctx.counter <= ctx.should_fail_until {
-                    Err(FloxideError::node_execution("test", "Simulated failure"))
-                } else {
-                    Ok(NodeOutcome::<String, DefaultAction>::Success(
-                        "success".to_string(),
-                    ))
-                }
-            }
-        }
-
-        let test_node = TestNodeImpl {
-            id: "test-node".to_string(),
-        };
-
-        let retry_node = RetryNode::with_constant_backoff(
-            test_node,
+    #[test]
+    fn test_linear_backoff() {
+        let policy = RetryPolicy::new(
             5,
-            Duration::from_millis(10), // short delay for tests
+            Duration::from_millis(100),
+            Duration::from_millis(1000),
+            BackoffStrategy::Linear,
+            RetryError::All,
         );
-
-        let mut ctx = TestContext {
-            counter: 0,
-            should_fail_until: 2, // fail first 2 attempts
-        };
-
-        let result = retry_node.process(&mut ctx).await;
-        assert!(result.is_ok());
-        assert_eq!(ctx.counter, 3); // should have run 3 times
+        assert_eq!(policy.backoff_duration(1), Duration::from_millis(100));
+        assert_eq!(policy.backoff_duration(3), Duration::from_millis(300));
+        // capped at max_backoff
+        assert_eq!(policy.backoff_duration(20), Duration::from_millis(1000));
     }
 
-    #[tokio::test]
-    async fn test_retry_exhausts_attempts() {
-        // Create a custom node implementation that always fails
-        #[derive(Debug)]
-        struct AlwaysFailNode {
-            id: NodeId,
-        }
-
-        #[async_trait]
-        impl Node<TestContext, DefaultAction> for AlwaysFailNode {
-            type Output = String;
-
-            fn id(&self) -> NodeId {
-                self.id.clone()
-            }
-
-            async fn process(
-                &self,
-                _ctx: &mut TestContext,
-            ) -> Result<NodeOutcome<Self::Output, DefaultAction>, FloxideError> {
-                Err(FloxideError::node_execution("test", "Always failing"))
-            }
-        }
-
-        let test_node = AlwaysFailNode {
-            id: "always-fail".to_string(),
-        };
-
-        let retry_node = RetryNode::with_constant_backoff(test_node, 3, Duration::from_millis(10));
-
-        let mut ctx = TestContext {
-            counter: 0,
-            should_fail_until: 999, // always fail
-        };
-
-        let result = retry_node.process(&mut ctx).await;
-        assert!(result.is_err());
-        // Should have attempted 3 times (max_retries)
+    #[test]
+    fn test_exponential_backoff() {
+        let policy = RetryPolicy::new(
+            5,
+            Duration::from_millis(50),
+            Duration::from_millis(400),
+            BackoffStrategy::Exponential,
+            RetryError::All,
+        );
+        // 1 -> 50ms, 2 -> 100ms, 3 -> 200ms, 4 -> 400ms, capped thereafter
+        assert_eq!(policy.backoff_duration(1), Duration::from_millis(50));
+        assert_eq!(policy.backoff_duration(2), Duration::from_millis(100));
+        assert_eq!(policy.backoff_duration(3), Duration::from_millis(200));
+        assert_eq!(policy.backoff_duration(4), Duration::from_millis(400));
+        assert_eq!(policy.backoff_duration(5), Duration::from_millis(400));
     }
 
-    #[tokio::test]
-    async fn test_backoff_strategies() {
-        // Test constant backoff
-        let constant = BackoffStrategy::Constant(Duration::from_millis(100));
-        assert_eq!(constant.calculate_delay(1), Duration::from_millis(100));
-        assert_eq!(constant.calculate_delay(2), Duration::from_millis(100));
+    #[test]
+    fn test_jitter_addition() {
+        let mut policy = RetryPolicy::new(
+            3,
+            Duration::from_millis(100),
+            Duration::from_millis(1000),
+            BackoffStrategy::Linear,
+            RetryError::All,
+        );
+        policy = policy.with_jitter(Duration::from_millis(25));
+        assert_eq!(
+            policy.backoff_duration(2),
+            Duration::from_millis(100 * 2 + 25)
+        );
+    }
 
-        // Test linear backoff
-        let linear = BackoffStrategy::Linear {
-            base: Duration::from_millis(100),
-            increment: Duration::from_millis(50),
-        };
-        assert_eq!(linear.calculate_delay(0), Duration::from_millis(100));
-        assert_eq!(linear.calculate_delay(1), Duration::from_millis(150));
-        assert_eq!(linear.calculate_delay(2), Duration::from_millis(200));
-
-        // Test exponential backoff
-        let exponential = BackoffStrategy::Exponential {
-            base: Duration::from_millis(100),
-            max: Duration::from_millis(1000),
-        };
-        assert_eq!(exponential.calculate_delay(0), Duration::from_millis(100));
-        assert_eq!(exponential.calculate_delay(1), Duration::from_millis(200));
-        assert_eq!(exponential.calculate_delay(2), Duration::from_millis(400));
-        assert_eq!(exponential.calculate_delay(3), Duration::from_millis(800));
-        assert_eq!(exponential.calculate_delay(4), Duration::from_millis(1000)); // Max reached
-
-        // Test custom backoff
-        let custom = BackoffStrategy::Custom(CustomBackoff {
-            func: Box::new(|attempt| Duration::from_millis(attempt as u64 * 25)),
-        });
-        assert_eq!(custom.calculate_delay(1), Duration::from_millis(25));
-        assert_eq!(custom.calculate_delay(2), Duration::from_millis(50));
-        assert_eq!(custom.calculate_delay(10), Duration::from_millis(250));
+    #[test]
+    fn test_retry_predicates() {
+        let mut policy = RetryPolicy::new(
+            3,
+            Duration::from_millis(10),
+            Duration::from_millis(100),
+            BackoffStrategy::Linear,
+            RetryError::Generic,
+        );
+        let gen_err = FloxideError::Generic("oops".into());
+        let cancel_err = FloxideError::Cancelled;
+        let timeout_err = FloxideError::Timeout(Duration::from_secs(1));
+        // Generic only
+        assert!(policy.should_retry(&gen_err, 1));
+        assert!(!policy.should_retry(&cancel_err, 1));
+        assert!(!policy.should_retry(&timeout_err, 1));
+        // Exhausted attempts
+        assert!(!policy.should_retry(&gen_err, 3));
+        // RetryError::All
+        policy.retry_error = RetryError::All;
+        assert!(policy.should_retry(&cancel_err, 2));
+        assert!(policy.should_retry(&timeout_err, 2));
     }
 }

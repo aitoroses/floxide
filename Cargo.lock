@@ -285,11 +285,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "floxide-core",
- "floxide-event",
- "floxide-longrunning",
- "floxide-reactive",
- "floxide-timer",
- "floxide-transform",
+ "floxide-macros",
  "futures",
  "rand",
  "serde",
@@ -307,7 +303,6 @@ version = "1.1.2"
 dependencies = [
  "criterion",
  "floxide-core",
- "floxide-transform",
  "tokio",
 ]
 
@@ -316,81 +311,25 @@ name = "floxide-core"
 version = "1.1.2"
 dependencies = [
  "async-trait",
- "futures",
- "serde",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "floxide-event"
-version = "1.1.2"
-dependencies = [
- "async-trait",
- "floxide-core",
- "futures",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "floxide-longrunning"
-version = "1.1.2"
-dependencies = [
- "async-trait",
  "chrono",
- "floxide-core",
+ "futures",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "floxide-reactive"
-version = "1.1.2"
-dependencies = [
- "async-trait",
- "floxide-core",
- "futures",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "floxide-timer"
-version = "1.1.2"
-dependencies = [
- "async-trait",
- "chrono",
- "floxide-core",
- "thiserror",
- "tokio",
+ "tokio-util",
  "tracing",
  "uuid",
 ]
 
 [[package]]
-name = "floxide-transform"
+name = "floxide-macros"
 version = "1.1.2"
 dependencies = [
- "async-trait",
- "floxide-core",
- "futures",
- "thiserror",
- "tokio",
- "tracing",
- "uuid",
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -520,6 +459,18 @@ dependencies = [
  "cfg-if",
  "crunchy",
 ]
+
+[[package]]
+name = "hashbrown"
+version = "0.14.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
+
+[[package]]
+name = "heck"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "hermit-abi"
@@ -670,9 +621,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.3"
+version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
+checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "oorandom"
@@ -1067,19 +1018,22 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
- "tokio-util",
 ]
 
 [[package]]
 name = "tokio-util"
-version = "0.7.13"
+version = "0.7.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7fcaa8d55a2bdd6b83ace262b016eca0d79ee02818c5c1bcdf0305114081078"
+checksum = "6b9590b93e6fcc1739458317cccd391ad3955e2bde8913edf6f95f9e65a8f034"
 dependencies = [
  "bytes",
  "futures-core",
+ "futures-io",
  "futures-sink",
+ "futures-util",
+ "hashbrown",
  "pin-project-lite",
+ "slab",
  "tokio",
 ]
 

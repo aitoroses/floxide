@@ -11,10 +11,6 @@ update_workspace_deps = true
 # Custom publish order
 publish_order = [
   "floxide-core",
-  "floxide-transform",
-  "floxide-event",
-  "floxide-timer",
-  "floxide-longrunning",
-  "floxide-reactive",
+  "floxide-macros",
   "floxide"
 ]
