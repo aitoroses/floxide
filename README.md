@@ -1,7 +1,7 @@
 # Floxide 🦀: The Power of Workflows in Rust
 
-[![Crates.io](https://img.shields.io/crates/v/floxide-core.svg)](https://crates.io/crates/floxide-core)
-[![Documentation](https://docs.rs/floxide-core/badge.svg)](https://docs.rs/floxide-core)
+[![Crates.io](https://img.shields.io/crates/v/floxide.svg)](https://crates.io/crates/floxide)
+[![Documentation](https://docs.rs/floxide/badge.svg)](https://docs.rs/floxide)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Floxide** is an extensible framework for building distributed, parallel, and event-driven workflows in Rust. Model complex processes as type-safe, directed graphs with robust support for:
