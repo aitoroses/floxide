@@ -1,424 +1,149 @@
-# 🚀 Floxide: The Power of Workflows in Rust
+# Floxide 🦀: The Power of Workflows in Rust
 
-[![CI](https://github.com/aitoroses/floxide/actions/workflows/ci.yml/badge.svg)](https://github.com/aitoroses/floxide/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/floxide-core.svg)](https://crates.io/crates/floxide-core)
 [![Documentation](https://docs.rs/floxide-core/badge.svg)](https://docs.rs/floxide-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> A type-safe, composable directed graph workflow system written in Rust.
+**Floxide** is an extensible framework for building distributed, parallel, and event-driven workflows in Rust. Model complex processes as type-safe, directed graphs with robust support for:
 
-## 💫 Overview
+*   **Distributed Execution:** Run workflows across multiple workers.
+*   **Checkpointing & Recovery:** Fault tolerance and resumability.
+*   **Declarative Definition:** Use `workflow!` and `node!` macros for clear definitions.
+*   **Async Native:** Built for modern async Rust.
 
-Floxide transforms complex workflow orchestration into a delightful experience. Built with Rust's powerful type system at its core, Floxide provides a flexible, performant, and type-safe way to create sophisticated workflow graphs with crystal-clear transitions between steps.
+## Core Concepts
 
-## ✨ Key Features
+Floxide models workflows using these key components:
 
-- **🔒 Type-Safe By Design**: Leverage Rust's type system for compile-time workflow correctness
-- **🧩 Composable Architecture**: Build complex workflows from simple, reusable components
-- **⚡ Async First**: Native support for asynchronous execution with Tokio
-- **🔄 Advanced Patterns**: Support for batch processing, event-driven workflows, and more
-- **💾 State Management**: Built-in serialization for workflow persistence
-- **🔍 Observability**: Comprehensive tracing and monitoring capabilities
-- **🧪 Testable**: Design your workflows for easy testing and verification
+*   **`Node`**: A single, reusable step in a workflow. Defined using the `node!` macro.
+*   **`Workflow`**: The overall directed graph structure, connecting Nodes. Defined using the `workflow!` macro.
+*   **`Transition`**: The result of a Node's execution, indicating what happens next (`Next`, `NextAll`, `Hold`, `Abort`).
+*   **`WorkflowCtx` / `Context`**: Shared data or state accessible by all Nodes within a specific workflow run.
+*   **`WorkQueue`**: (For distributed workflows) A queue holding tasks (`WorkItem`s) ready to be processed by Workers.
+*   **`Checkpoint`**: (For distributed workflows) Saved state of a workflow run, enabling recovery.
+*   **`DistributedWorker`**: A process that dequeues tasks from the `WorkQueue` and executes Nodes.
+*   **`DistributedOrchestrator`**: Manages the lifecycle of distributed workflow runs.
 
-## 📐 Architectural Decisions
+## Quick Example
 
-Floxide is built on a foundation of carefully considered architectural decisions, each documented in our project documentation. These decisions form the backbone of our design philosophy and guide the evolution of the framework.
+Here's a conceptual workflow simulating article generation using LLM-like steps:
 
-### Core Design Philosophy
+```rust
+use floxide::{workflow, node, Transition, WorkflowCtx, FloxideError};
+use async_trait::async_trait;
 
-At the heart of Floxide lies a commitment to **type safety**, **composability**, and **performance**. Our architecture embraces Rust's powerful type system to catch errors at compile time rather than runtime, while providing flexible abstractions that can be composed to create complex workflows.
+// Context: Shared data for the workflow (none needed here)
+type Ctx = ();
 
-Key architectural principles include:
+// --- Node 1: Generate Outline --- 
+node! {
+    pub struct OutlineNode {};
+    context = Ctx;
+    input = String; // Input: Article Topic
+    output = String; // Output: Outline Text
+    | _ctx: &Ctx, topic: String | {
+        println!("OutlineNode: Generating outline for topic: '{}'", topic);
+        // Simulate calling an LLM to generate an outline
+        let outline = format!("Outline for {}:\n- Introduction\n- Section 1\n- Section 2\n- Conclusion", topic);
+        // Pass the outline to the next step
+        Ok(Transition::Next(outline))
+    }
+}
 
-- **Trait-based polymorphism** over inheritance
-- **Ownership-aware design** that leverages Rust's borrowing system
-- **Zero-cost abstractions** that compile to efficient code
-- **Explicit error handling** with rich error types
-- **Async-first approach** with Tokio integration
+// --- Node 2: Draft Article --- 
+node! {
+    pub struct DraftNode {};
+    context = Ctx;
+    input = String; // Input: Outline Text
+    output = String; // Output: Draft Article Text
+    | _ctx: &Ctx, outline: String | {
+        println!("DraftNode: Drafting article based on outline...");
+        // Simulate calling an LLM to draft based on the outline
+        let draft = format!("Draft based on {}\n\n[... Full draft content based on outline sections ...]", outline);
+        // Pass the draft to the next step
+        Ok(Transition::Next(draft))
+    }
+}
 
-### Documentation Resources
+// --- Node 3: Review Article --- 
+node! {
+    pub struct ReviewNode {};
+    context = Ctx;
+    input = String; // Input: Draft Article Text
+    output = String; // Output: Final Article Text
+    | _ctx: &Ctx, draft: String | {
+        println!("ReviewNode: Reviewing and finalizing draft...");
+        // Simulate a review step (e.g., adding a title, minor edits)
+        let final_article = format!("**Final Article**\n\n{}", draft.replace("Draft based on", "Article based on"));
+        // Pass the final article as the workflow result
+        Ok(Transition::Next(final_article))
+    }
+}
 
-For detailed information about Floxide's architecture and implementation:
+// --- Workflow Definition: Connecting the nodes ---
+workflow! {
+    pub st`uct ArticleWriterWorkflow {
+        outline: OutlineNode,
+        draft: DraftNode,
+        review: ReviewNode,
+    }
+    start = outline; // Start with the outline node
+    context = Ctx;
+    edges {
+        // Define the sequence: outline -> draft -> review
+        outline => draft;
+        draft => review;
+        review => {}; // review is the final node
+    }
+}
 
-- **[API Documentation](https://docs.rs/floxide/latest/floxide/)** - Comprehensive Rust API docs with detailed explanations of types, traits, and functions
-- **[Project Documentation](https://aitoroses.github.io/floxide/)** - User guides, tutorials, and architectural overviews
+// Note: Running this workflow requires setting up an executor and providing 
+// the initial topic input. See the tutorials for complete examples.
+```
+## Examples
 
-Our architecture is not static—it evolves through a rigorous process of evaluation and refinement. Each new feature or enhancement is preceded by careful design consideration that documents the context, decision, and consequences, ensuring that our architectural integrity remains strong as the framework grows.
+The `examples/` directory contains various demonstrations of Floxide's features:
 
-This approach has enabled us to build a framework that is both powerful and flexible, capable of handling everything from simple linear workflows to complex event-driven systems with parallel processing capabilities.
+*   **`node_macro_example.rs`**: Basic usage of the `node!` macro to define a node with internal state and custom context.
+*   **`simple_context_example.rs`**: Demonstrates a workflow with a shared context (`MyCtx`) and composite nodes that branch based on an enum output (`FooAction`).
+*   **`split_example.rs`**: Shows how to use `SplitNode` to fan-out a single input into multiple items for parallel processing.
+*   **`merge_example.rs`**: Complements `split_example` by using a custom `MergeNode` to collect results from parallel branches, holding until all expected inputs arrive.
+*   **`batch_example.rs`**: Demonstrates `BatchNode` for processing items in groups, followed by routing based on batch results.
+*   **`retry_example.rs`**: Using `RetryNode` (via `with_retry`) to wrap a node that might fail transiently, applying a retry policy.
+*   **`retry_macro_example.rs`**: Defining retry policies directly within the `workflow!` macro using the `#[retry = ...]` attribute.
+*   **`error_fallback_macro.rs`**: Handling node failures at the workflow level using the `on_failure` clause in the `edges` block.
+*   **`checkpoint_example.rs`**: Shows how to use `run_with_checkpoint` and `resume` with an `InMemoryCheckpointStore` for fault tolerance.
+*   **`cancellation_example.rs`**: Demonstrates graceful workflow cancellation using the `cancel_token` from `WorkflowCtx`.
+*   **`timeout_example.rs`**: Setting a timeout on the `WorkflowCtx` to automatically abort long-running workflows.
+*   **`nested_workflow_example.rs`**: Embedding one workflow within another using `CompositeNode`.
+*   **`generics_example.rs`**: Defining workflows with nodes that have generic type parameters.
+*   **`timer_example.rs`**: Using a `source` node (backed by a channel) to drive a workflow with external events (like timer ticks).
+*   **`distributed_example.rs`**: Simulates a distributed workflow run using in-memory components (`InMemoryWorkQueue`, `InMemoryCheckpointStore`) and multiple worker tasks.
+*   **`distributed_orchestrated_merge_example.rs`**: A more complex distributed example showcasing `OrchestratorBuilder`, `WorkerBuilder`, `WorkerPool`, and various in-memory distributed stores (`RunInfoStore`, `MetricsStore`, etc.) for a split/merge workflow with potential failures.
+*   **`workflow_dot.rs`**: Demonstrates generating a Graphviz DOT representation of a workflow's structure using the `to_dot()` method.
+*   **`terminal_node_example.rs`**: A minimal workflow where the starting node is also the terminal node, directly returning the final result.
 
-## 🚀 Quick Start
+## Installation
 
-Add Floxide to your project:
+Add Floxide to your `Cargo.toml` dependencies:
 
 ```toml
 [dependencies]
-floxide = { version = "1.0.0", features = ["transform", "event"] }
+floxide = "*" # Check crates.io for the latest version
 ```
 
-Create your first workflow:
+## Getting Started
 
-```rust
-use floxide::{lifecycle_node, LifecycleNode, Workflow, DefaultAction, FloxideError};
-use async_trait::async_trait;
-use std::sync::Arc;
+The best way to learn Floxide is through the documentation and tutorials:
 
-// Define your context type
-#[derive(Debug, Clone)]
-struct MessageContext {
-    input: String,
-    result: Option<String>,
-}
+*   **[Floxide Documentation & Tutorials](https://aitoroses.github.io/floxide/)**: Start here for comprehensive guides and examples.
+    *   **[Core Concepts Tutorial](https://aitoroses.github.io/floxide/floxide/index/)**: Learn the fundamentals of Workflows, Nodes, Transitions, and Context.
+    *   **[Distributed Tutorial](https://aitoroses.github.io/floxide/floxide-tutorial/index/)**: Dive into distributed execution with Workers, Orchestrators, Queues, and Checkpointing.
 
-// Create a node using the convenience function
-fn create_processor_node() -> impl LifecycleNode<MessageContext, DefaultAction> {
-    lifecycle_node(
-        Some("processor"), // Node ID
-        |ctx: &mut MessageContext| async move {
-            // Preparation phase
-            println!("Preparing to process: {}", ctx.input);
-            Ok(ctx.input.clone())
-        },
-        |input: String| async move {
-            // Execution phase
-            println!("Processing message...");
-            Ok(format!("✅ Processed: {}", input))
-        },
-        |_prep, exec_result, ctx: &mut MessageContext| async move {
-            // Post-processing phase
-            ctx.result = Some(exec_result);
-            Ok(DefaultAction::Next)
-        },
-    )
-}
+## Contributing
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create a context
-    let mut context = MessageContext {
-        input: "Hello, Floxide!".to_string(),
-        result: None,
-    };
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-    // Create a node and workflow
-    let node = Arc::new(create_processor_node());
-    let mut workflow = Workflow::new(node);
+## License
 
-    // Execute the workflow
-    workflow.execute(&mut context).await?;
-
-    // Print the result
-    println!("Result: {:?}", context.result);
-
-    Ok(())
-}
-```
-
-## 📦 Feature Flags
-
-Floxide uses feature flags to allow you to include only the functionality you need:
-
-| Feature | Description | Dependencies |
-|---------|-------------|-------------|
-| `core` | Core abstractions and functionality (default) | None |
-| `transform` | Transform node implementations | `core` |
-| `event` | Event-driven workflow functionality | `core` |
-| `timer` | Time-based workflow functionality | `core` |
-| `longrunning` | Long-running process functionality | `core` |
-| `reactive` | Reactive workflow functionality | `core` |
-| `full` | All features | All of the above |
-
-Example of using specific features:
-
-```toml
-# Only include core and transform functionality
-floxide = { version = "1.0.0", features = ["transform"] }
-
-# Include event-driven and timer functionality
-floxide = { version = "1.0.0", features = ["event", "timer"] }
-
-# Include all functionality
-floxide = { version = "1.0.0", features = ["full"] }
-```
-
-## 🧩 Workflow Pattern Examples
-
-Floxide supports a wide variety of workflow patterns through its modular crate system. Each pattern is designed to solve specific workflow challenges:
-
-### 🔄 Simple Chain (Linear Workflow)
-
-A basic sequence of nodes executed one after another. This is the foundation of all workflows.
-
-```mermaid
-graph LR
-    A["TextAnalysisNode"] --> B["UppercaseNode"]
-    A -->|"prep → exec → post"| A
-    B -->|"prep → exec → post"| B
-    style A fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
-    style B fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
-```
-
-**Example:** [lifecycle_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/lifecycle_node.rs) - Demonstrates a workflow with preparation, execution, and post-processing phases.
-
-### 🌲 Conditional Branching
-
-Workflows that make decisions based on context data or node results, directing flow through different paths.
-
-```mermaid
-graph TD
-    A["ValidateOrderNode"] -->|Valid| B["ProcessPaymentNode"]
-    A -->|Invalid| E["CancelOrderNode"]
-    B -->|Success| C["ShipOrderNode"]
-    B -->|Error| F["NotificationNode"]
-    C --> D["DeliverOrderNode"]
-    F --> B
-    style A fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
-    style B fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
-    style C fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
-    style D fill:#c4e6ff,stroke:#1a73e8,stroke-width:2px,color:black
-    style E fill:#ffcccc,stroke:#e53935,stroke-width:2px,color:black
-    style F fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
-```
-
-**Example:** [order_processing.rs](https://github.com/aitoroses/floxide/blob/main/examples/order_processing.rs) - Implements a complete order processing workflow with validation, payment, shipping, and error handling.
-
-### 🔄 Transform Pipeline
-
-A specialized workflow for data transformation, where each node transforms input to output in a functional style.
-
-```mermaid
-graph LR
-    A["Input"] --> B["TextTransformer"]
-    B --> C["TextAnalyzer"]
-    C --> D["GreetingTransformer"]
-    B -->|"prep → exec → post"| B
-    C -->|"prep → exec → post"| C
-    D -->|"prep → exec → post"| D
-    style A fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
-    style B fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
-    style C fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
-    style D fill:#e8f5e9,stroke:#43a047,stroke-width:2px,color:black
-```
-
-**Examples:** 
-- [transform_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/transform_node.rs) - Basic implementation of the Transform Node pattern
-- [transform_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/transform_node.rs) - Advanced examples of transform nodes with multiple implementation approaches
-
-### 🔀 Parallel Batch Processing
-
-Process multiple items concurrently with controlled parallelism, ideal for high-throughput data processing.
-
-```mermaid
-graph TD
-    A["ImageBatchContext"] --> B["Split Batch"]
-    B --> C1["SimpleImageProcessor<br>(Image 1)"]
-    B --> C2["SimpleImageProcessor<br>(Image 2)"]
-    B --> C3["SimpleImageProcessor<br>(Image 3)"]
-    C1 --> D["Update Batch Context"]
-    C2 --> D
-    C3 --> D
-    D -->|"Statistics"| E["Print Results"]
-    style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
-    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
-    style C1 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
-    style C2 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
-    style C3 fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
-    style D fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
-    style E fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:black
-```
-
-**Example:** [batch_processing.rs](https://github.com/aitoroses/floxide/blob/main/examples/batch_processing.rs) - Demonstrates parallel processing of images with controlled concurrency and resource management.
-
-### 📡 Event-Driven Flow
-
-Workflows that respond to external events, ideal for building reactive systems that process events as they arrive.
-
-```mermaid
-graph TD
-    A["TemperatureEventSource"] -->|"Events"| B["TemperatureClassifier"]
-    B -->|"Normal"| C["NormalTempHandler"]
-    B -->|"High"| D["HighTempHandler"]
-    B -->|"Low"| E["LowTempHandler"]
-    B -->|"Critical"| F["CriticalTempHandler"]
-    C --> A
-    D --> A
-    E --> A
-    F -->|"Terminate"| G["End Workflow"]
-    style A fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
-    style B fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
-    style C fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
-    style D fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
-    style E fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
-    style F fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
-    style G fill:#e8eaf6,stroke:#3949ab,stroke-width:2px,color:black
-```
-
-**Example:** [event_driven_workflow.rs](https://github.com/aitoroses/floxide/blob/main/examples/event_driven_workflow.rs) - Implements a temperature monitoring system that processes events from multiple sensors and triggers appropriate actions.
-
-### ⏱️ Time-Based Workflows
-
-Workflows that execute based on time schedules, supporting one-time, interval, and calendar-based scheduling.
-
-```mermaid
-graph TD
-    A["SimpleTimer<br>(Once)"] -->|"Trigger"| B["CounterContext"]
-    C["IntervalTimer<br>(Every 5s)"] -->|"Trigger"| B
-    D["CronTimer<br>(Schedule)"] -->|"Trigger"| B
-    E["DailyTimer<br>(10:00 AM)"] -->|"Trigger"| B
-    F["WeeklyTimer<br>(Monday)"] -->|"Trigger"| B
-    style A fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
-    style B fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
-    style C fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
-    style D fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
-    style E fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
-    style F fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:black
-```
-
-**Example:** [timer_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/timer_node.rs) - Shows how to create and use timer nodes with different scheduling options (one-time, interval, and cron).
-
-### 🔄 Reactive Workflows
-
-Workflows that react to changes in external data sources, such as files, databases, or streams.
-
-```mermaid
-graph TD
-    A["FileWatcherNode"] -->|"File Changed"| B["FileWatchContext"]
-    C["SensorDataNode"] -->|"New Measurement"| D["SensorContext"]
-    B -->|"Record Change"| E["Process Change"]
-    D -->|"Record Measurement"| F["Process Measurement"]
-    E --> A
-    F --> C
-    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
-    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
-    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
-    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
-    style E fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
-    style F fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:black
-```
-
-**Example:** [reactive_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/reactive_node.rs) - Demonstrates how to build reactive nodes that respond to changes in data sources and trigger appropriate actions.
-
-### ⏸️ Long-Running Processes
-
-Workflows for processes that can be suspended and resumed, with state persistence between executions.
-
-```mermaid
-graph TD
-    A["Start Process"] --> B["SimpleLongRunningNode"]
-    B -->|"Execute Step"| C["Checkpoint"]
-    C -->|"Complete"| D["Final Result"]
-    C -->|"Suspend"| E["Save State"]
-    E -->|"Resume"| B
-    style A fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
-    style B fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
-    style C fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
-    style D fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
-    style E fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:black
-```
-
-**Example:** [longrunning_node.rs](https://github.com/aitoroses/floxide/blob/main/examples/longrunning_node.rs) - Shows how to implement long-running processes with checkpointing and resumption capabilities.
-
-### 🤖 Multi-Agent LLM System
-
-A workflow pattern for orchestrating multiple AI agents that collaborate to solve complex tasks.
-
-```mermaid
-graph TD
-    A["User Input"] --> B["Router Agent"]
-    B -->|Research Task| C["Research Agent"]
-    B -->|Code Task| D["Coding Agent"]
-    B -->|Analysis Task| E["Analysis Agent"]
-    C --> F["Aggregator Agent"]
-    D --> F
-    E --> F
-    F --> G["Response Generator"]
-    G --> H["User Output"]
-    style A fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
-    style B fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
-    style C fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
-    style D fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
-    style E fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
-    style F fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
-    style G fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
-    style H fill:#e0f7fa,stroke:#00838f,stroke-width:2px,color:black
-```
-
-This pattern demonstrates how to build a multi-agent LLM system where specialized agents handle different aspects of a task. Each agent is implemented as a node in the workflow, with the router determining which agents to invoke based on the task requirements. The aggregator combines results from multiple agents before generating the final response.
-
-**Implementation Example:**
-
-```rust
-// Define agent context
-#[derive(Debug, Clone)]
-struct AgentContext {
-    user_query: String,
-    agent_responses: HashMap<String, String>,
-    final_response: Option<String>,
-}
-
-// Create router agent node
-fn create_router_agent() -> impl LifecycleNode<AgentContext, AgentAction> {
-    lifecycle_node(
-        Some("router"),
-        |ctx: &mut AgentContext| async move {
-            // Preparation: analyze the query
-            println!("Router analyzing query: {}", ctx.user_query);
-            Ok(ctx.user_query.clone())
-        },
-        |query: String| async move {
-            // Execution: determine which agents to invoke
-            let requires_research = query.contains("research") || query.contains("information");
-            let requires_coding = query.contains("code") || query.contains("program");
-            let requires_analysis = query.contains("analyze") || query.contains("evaluate");
-
-            Ok((requires_research, requires_coding, requires_analysis))
-        },
-        |_prep, (research, coding, analysis), ctx: &mut AgentContext| async move {
-            // Post-processing: route to appropriate agents
-            if research {
-                return Ok(AgentAction::Research);
-            } else if coding {
-                return Ok(AgentAction::Code);
-            } else if analysis {
-                return Ok(AgentAction::Analyze);
-            }
-            Ok(AgentAction::Aggregate) // Default if no specific routing
-        },
-    )
-}
-
-// Similar implementations for research_agent, coding_agent, analysis_agent, and aggregator_agent
-```
-
-## 📚 Examples & Documentation
-
-Explore our extensive examples and documentation:
-
-- [Complete API Documentation](https://docs.rs/floxide-core)
-- [Example Workflows](https://github.com/aitoroses/floxide/tree/main/examples)
-- [Architectural Decision Records](https://github.com/aitoroses/floxide/tree/main/docs/adrs)
-
-Try our examples directly:
-
-```bash
-git clone https://github.com/aitoroses/floxide.git
-cd floxide
-cargo run --example lifecycle_node
-```
-
-## 🤝 Contributing
-
-We welcome contributions of all kinds! Whether you're fixing a bug, adding a feature, or improving documentation, your help is appreciated.
-
-See our [Contributing Guidelines](CONTRIBUTING.md) for more details on how to get started.
-
-## 📄 License
-
-Floxide is available under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- The Rust community for their excellent crates and support
-- Our amazing contributors who help make Floxide better every day
-<!-- Trigger rebuild: martes, 25 de febrero de 2025, 18:49:33 CET -->
+Floxide is licensed under the MIT License. See the [LICENSE](LICENSE) file for details. 

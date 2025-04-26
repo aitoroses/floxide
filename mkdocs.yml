@@ -51,47 +51,16 @@ plugins:
   - search
 
 nav:
-  - Home: index.md
-  - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quick-start.md
-    - Error Handling: getting-started/error-handling.md
-  - Core Concepts:
-    - Overview: core-concepts/overview.md
-    - Nodes: core-concepts/nodes.md
-    - Workflows: core-concepts/workflows.md
-    - Cyclic Workflows: core-concepts/cyclic-workflows.md
-    - Actions: core-concepts/actions.md
-    - Contexts: core-concepts/contexts.md
-  - Guides:
-    - Event-Driven Architecture: guides/event_driven_architecture.md
-    - Using Mermaid Diagrams: guides/using-mermaid-diagrams.md
-  - Examples:
-    - Basic Workflow: examples/basic-workflow.md
-    - Event-Driven Workflow: examples/event-driven-workflow.md
-    - Timer Node: examples/timer-node.md
-    - Reactive Node: examples/reactive-node.md
-    - Transform Node: examples/transform-node.md
-    - Long-Running Node: examples/longrunning-node.md
-    - Batch Processing: examples/batch-processing.md
-  - Architecture:
-    - ADR Process: architecture/adr-process.md
-    - Core Framework Abstractions: architecture/core-framework-abstractions.md
-    - Project Structure: architecture/project-structure.md
-    - Async Runtime Selection: architecture/async-runtime-selection.md
-    - Node Lifecycle Methods: architecture/node-lifecycle-methods.md
-    - Event-Driven Workflow Pattern: architecture/event-driven-workflow-pattern.md
-    - Reactive Node Implementation: architecture/reactive-node-implementation.md
-    - Timer Node Implementation: architecture/timer-node-implementation.md
-    - Long-Running Node Implementation: architecture/longrunning-node-implementation.md
-    - Transform Node Implementation: architecture/transform-node-implementation.md
-    - Batch Processing Implementation: architecture/batch-processing-implementation.md
-  - API Reference:
-    - floxide-core: api/floxide-core.md
-    - floxide-transform: api/floxide-transform.md
-    - floxide-event: api/floxide-event.md
-    - floxide-timer: api/floxide-timer.md
-    - floxide-reactive: api/floxide-reactive.md
-    - floxide-longrunning: api/floxide-longrunning.md
-    - floxide-batch: api/floxide-batch.md
-  - Contributing: contributing.md
+
+  - Floxide Tutorial:
+      - Introduction: floxide-tutorial/index.md
+      - "Chapter 1: Transition Enum": floxide-tutorial/01__transition__enum_.md
+      - "Chapter 2: Node Trait & node! Macro": floxide-tutorial/02__node__trait____node___macro_.md
+      - "Chapter 3: WorkflowCtx & Context Trait": floxide-tutorial/03__workflowctx_____context__trait_.md
+      - "Chapter 4: Workflow Trait & workflow! Macro": floxide-tutorial/04__workflow__trait____workflow___macro_.md
+      - "Chapter 5: WorkQueue Trait": floxide-tutorial/05__workqueue__trait_.md
+      - "Chapter 6: Checkpoint & CheckpointStore Trait": floxide-tutorial/06__checkpoint_____checkpointstore__trait_.md
+      - "Chapter 7: DistributedWorker": floxide-tutorial/07__distributedworker__.md
+      - "Chapter 8: DistributedOrchestrator": floxide-tutorial/08__distributedorchestrator__.md
+      - "Chapter 9: Distributed Stores": floxide-tutorial/09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md
+      - "Chapter 10: RetryPolicy & RetryNode": floxide-tutorial/10__retrypolicy_____retrynode__.md
