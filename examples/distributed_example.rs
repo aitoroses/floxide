@@ -184,7 +184,7 @@ impl Node<Ctx> for InitialNode {
         let mut counter = ctx.local_counter.get().await;
         *counter += 1;
         let mut logs = ctx.logs.get().await;
-        logs.push(format!("InitialNode: starting workflow"));
+        logs.push("InitialNode: starting workflow".to_string());
         Ok(Transition::Next(()))
     }
 }
@@ -205,7 +205,7 @@ impl Node<Ctx> for SplitNode {
         let mut counter = ctx.local_counter.get().await;
         *counter += 1;
         let mut logs = ctx.logs.get().await;
-        logs.push(format!("SplitNode: spawning two branches"));
+        logs.push("SplitNode: spawning two branches".to_string());
         Ok(Transition::Next(()))
     }
 }
@@ -226,7 +226,7 @@ impl Node<Ctx> for BranchA {
         let mut counter = ctx.local_counter.get().await;
         *counter += 10;
         let mut logs = ctx.logs.get().await;
-        logs.push(format!("BranchA executed"));
+        logs.push("BranchA executed".to_string());
         Ok(Transition::Next("branch_a_success".to_string()))
     }
 }
@@ -249,12 +249,12 @@ impl Node<Ctx> for BranchB {
         let mut logs = ctx.logs.get().await;
         let should_fail = *SHOULD_FAIL.lock().await;
         if should_fail {
-            logs.push(format!("BranchB failed"));
+            logs.push("BranchB failed".to_string());
             return Ok(Transition::Abort(FloxideError::Generic(
                 "branch_b_failed".to_string(),
             )));
         }
-        logs.push(format!("BranchB executed"));
+        logs.push("BranchB executed".to_string());
         Ok(Transition::Next("branch_b_success".to_string()))
     }
 }
