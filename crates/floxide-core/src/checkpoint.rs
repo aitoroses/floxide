@@ -89,7 +89,7 @@ impl<C: Context, WI: WorkItem> CheckpointStore<C, WI> for InMemoryCheckpointStor
     }
     async fn load(&self, workflow_id: &str) -> Result<Option<Checkpoint<C, WI>>, CheckpointError> {
         let map = self.inner.read().unwrap();
-        let maybe_ck = map.get(workflow_id).map(|b| b.clone());
+        let maybe_ck = map.get(workflow_id).cloned();
         match maybe_ck {
             Some(ck) => Ok(Some(ck)),
             None => Ok(None),

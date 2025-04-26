@@ -524,34 +524,32 @@ where
     where
         C: std::fmt::Debug + Clone + Send + Sync,
     {
-        loop {
-            if !self.can_worker_continue(worker_id).await {
-                tracing::debug!(worker_id, "Worker is permanently failed, skipping work");
-                return Ok(None);
+        if !self.can_worker_continue(worker_id).await {
+            tracing::debug!(worker_id, "Worker is permanently failed, skipping work");
+            return Ok(None);
+        }
+        self.heartbeat(worker_id).await;
+        match self
+            .workflow
+            .step_distributed(
+                &self.checkpoint_store,
+                &self.queue,
+                worker_id,
+                self.build_callbacks(worker_id),
+            )
+            .await
+        {
+            Ok(Some((run_id, output))) => {
+                self.on_idle_state_updates(worker_id).await?;
+                Ok(Some((run_id, output)))
             }
-            self.heartbeat(worker_id).await;
-            match self
-                .workflow
-                .step_distributed(
-                    &self.checkpoint_store,
-                    &self.queue,
-                    worker_id,
-                    self.build_callbacks(worker_id),
-                )
-                .await
-            {
-                Ok(Some((run_id, output))) => {
-                    self.on_idle_state_updates(worker_id).await?;
-                    return Ok(Some((run_id, output)));
-                }
-                Ok(None) => {
-                    self.on_idle_state_updates(worker_id).await?;
-                    return Ok(None);
-                }
-                Err(e) => {
-                    self.on_idle_state_updates(worker_id).await?;
-                    return Err(e.error);
-                }
+            Ok(None) => {
+                self.on_idle_state_updates(worker_id).await?;
+                Ok(None)
+            }
+            Err(e) => {
+                self.on_idle_state_updates(worker_id).await?;
+                Err(e.error)
             }
         }
     }
@@ -733,6 +731,23 @@ where
             })),
             phantom: std::marker::PhantomData,
         })
+    }
+}
+
+impl<W, C, Q, S, RIS, MS, ES, LS, WISS> Default for WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS, WISS>
+where
+    W: Workflow<C, WorkItem: 'static>,
+    C: Context,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync,
+    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
+    RIS: RunInfoStore + Send + Sync,
+    MS: MetricsStore + Send + Sync,
+    ES: ErrorStore + Send + Sync,
+    LS: LivenessStore + Send + Sync,
+    WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 

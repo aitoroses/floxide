@@ -85,7 +85,7 @@ impl RunInfoStore for InMemoryRunInfoStore {
         let map = self.inner.lock().await;
         let runs = map
             .values()
-            .filter(|info| filter.as_ref().map_or(true, |f| *f == info.status))
+            .filter(|info| filter.as_ref().is_none_or(|f| *f == info.status))
             .cloned()
             .collect();
         Ok(runs)

@@ -183,7 +183,7 @@ where
 
         match run_info.unwrap().status {
             RunStatus::Running => {
-                return Ok(());
+                Ok(())
             }
             RunStatus::Failed => {
                 // Re-establish the work queue from the work item state store
@@ -220,10 +220,10 @@ where
                     })
             }
             RunStatus::Completed => {
-                return Err(FloxideError::Generic("run already completed".to_string()));
+                Err(FloxideError::Generic("run already completed".to_string()))
             }
             RunStatus::Cancelled => {
-                return Err(FloxideError::AlreadyCompleted);
+                Err(FloxideError::AlreadyCompleted)
             }
             RunStatus::Paused => {
                 // Change the status of all work items to Pending
@@ -496,5 +496,22 @@ where
                 .ok_or("work_item_state_store is required")?,
             phantom: std::marker::PhantomData,
         })
+    }
+}
+
+impl<W, C, Q, S, RIS, MS, ES, LS, WIS> Default for OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS, WIS>
+where
+    W: Workflow<C>,
+    C: Context,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync,
+    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
+    RIS: RunInfoStore + Send + Sync,
+    MS: MetricsStore + Send + Sync,
+    ES: ErrorStore + Send + Sync,
+    LS: LivenessStore + Send + Sync,
+    WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
