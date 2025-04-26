@@ -16,7 +16,6 @@ pub enum WorkerStatus {
     Idle,
     InProgress,
     Retrying(usize, usize), // (attempt, max_attempts)
-    PermanentlyFailed,
 }
 
 /// Health and status information for a workflow worker.
@@ -30,6 +29,10 @@ pub struct WorkerHealth {
     pub error_count: usize,
     /// Optional custom status string (e.g., "in progress", "permanently failed").
     pub status: WorkerStatus,
+    /// Worker's current work item.
+    pub current_work_item: Option<String>,
+    /// Worker's current work item's run ID.
+    pub current_work_item_run_id: Option<String>,
 }
 
 /// Trait for a distributed workflow liveness/health store.

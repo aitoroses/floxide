@@ -137,7 +137,7 @@ Let us know if you want a diagram, code comments, or further breakdown of any pa
 //   - Log and checkpoint state after each node
 
 use async_trait::async_trait;
-use floxide::{checkpoint::InMemoryCheckpointStore, context::SharedState};
+use floxide::{checkpoint::InMemoryCheckpointStore, context::SharedState, distributed::{ItemProcessedOutcome, StepCallbacks}};
 use floxide_core::*;
 use floxide_macros::workflow;
 use serde::{Deserialize, Serialize};
@@ -272,6 +272,31 @@ workflow! {
     }
 }
 
+struct NoopCallbacks;
+
+#[async_trait]
+impl StepCallbacks<Ctx, ParallelWorkflow> for NoopCallbacks {
+    async fn on_started(&self, run_id: String, item: ParallelWorkflowWorkItem) -> Result<(), FloxideError> {
+        tracing::info!("NoopCallbacks: on_started for run {} and item {:?}", run_id, item);
+        Ok(())
+    }
+    async fn on_item_processed(&self, run_id: String, item: ParallelWorkflowWorkItem, outcome: ItemProcessedOutcome) -> Result<(), FloxideError> {
+        tracing::info!("NoopCallbacks: on_item_processed for run {} and item {:?}", run_id, item);
+        match outcome {
+            ItemProcessedOutcome::SuccessTerminal => {
+                tracing::info!("NoopCallbacks: on_item_processed for run {} and item {:?} completed", run_id, item);
+            }
+            ItemProcessedOutcome::SuccessNonTerminal => {
+                tracing::info!("NoopCallbacks: on_item_processed for run {} and item {:?} non-terminal", run_id, item);
+            }
+            ItemProcessedOutcome::Error(e) => {
+                tracing::error!("NoopCallbacks: on_item_processed for run {} and item {:?} failed with error: {:?}", run_id, item, e);
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Runs the distributed example: seeds the workflow, spawns workers, prints final context
 async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
     // Create in-memory runtime (queue and checkpoint store)
@@ -289,6 +314,7 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
         local_counter: SharedState::new(0),
         logs: SharedState::new(Vec::new()),
     });
+
     let run_id = "run1";
     // Seed the single run, enqueuing the split node
     wf.start_distributed(&ctx, (), &store, &queue, run_id)
@@ -304,7 +330,7 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
             async move {
                 // Each worker processes steps until it sees its terminal branch event
                 loop {
-                    let step_result = wf.step_distributed(&store, &queue, i).await;
+                    let step_result = wf.step_distributed(&store, &queue, i, Arc::new(NoopCallbacks)).await;
                     let mut should_fail = SHOULD_FAIL.lock().await;
 
                     match (*should_fail, step_result) {

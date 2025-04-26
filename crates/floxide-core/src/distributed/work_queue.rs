@@ -39,12 +39,6 @@ pub trait WorkQueue<C: Context, WI: WorkItem>: Clone + Send + Sync + 'static {
     /// or Err(WorkQueueError) on failure.
     async fn dequeue(&self) -> Result<Option<(String, WI)>, WorkQueueError>;
 
-    /// Peek at the next available work-item from any workflow.
-    /// Returns Ok(Some((workflow_id, item))) if an item was peeked,
-    /// Ok(None) if the queue is empty,
-    /// or Err(WorkQueueError) on failure.
-    async fn peek(&self) -> Result<Option<(String, WI)>, WorkQueueError>;
-
     /// Purge all work items for a given workflow run.
     /// Removes all queued work for the specified run_id.
     async fn purge_run(&self, run_id: &str) -> Result<(), WorkQueueError>;
@@ -83,15 +77,6 @@ impl<C: Context, WI: WorkItem + 'static> WorkQueue<C, WI> for InMemoryWorkQueue<
         for (run_id, q) in map.iter_mut() {
             if let Some(item) = q.pop_front() {
                 return Ok(Some((run_id.clone(), item)));
-            }
-        }
-        Ok(None)
-    }
-    async fn peek(&self) -> Result<Option<(String, WI)>, WorkQueueError> {
-        let map = self.0.lock().await;
-        for (run_id, q) in map.iter() {
-            if let Some(item) = q.front() {
-                return Ok(Some((run_id.clone(), item.clone())));
             }
         }
         Ok(None)

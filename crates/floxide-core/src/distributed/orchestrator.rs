@@ -12,7 +12,7 @@ use std::marker::PhantomData;
 use std::time::Duration;
 use uuid;
 
-use super::WorkerHealth;
+use super::{WorkItemState, WorkItemStateStoreError, WorkItemStatus, WorkerHealth};
 
 
 pub struct DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>
@@ -146,7 +146,6 @@ where
             .purge_run(run_id)
             .await
             .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
-        self.work_item_state_store.purge_run(run_id).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
         Ok(())
     }
 
@@ -183,13 +182,23 @@ where
                 return Ok(());
             }
             RunStatus::Failed => {
+                // Re-establish the work queue from the work item state store
+                for item in self.list_work_items(run_id).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))? {
+                    if item.status != WorkItemStatus::Completed {
+                        self.work_item_state_store.set_status(run_id, &item.work_item, WorkItemStatus::Pending).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
+                        self.work_item_state_store.reset_attempts(run_id, &item.work_item).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
+                        self.queue.enqueue(run_id, item.work_item.clone()).await.map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
+                    }
+                }
+
+                // Reset run status to Running
                 self.run_info_store
                     .update_status(run_id, RunStatus::Running)
                     .await
                     .map_err(|e| match e {
-                            RunInfoError::NotFound => FloxideError::NotStarted,
-                            e => FloxideError::Generic(format!("run_info_store error: {e}")),
-                        })
+                        RunInfoError::NotFound => FloxideError::NotStarted,
+                        e => FloxideError::Generic(format!("run_info_store error: {e}")),
+                    })
             }
             RunStatus::Completed => {
                 return Err(FloxideError::Generic("run already completed".to_string()));
@@ -198,8 +207,24 @@ where
                 return Err(FloxideError::AlreadyCompleted);
             }
             RunStatus::Paused => {
-                // Clear the work item state for the run
-                self.work_item_state_store.purge_run(run_id).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
+                // TODO: Change the status of all work items to Pending
+                // Repopulate the work queue from the persisted checkpoint
+                self.queue
+                    .purge_run(run_id)
+                    .await
+                    .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
+                let cp_opt = self.store
+                    .load(run_id)
+                    .await
+                    .map_err(|e| FloxideError::Generic(format!("checkpoint_store error: {e}")))?;
+                let cp = cp_opt.ok_or_else(|| FloxideError::NotStarted)?;
+                for item in cp.queue.iter() {
+                    self.queue
+                        .enqueue(run_id, item.clone())
+                        .await
+                        .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
+                }
+                // Reset run status to Running
                 self.run_info_store
                     .update_status(run_id, RunStatus::Running)
                     .await
@@ -305,6 +330,11 @@ where
         &self,
     ) -> Result<Vec<crate::distributed::WorkerHealth>, LivenessStoreError> {
         self.liveness_store.list_health().await
+    }
+
+    /// Get all work items for a run.
+    pub async fn list_work_items(&self, run_id: &str) -> Result<Vec<WorkItemState<W::WorkItem>>, WorkItemStateStoreError> {
+        self.work_item_state_store.get_all(run_id).await
     }
 
     /// Mark a run as completed and set finished_at timestamp.

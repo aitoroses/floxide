@@ -4,11 +4,15 @@ use crate::checkpoint::CheckpointStore;
 use crate::distributed::{ErrorStore, LivenessStore, MetricsStore, RunInfoStore, RunStatus, WorkItemStateStore, WorkItemStatus, WorkQueue, WorkerHealth, WorkerStatus, WorkflowError};
 use crate::error::FloxideError;
 use std::marker::PhantomData;
+use std::sync::Arc;
+use async_trait::async_trait;
 use tokio::time::{sleep, Duration};
 use tracing::error;
 use crate::retry::{RetryPolicy, BackoffStrategy, RetryError};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
+
+use super::{ItemProcessedOutcome, StepCallbacks};
 
 /// A distributed workflow worker that polls a work queue, processes workflow steps, and updates state in distributed stores.
 ///
@@ -40,15 +44,16 @@ where
 
 impl<W, C, Q, S, RIS, MS, ES, LS, WISS> DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>
 where
-    W: Workflow<C, WorkItem: 'static>,
-    C: Context,
-    Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
-    RIS: RunInfoStore + Send + Sync,
-    MS: MetricsStore + Send + Sync,
-    ES: ErrorStore + Send + Sync,
-    LS: LivenessStore + Send + Sync,
-    WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    W: Workflow<C, WorkItem: 'static> + 'static,
+    C: Context + 'static,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync + Clone,
+    S: CheckpointStore<C, W::WorkItem> + Send + Sync + Clone + 'static,
+    RIS: RunInfoStore + Send + Sync + Clone + 'static,
+    MS: MetricsStore + Send + Sync + Clone + 'static,
+    ES: ErrorStore + Send + Sync + Clone + 'static,
+    LS: LivenessStore + Send + Sync + Clone + 'static,
+    WISS: WorkItemStateStore<W::WorkItem> + Send + Sync + Clone + 'static,
+    Self: Clone,
 {
     /// Create a new distributed worker with all required stores and workflow.
     ///
@@ -65,6 +70,204 @@ where
         self.retry_policy = Some(policy);
     }
 
+    fn build_callbacks(&self, worker_id: usize) -> Arc<StepCallbacksImpl<C, W, Q, S, RIS, MS, ES, LS, WISS>> {
+        let cloned_worker = self.clone();
+        let callbacks = Arc::new(StepCallbacksImpl { worker: Arc::new(cloned_worker), worker_id });
+        callbacks
+    }
+
+    // --- Callback-style state update methods ---
+    /// Called when a work item is about to be processed. Only allows Pending items to proceed.
+    /// Returns Err if the item is not in a processable state.
+    async fn on_started_state_updates(&self, worker_id: usize, run_id: &str, work_item: &W::WorkItem) -> Result<(), FloxideError> {
+        let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
+        health.status = WorkerStatus::InProgress;
+        health.current_work_item = Some(format!("{:?}", work_item));
+        health.current_work_item_run_id = Some(run_id.to_string());
+        self.liveness_store.update_health(worker_id, health).await.ok();
+        let item_state = self.work_item_state_store.get_status(run_id, work_item).await;
+        match item_state {
+            Ok(WorkItemStatus::Pending) => {
+                // Normal path: transition to InProgress and increment attempts
+                self.work_item_state_store.set_status(run_id, work_item, WorkItemStatus::InProgress).await.ok();
+                self.work_item_state_store.increment_attempts(run_id, work_item).await.ok();
+                Ok(())
+            }
+            Ok(WorkItemStatus::InProgress) => {
+                // [Distributed edge case]: Multiple workers may dequeue the same work item nearly simultaneously.
+                // Only one will succeed in updating the state; the others will see it as already in progress or completed.
+                // This is expected in distributed systems without strict distributed locking or atomic compare-and-set.
+                tracing::warn!(worker_id, run_id, "Work item {:?} is already in progress", work_item);
+                Err(FloxideError::Generic(format!("Work item {:?} is already in progress", work_item)))
+            }
+            Ok(WorkItemStatus::Completed) => {
+                // [Distributed edge case]: Multiple workers may attempt to process the same work item, but only one can complete it.
+                // The others will see it as already completed. This is not a fatal error, but is expected in at-least-once delivery systems.
+                tracing::warn!(worker_id, run_id, "Work item {:?} is already completed", work_item);
+                Err(FloxideError::Generic(format!("Work item {:?} is already completed", work_item)))
+            }
+            Ok(WorkItemStatus::Failed) => {
+                tracing::error!(worker_id, run_id, "Work item {:?} previously failed and should not be processed again", work_item);
+                Err(FloxideError::Generic(format!("Work item {:?} previously failed and should not be processed again", work_item)))
+            }
+            Ok(WorkItemStatus::WaitingRetry) => {
+                tracing::warn!(worker_id, run_id, "Work item {:?} is waiting for retry backoff", work_item);
+                Err(FloxideError::Generic(format!("Work item {:?} is waiting for retry backoff", work_item)))
+            }
+            Ok(WorkItemStatus::PermanentlyFailed) => {
+                tracing::error!(worker_id, run_id, "Work item {:?} is permanently failed and should not be processed again", work_item);
+                Err(FloxideError::Generic(format!("Work item {:?} is permanently failed and should not be processed again", work_item)))
+            }
+            Err(e) => {
+                tracing::error!(worker_id, run_id, "Error getting work item status: {:?}", e);
+                Err(FloxideError::Generic(format!("Error getting work item status: {:?}", e)))
+            }
+        }
+    }
+
+    /// Called when a terminal work item is processed successfully.
+    async fn on_item_processed_success_terminal_state_updates(&self, worker_id: usize, run_id: &str, work_item: &W::WorkItem) -> Result<(), FloxideError> {
+        let status = self.work_item_state_store.get_status(run_id, work_item).await.ok();
+        match status {
+            Some(WorkItemStatus::Completed) => {
+                tracing::warn!(worker_id, run_id, "Work item {:?} is already completed (terminal)", work_item);
+                return Ok(());
+            }
+            Some(WorkItemStatus::PermanentlyFailed) => {
+                tracing::warn!(worker_id, run_id, "Work item {:?} is permanently failed (terminal)", work_item);
+                return Ok(());
+            }
+            _ => {
+                self.work_item_state_store.set_status(run_id, work_item, WorkItemStatus::Completed).await.ok();
+            }
+        }
+        let mut metrics = self.metrics_store.get_metrics(run_id).await.ok().flatten().unwrap_or_default();
+        metrics.completed += 1;
+        metrics.total_work_items += 1;
+        self.metrics_store.update_metrics(run_id, metrics).await.ok();
+        let now = chrono::Utc::now();
+        let _ = self.run_info_store.update_status(run_id, RunStatus::Completed).await;
+        let _ = self.run_info_store.update_finished_at(run_id, now).await;
+        Ok(())
+    }
+
+    /// Called when a non-terminal work item is processed successfully.
+    async fn on_item_processed_success_non_terminal_state_updates(&self, worker_id: usize, run_id: &str, work_item: &W::WorkItem) -> Result<(), FloxideError> {
+        let status = self.work_item_state_store.get_status(run_id, work_item).await.ok();
+        match status {
+            Some(WorkItemStatus::Completed) => {
+                tracing::warn!(worker_id, run_id, "Work item {:?} is already completed (non-terminal)", work_item);
+                return Ok(());
+            }
+            Some(WorkItemStatus::PermanentlyFailed) => {
+                tracing::warn!(worker_id, run_id, "Work item {:?} is permanently failed (non-terminal)", work_item);
+                return Ok(());
+            }
+            _ => {
+                self.work_item_state_store.set_status(run_id, work_item, WorkItemStatus::Completed).await.ok();
+            }
+        }
+        let mut metrics = self.metrics_store.get_metrics(run_id).await.ok().flatten().unwrap_or_default();
+        metrics.total_work_items += 1;
+        self.metrics_store.update_metrics(run_id, metrics).await.ok();
+        Ok(())
+    }
+
+    /// Called when a work item processing returns an error.
+    async fn on_item_processed_error_state_updates(&self, worker_id: usize, run_id: &str, work_item: &W::WorkItem, e: &FloxideError) -> Result<(), FloxideError> {
+        let status = self.work_item_state_store.get_status(run_id, work_item).await.ok();
+        match status {
+            Some(WorkItemStatus::Completed) => {
+                tracing::warn!(worker_id, run_id, "Work item {:?} is already completed (error)", work_item);
+                return Ok(());
+            }
+            Some(WorkItemStatus::PermanentlyFailed) => {
+                tracing::warn!(worker_id, run_id, "Work item {:?} is permanently failed (error)", work_item);
+                return Ok(());
+            }
+            _ => {}
+        }
+        let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
+        health.error_count += 1;
+        let policy = self.retry_policy.as_ref();
+        let attempt = self.work_item_state_store.get_attempts(run_id, work_item).await.unwrap_or(0) as usize;
+        let should_retry = policy.map(|p| p.should_retry(&e, attempt)).unwrap_or(false);
+        let max_attempts = policy.map(|p| p.max_attempts).unwrap_or(5);
+        let mut is_permanent = false;
+        if should_retry {
+            health.status = WorkerStatus::Retrying(attempt, max_attempts);
+            self.work_item_state_store.set_status(run_id, work_item, WorkItemStatus::Failed).await.ok();
+            let attempts = self.work_item_state_store.get_attempts(run_id, work_item).await.unwrap_or(0);
+            if attempts >= max_attempts as u32 {
+                self.work_item_state_store.set_status(run_id, work_item, WorkItemStatus::PermanentlyFailed).await.ok();
+                is_permanent = true;
+            } else {
+                // Set to WaitingRetry for backoff
+                self.work_item_state_store.set_status(run_id, work_item, WorkItemStatus::WaitingRetry).await.ok();
+            }
+        } else {
+            self.work_item_state_store.set_status(run_id, work_item, WorkItemStatus::PermanentlyFailed).await.ok();
+            is_permanent = true;
+        }
+        self.liveness_store.update_health(worker_id, health).await.ok();
+        // Record error
+        let work_item_str = format!("{:?}", work_item);
+        let workflow_error = WorkflowError {
+            work_item: work_item_str,
+            error: format!("{:?}", e),
+            attempt,
+            timestamp: chrono::Utc::now(),
+        };
+        self.error_store.record_error(run_id, workflow_error).await.ok();
+        // Update metrics
+        let mut metrics = self.metrics_store.get_metrics(run_id).await.ok().flatten().unwrap_or_default();
+        if should_retry && !is_permanent {
+            metrics.retries += 1;
+        } else {
+            metrics.failed += 1;
+        }
+        self.metrics_store.update_metrics(run_id, metrics).await.ok();
+        // On permanent failure, mark run as failed and purge
+        if is_permanent {
+            let now = chrono::Utc::now();
+            self.run_info_store.update_status(run_id, RunStatus::Failed).await.ok();
+            self.run_info_store.update_finished_at(run_id, now).await.ok();
+        }
+        // Retry or break: on retry, re-enqueue the failed work item
+        if should_retry && !is_permanent {
+            if let Some(policy) = policy {
+                let queue = self.queue.clone();
+                let run_id = run_id.to_string();
+                let work_item = work_item.clone();
+                let work_item_state_store = self.work_item_state_store.clone();
+                let backoff = policy.backoff_duration(attempt);
+                tokio::spawn(async move {
+                    tokio::time::sleep(backoff).await;
+                    // Set to Pending before re-enqueue
+                    work_item_state_store.set_status(&run_id, &work_item, WorkItemStatus::Pending).await.ok();
+                    queue.enqueue(&run_id, work_item).await.ok();
+                });
+            }
+        }
+        Ok(())
+    }
+
+    /// Update the worker's health to idle.
+    async fn on_idle_state_updates(&self, worker_id: usize) -> Result<(), FloxideError> {
+        let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
+        health.status = WorkerStatus::Idle;
+        health.current_work_item = None;
+        health.current_work_item_run_id = None;
+        self.liveness_store.update_health(worker_id, health).await.ok();
+        Ok(())
+    }
+
+    /// Check if the worker is permanently failed and should stop.
+    async fn can_worker_continue(&self, worker_id: usize) -> bool {
+        let health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
+        matches!(health.status, WorkerStatus::Idle)
+    }
+
     /// Process a single work item from the queue, updating all distributed state.
     ///
     /// Returns `Ok(Some((run_id, output)))` if a work item was processed, `Ok(None)` if no work was available, or `Err` on permanent failure.
@@ -76,170 +279,27 @@ where
     where
         C: std::fmt::Debug + Clone + Send + Sync,
     {
-        // Check if worker is permanently failed before doing anything
-        let health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
-        if let WorkerStatus::PermanentlyFailed = health.status {
-            tracing::debug!(worker_id, "Worker is permanently failed, skipping work");
-            return Ok(None);
-        }
-        self.heartbeat(worker_id).await;
-        let policy = self.retry_policy.as_ref();
-        let max_attempts = policy.map(|p| p.max_attempts).unwrap_or(1);
-        let mut attempt;
-        let mut last_err;
         loop {
-            // Peek a work item to get the run_id and work_item
-            let (run_id, work_item) = match self.queue.peek().await {
-                Ok(Some(pair)) => pair,
-                Ok(None) => {
-                    // No work available, set status to idle
-                    tracing::trace!(worker_id, "Worker setting status to idle (no work available)");
-                    let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
-                    health.status = WorkerStatus::Idle;
-                    self.liveness_store.update_health(worker_id, health).await.ok();
-                    return Ok(None);
-                },
-                Err(e) => return Err(FloxideError::Generic(format!("work queue error: {e}"))),
-            };
-            // Check per-item status and attempts
-            let status = self.work_item_state_store.get_status(&run_id, &work_item).await.unwrap_or(WorkItemStatus::Pending);
-            let attempts = self.work_item_state_store.get_attempts(&run_id, &work_item).await.unwrap_or(0);
-            attempt = attempts;
-            if status == WorkItemStatus::PermanentlyFailed || attempts >= max_attempts as u32 {
-                tracing::debug!(worker_id, run_id = %run_id, ?work_item, "Skipping work item due to permanent failure or max attempts");
-                // Remove from queue (dequeue)
-                let _ = self.queue.dequeue().await;
-                continue;
+            if !self.can_worker_continue(worker_id).await {
+                tracing::debug!(worker_id, "Worker is permanently failed, skipping work");
+                return Ok(None);
             }
-            // Check run status
-            if let Ok(Some(info)) = self.run_info_store.get_run(&run_id).await {
-                use crate::distributed::RunStatus;
-                if info.status != RunStatus::Running {
-                    // Set custom_status to "idle" when run is not running
-                    tracing::debug!(worker_id, run_id = %run_id, "Worker setting status to idle because run is not running");
-                    let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
-                    health.status = WorkerStatus::Idle;
-                    self.liveness_store.update_health(worker_id, health).await.ok();
-                    return Ok(None);
-                }
-            }
-            // Set status to in progress before processing and increment attempts
-            self.work_item_state_store.set_status(&run_id, &work_item, WorkItemStatus::InProgress).await.ok();
-            self.work_item_state_store.increment_attempts(&run_id, &work_item).await.ok();
-            tracing::debug!(worker_id, run_id = %run_id, "Worker setting status to in progress before processing work item");
-            let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
-            health.status = WorkerStatus::InProgress;
-            self.liveness_store.update_health(worker_id, health).await.ok();
-            // Process the work item
-            match self.workflow.step_distributed(&self.checkpoint_store, &self.queue, worker_id).await {
+            self.heartbeat(worker_id).await;
+            match self.workflow.step_distributed(&self.checkpoint_store, &self.queue, worker_id, self.build_callbacks(worker_id)).await {
                 Ok(Some((run_id, output))) => {
-                    // On success, set custom_status to idle
-                    self.work_item_state_store.set_status(&run_id, &work_item, WorkItemStatus::Completed).await.ok();
-                    tracing::debug!(worker_id, run_id = %run_id, "Worker setting status to idle after processing terminal node");
-                    let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
-                    health.status = WorkerStatus::Idle;
-                    self.liveness_store.update_health(worker_id, health).await.ok();
-                    // Update metrics: increment completed and total_work_items
-                    let mut metrics = self.metrics_store.get_metrics(&run_id).await.ok().flatten().unwrap_or_default();
-                    metrics.completed += 1;
-                    metrics.total_work_items += 1;
-                    self.metrics_store.update_metrics(&run_id, metrics).await.ok();
-                    // Mark run as completed only when Ok(Some(...)) is returned (terminal node)
-                    let now = chrono::Utc::now();
-                    let _ = self.run_info_store.update_status(&run_id, RunStatus::Completed).await;
-                    let _ = self.run_info_store.update_finished_at(&run_id, now).await;
-                    // Purge work item state store for this run
-                    let _ = self.work_item_state_store.purge_run(&run_id).await;
+                    self.on_idle_state_updates(worker_id).await?;
                     return Ok(Some((run_id, output)));
                 }
                 Ok(None) => {
-                    // Set custom_status to idle after processing non-terminal work item
-                    self.work_item_state_store.set_status(&run_id, &work_item, WorkItemStatus::Completed).await.ok();
-                    tracing::debug!(worker_id, run_id = %run_id, "Worker setting status to idle after processing non-terminal work item");
-                    let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
-                    health.status = WorkerStatus::Idle;
-                    self.liveness_store.update_health(worker_id, health).await.ok();
-                    let mut metrics = self.metrics_store.get_metrics(&run_id).await.ok().flatten().unwrap_or_default();
-                    metrics.total_work_items += 1;
-                    self.metrics_store.update_metrics(&run_id, metrics).await.ok();
+                    self.on_idle_state_updates(worker_id).await?;
                     return Ok(None);
                 }
                 Err(e) => {
-                    last_err = e;
-                    // Update error_count and custom_status in health
-                    let mut health = self.liveness_store.get_health(worker_id).await.ok().flatten().unwrap_or_default();
-                    health.error_count += 1;
-                    let mut is_permanent = false;
-                    if let Some(policy) = policy {
-                        if policy.should_retry(&last_err.error, attempt as usize) {
-                            health.status = WorkerStatus::Retrying(attempt as usize, max_attempts);
-                            self.work_item_state_store.set_status(&run_id, &work_item, WorkItemStatus::Failed).await.ok();
-                            let attempts = self.work_item_state_store.increment_attempts(&run_id, &work_item).await.unwrap_or(0);
-                            if attempts >= max_attempts as u32 {
-                                self.work_item_state_store.set_status(&run_id, &work_item, WorkItemStatus::PermanentlyFailed).await.ok();
-                                is_permanent = true;
-                            }
-                        } else {
-                            let _ = self.work_item_state_store.set_status(&run_id, &work_item, WorkItemStatus::PermanentlyFailed).await;
-                            is_permanent = true;
-                        }
-                    } else {
-                        let _ = self.work_item_state_store.set_status(&run_id, &work_item, WorkItemStatus::PermanentlyFailed).await;
-                        is_permanent = true;
-                    }
-                    self.liveness_store.update_health(worker_id, health).await.ok();
-                    // Record error in error_store
-                    let run_id = last_err.run_id.clone().unwrap_or_else(|| format!("worker-{}-unknown-run", worker_id));
-                    let work_item_str = last_err.work_item.as_ref().map(|w| format!("{:?}", w)).unwrap_or_else(|| format!("worker_id={}", worker_id));
-                    let workflow_error = WorkflowError {
-                        work_item: work_item_str,
-                        error: format!("{:?}", last_err),
-                        attempt: attempt as usize,
-                        timestamp: chrono::Utc::now(),
-                    };
-                    self.error_store.record_error(&run_id, workflow_error).await.ok();
-                    // Update metrics: increment failed or retries
-                    let mut metrics = self.metrics_store.get_metrics(&run_id).await.ok().flatten().unwrap_or_default();
-                    if let Some(policy) = policy {
-                        if policy.should_retry(&last_err.error, attempt as usize) {
-                            metrics.retries += 1;
-                        } else {
-                            metrics.failed += 1;
-                        }
-                    } else {
-                        metrics.failed += 1;
-                    }
-                    self.metrics_store.update_metrics(&run_id, metrics).await.ok();
-                    // On permanent failure, mark run as failed and purge run in both stores
-                    if is_permanent {
-                        let now = chrono::Utc::now();
-                        self.run_info_store.update_status(&run_id, RunStatus::Failed).await.ok();
-                        self.run_info_store.update_finished_at(&run_id, now).await.ok();
-                        self.work_item_state_store.purge_run(&run_id).await.ok();
-                    }
-                    // Retry or break: on retry, re-enqueue the failed work item
-                    if let Some(policy) = policy {
-                        if policy.should_retry(&last_err.error, attempt as usize) && !is_permanent {
-                            let queue = self.queue.clone();
-                            let backoff = policy.backoff_duration(attempt as usize);
-                            tokio::spawn(async move {
-                                tokio::time::sleep(backoff).await;
-                                // Re-enqueue the failed work item for retry
-                                if let Some(failed_item) = last_err.work_item.as_ref() {
-                                    // best-effort enqueue
-                                    queue.enqueue(&run_id, failed_item.clone()).await.ok();
-                                }
-                            });
-                        } else {
-                            break;
-                        }
-                    } else {
-                        break;
-                    }
+                    self.on_idle_state_updates(worker_id).await?;
+                    return Err(e.error);
                 }
             }
         }
-        Err(last_err.error)
     }
 
     /// Continuously poll for work and process items, sleeping briefly when idle or on error.
@@ -444,10 +504,13 @@ where
         }
     }
 
-    /// Gracefully stop all workers by signalling cancellation.
+    /// Gracefully stop all workers by signalling cancellation and waiting for them to finish.
     pub async fn stop(&mut self) {
         for token in &self.cancel_tokens {
             token.cancel();
+        }
+        for handle in self.handles.drain(..) {
+            let _ = handle.await;
         }
     }
 
@@ -463,3 +526,51 @@ where
         self.worker.liveness_store.list_health().await.unwrap_or_default()
     }
 } 
+
+struct StepCallbacksImpl<C: Context, W: Workflow<C>, Q, S, RIS, MS, ES, LS, WISS>
+where
+    W: Workflow<C, WorkItem: 'static>,
+    C: Context,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync,
+    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
+    RIS: RunInfoStore + Send + Sync,
+    MS: MetricsStore + Send + Sync,
+    ES: ErrorStore + Send + Sync,
+    LS: LivenessStore + Send + Sync,
+    WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+{
+    worker: Arc<DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>>,
+    worker_id: usize,
+}
+
+#[async_trait]
+impl<C: Context, W: Workflow<C>, Q, S, RIS, MS, ES, LS, WISS> StepCallbacks<C, W> for StepCallbacksImpl<C, W, Q, S, RIS, MS, ES, LS, WISS>
+where
+    W: Workflow<C, WorkItem: 'static> + 'static,
+    C: Context + 'static,
+    Q: WorkQueue<C, W::WorkItem> + Send + Sync + Clone,
+    S: CheckpointStore<C, W::WorkItem> + Send + Sync + Clone + 'static,
+    RIS: RunInfoStore + Send + Sync + Clone + 'static,
+    MS: MetricsStore + Send + Sync + Clone + 'static,
+    ES: ErrorStore + Send + Sync + Clone + 'static,
+    LS: LivenessStore + Send + Sync + Clone + 'static,
+    WISS: WorkItemStateStore<W::WorkItem> + Send + Sync + Clone + 'static,
+{
+    async fn on_started(&self, run_id: String, item: W::WorkItem) -> Result<(), FloxideError> {
+        if let Err(e) = self.worker.on_started_state_updates(self.worker_id, &run_id, &item).await {
+            tracing::error!(worker_id = self.worker_id, run_id = %run_id, "on_started_state_updates failed: {:?}", e);
+        }
+        Ok(())
+    }
+    async fn on_item_processed(&self, run_id: String, item: W::WorkItem, outcome: ItemProcessedOutcome) -> Result<(), FloxideError> {
+        let result = match outcome {
+            ItemProcessedOutcome::SuccessTerminal => self.worker.on_item_processed_success_terminal_state_updates(self.worker_id, &run_id, &item).await,
+            ItemProcessedOutcome::SuccessNonTerminal => self.worker.on_item_processed_success_non_terminal_state_updates(self.worker_id, &run_id, &item).await,
+            ItemProcessedOutcome::Error(e) => self.worker.on_item_processed_error_state_updates(self.worker_id, &run_id, &item, &e).await,
+        };
+        if let Err(e) = result {
+            tracing::error!(worker_id = self.worker_id, run_id = %run_id, "on_item_processed_state_updates failed: {:?}", e);
+        }
+        Ok(())
+    }
+}

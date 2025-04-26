@@ -30,6 +30,7 @@
 //! These distributed methods are the core primitives for building scalable, fault-tolerant workflow systems in Floxide.
 //!
 use std::fmt::Debug;
+use std::sync::Arc;
 
 // crates/floxide-core/src/workflow.rs
 use async_trait::async_trait;
@@ -37,7 +38,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use crate::context::Context;
 use crate::error::FloxideError;
-use crate::distributed::{StepError, WorkQueue};
+use crate::distributed::{StepCallbacks, StepError, WorkQueue};
 use crate::CheckpointStore;
 
 /// Trait for a workflow work item.
@@ -182,6 +183,7 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync
         store: &CS,
         queue: &Q,
         worker_id: usize,
+        callbacks: Arc<dyn StepCallbacks<C, Self>>,
     ) -> Result<Option<(String, Self::Output)>, StepError<Self::WorkItem>>
     where
         CS: crate::checkpoint::CheckpointStore<C, Self::WorkItem> + Send + Sync,

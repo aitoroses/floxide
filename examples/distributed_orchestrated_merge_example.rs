@@ -11,6 +11,7 @@ use floxide::{
 use floxide_core::*;
 use floxide_macros::{node, workflow};
 use serde::{Deserialize, Serialize};
+use tokio::time::error::Elapsed;
 
 // --- Context ---
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
@@ -136,7 +137,7 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
 
     // Wait for completion
     let status = tokio::time::timeout(
-        std::time::Duration::from_secs(5),
+        std::time::Duration::from_secs(20),
         orchestrator
             .wait_for_completion(&run_id, std::time::Duration::from_millis(100))
     )
@@ -160,79 +161,49 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
 
         let pending_work = orchestrator.pending_work(&run_id).await.unwrap_or_default();
         println!("Pending work: {:#?}", pending_work);
+
+        let work_items = orchestrator.list_work_items(&run_id).await?;
+        println!("Work items: {:#?}", work_items);
         
         Ok::<(), Box<dyn std::error::Error>>(())
     };
 
     println!("Status: {:#?}", status);
 
-    let status = match status {
-        Ok(Ok(RunStatus::Completed)) => status?,
-        Ok(Ok(RunStatus::Failed)) => {
-            print_stats().await?;
-            println!("Resuming run");
-            orchestrator.resume(&run_id).await?;
-        
-            let status = tokio::time::timeout(
-                std::time::Duration::from_secs(5),
-                orchestrator
-                    .wait_for_completion(&run_id, std::time::Duration::from_millis(100))
-            )
-            .await;
-        
-            let status = match status {
-                Ok(status) => status?,
-                Err(e) => {
-                    print_stats().await?;
-                    return Err(e.into());
-                }
-            };
-
-            Ok(status)
+    let mut final_status = status;
+    loop {
+        match final_status {
+            Ok(Ok(RunStatus::Completed)) => {
+                print_stats().await?;
+                break Ok(RunStatus::Completed);
+            }
+            Ok(Ok(RunStatus::Failed)) | Err(Elapsed { ..}) => { // timeout or other error
+                print_stats().await?;
+                println!("Resuming run");
+                orchestrator.resume(&run_id).await?;
+                final_status = tokio::time::timeout(
+                    std::time::Duration::from_secs(10),
+                    orchestrator.wait_for_completion(&run_id, std::time::Duration::from_millis(100))
+                ).await;
+            }
+            Ok(Ok(RunStatus::Cancelled)) => {
+                print_stats().await?;
+                break Err(FloxideError::Generic("run cancelled".to_string()).into());
+            }
+            Ok(Ok(RunStatus::Paused)) => {
+                print_stats().await?;
+                break Err(FloxideError::Generic("run paused".to_string()).into());
+            }
+            Ok(Ok(RunStatus::Running)) => {
+                print_stats().await?;
+                break Err(FloxideError::Generic("run running".to_string()).into());
+            }
+            Ok(Err(e)) => {
+                print_stats().await?;
+                break Err(e.into());
+            }
         }
-        Ok(Ok(RunStatus::Cancelled)) => {
-            print_stats().await?;
-            return Err(FloxideError::Generic("run cancelled".to_string()).into());
-        }
-        Ok(Ok(RunStatus::Paused)) => {
-            print_stats().await?;
-            return Err(FloxideError::Generic("run paused".to_string()).into());
-        }
-        Ok(Ok(RunStatus::Running)) => {
-            print_stats().await?;
-            return Err(FloxideError::Generic("run running".to_string()).into());
-        }
-        Ok(Err(e)) => {
-            print_stats().await?;
-            return Err(e.into());
-        }
-        Err(e) => {
-            print_stats().await?;
-            return Err(e.into());
-        }
-    }?;
-
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-
-    // Print final context
-    println!("Distributed merge workflow completed!");
-    print_stats().await?;
-
-    // // Run again to validate the pool is still active
-    // let ctx = MergeContext {
-    //     values: SharedState::new(Vec::new()),
-    //     expected: 10,
-    //     random_fail_chance: 0.5,
-    // };
-    // let wf_ctx = WorkflowCtx::new(ctx);
-
-    // let run_id = orchestrator.start_run(&wf_ctx, 10).await?;
-    // orchestrator.wait_for_completion(&run_id, std::time::Duration::from_millis(100)).await?;
-
-    // let run_info = orchestrator.list_runs(None).await?;
-    // println!("Run info: {:#?}", run_info);
-
-    Ok(status)
+    }
 }
 
 #[tokio::main]

@@ -1,7 +1,8 @@
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use std::fmt::Debug;
 use thiserror::Error;
-use crate::error::FloxideError;
+use crate::{context::Context, error::FloxideError, workflow::Workflow};
 
 /// Status of a workflow run.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,4 +69,20 @@ pub struct StepError<W: std::fmt::Debug + Clone> {
     pub error: FloxideError,
     pub run_id: Option<String>,
     pub work_item: Option<W>,
-} 
+}
+
+#[derive(Debug, Clone)]
+pub enum ItemProcessedOutcome {
+    SuccessTerminal,
+    SuccessNonTerminal,
+    Error(FloxideError),
+}
+
+#[async_trait]
+pub trait StepCallbacks<C: Context, W: Workflow<C>>: Send + Sync {
+    /// Called when a step is started.
+    async fn on_started(&self, run_id: String, item: W::WorkItem) -> Result<(), FloxideError>;
+
+    /// Called when a step is completed.
+    async fn on_item_processed(&self, run_id: String, item: W::WorkItem, outcome: ItemProcessedOutcome) -> Result<(), FloxideError>;
+}

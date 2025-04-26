@@ -14,6 +14,7 @@ pub enum WorkItemStatus {
     Pending,
     InProgress,
     Failed,
+    WaitingRetry,
     PermanentlyFailed,
     Completed,
 }
@@ -30,9 +31,9 @@ pub enum WorkItemStateStoreError {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct WorkItemState<W: WorkItem> {
-    status: WorkItemStatus,
-    attempts: u32,
-    work_item: W,
+    pub status: WorkItemStatus,
+    pub attempts: u32,
+    pub work_item: W,
 }
 
 impl<W: WorkItem> WorkItemState<W> {
@@ -43,12 +44,18 @@ impl<W: WorkItem> WorkItemState<W> {
 
 #[async_trait]
 pub trait WorkItemStateStore<W: WorkItem>: Send + Sync {
+    /// Get the status of a work item.
     async fn get_status(&self, run_id: &str, item: &W) -> Result<WorkItemStatus, WorkItemStateStoreError>;
+    /// Set the status of a work item.
     async fn set_status(&self, run_id: &str, item: &W, status: WorkItemStatus) -> Result<(), WorkItemStateStoreError>;
+    /// Get the number of attempts for a work item.
     async fn get_attempts(&self, run_id: &str, item: &W) -> Result<u32, WorkItemStateStoreError>;
+    /// Increment the number of attempts for a work item.
     async fn increment_attempts(&self, run_id: &str, item: &W) -> Result<u32, WorkItemStateStoreError>;
+    /// Reset the number of attempts for a work item.
     async fn reset_attempts(&self, run_id: &str, item: &W) -> Result<(), WorkItemStateStoreError>;
-    async fn purge_run(&self, run_id: &str) -> Result<(), WorkItemStateStoreError>;
+    /// Get all work items for a run.
+    async fn get_all(&self, run_id: &str) -> Result<Vec<WorkItemState<W>>, WorkItemStateStoreError>;
 }
 
 #[derive(Debug, Clone)]
@@ -105,9 +112,9 @@ impl<W: WorkItem> WorkItemStateStore<W> for InMemoryWorkItemStateStore<W> {
         Ok(())
     }
 
-    async fn purge_run(&self, run_id: &str) -> Result<(), WorkItemStateStoreError> {
+    async fn get_all(&self, run_id: &str) -> Result<Vec<WorkItemState<W>>, WorkItemStateStoreError> {
         let mut store = self.store.lock().await;
-        store.remove(run_id);
-        Ok(())
+        let run_store = store.entry(run_id.to_string()).or_insert_with(HashMap::new);
+        Ok(run_store.values().cloned().collect())
     }
 }
