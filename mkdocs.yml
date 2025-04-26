@@ -51,8 +51,15 @@ plugins:
   - search
 
 nav:
-
-  - Floxide Tutorial:
+  - Home: index.md
+  - Core Concepts:
+      - Overview: core-concepts/index.md
+      # Add pages for each concept later, e.g.:
+      # - Node: core-concepts/01_node.md
+      # - Workflow: core-concepts/02_workflow.md
+      # - Transition: core-concepts/03_transition.md
+      # - Context: core-concepts/04_context.md
+  - Tutorial:
       - Introduction: floxide-tutorial/index.md
       - "Chapter 1: Transition Enum": floxide-tutorial/01__transition__enum_.md
       - "Chapter 2: Node Trait & node! Macro": floxide-tutorial/02__node__trait____node___macro_.md
