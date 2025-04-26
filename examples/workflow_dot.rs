@@ -68,7 +68,6 @@ workflow! {
 }
 
 fn main() {
-
     // Build the workflow instance
     let wf = ExampleWorkflow {
         retry_policy: StubNode::new("RetryPolicy"),

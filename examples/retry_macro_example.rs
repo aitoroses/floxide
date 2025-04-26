@@ -14,7 +14,10 @@ pub struct FlakyNode {
 
 impl FlakyNode {
     fn new(max_failures: usize) -> Self {
-        FlakyNode { max_failures, state: SharedState::new(0) }
+        FlakyNode {
+            max_failures,
+            state: SharedState::new(0),
+        }
     }
 }
 
@@ -65,7 +68,10 @@ pub async fn run_retry_macro_example() -> Result<String, Box<dyn std::error::Err
         RetryError::All,
     );
     // Instantiate with FlakyNode(1) so it succeeds on the second call
-    let wf = MacroRetryWorkflow { flaky: FlakyNode::new(1), pol: policy };
+    let wf = MacroRetryWorkflow {
+        flaky: FlakyNode::new(1),
+        pol: policy,
+    };
     let ctx = WorkflowCtx::new(());
     let result = wf.run(&ctx, ()).await?;
     println!("Workflow result: {}", result);
@@ -75,8 +81,8 @@ pub async fn run_retry_macro_example() -> Result<String, Box<dyn std::error::Err
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
-    .with_max_level(tracing::Level::DEBUG)
-    .init();
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
 
     run_retry_macro_example().await?;
     Ok(())
@@ -87,7 +93,9 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_retry_macro_example() {
-        let result = run_retry_macro_example().await.expect("workflow should run");
+        let result = run_retry_macro_example()
+            .await
+            .expect("workflow should run");
         assert_eq!(result, "success");
     }
 }

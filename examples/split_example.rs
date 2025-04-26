@@ -2,8 +2,8 @@
 // Demonstrates using a custom SplitNode to fan out inputs to multiple parallel nodes.
 
 use async_trait::async_trait;
+use floxide_core::{FloxideError, Node, SplitNode, Transition, Workflow, WorkflowCtx};
 use floxide_macros::workflow;
-use floxide_core::{SplitNode, Node, Transition, WorkflowCtx, Workflow, FloxideError};
 
 /// A simple node that prints its input.
 #[derive(Clone, Debug)]
@@ -63,7 +63,6 @@ workflow! {
     }
 }
 
-
 async fn run_split_example() -> Result<(), FloxideError> {
     // Instantiate split and print nodes in the workflow
     let wf = SplitWorkflow {
@@ -90,7 +89,7 @@ async fn main() -> Result<(), FloxideError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_split_example() {
         run_split_example().await.expect("split example failed");

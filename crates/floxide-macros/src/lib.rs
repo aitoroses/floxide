@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 
-mod workflow;
 mod node;
+mod workflow;
 
 /// Define a Workflow with fields and edges in one macro invocation.
 ///
@@ -10,9 +10,9 @@ mod node;
 ///   pub struct Name { field1: Type1, field2: Type2, }
 ///   context = MyCtx;
 ///   start = field1;
-///   edges { 
-///     field1 => [field2]; 
-///     field2 => []; 
+///   edges {
+///     field1 => [field2];
+///     field2 => [];
 ///   };
 /// }
 #[proc_macro]
@@ -34,4 +34,3 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 pub fn node(item: TokenStream) -> TokenStream {
     node::node(item)
 }
-

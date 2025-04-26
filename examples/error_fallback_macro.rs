@@ -1,9 +1,9 @@
 // examples/error_fallback_macro.rs
 // Demonstrates workflow-level error fallback using the `on_failure` clause in edges.
 
-use floxide_macros::workflow;
-use floxide_core::*;
 use async_trait::async_trait;
+use floxide_core::*;
+use floxide_macros::workflow;
 
 /// A node that always returns an error
 #[derive(Clone, Debug)]
@@ -89,7 +89,9 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_error_fallback_workflow() {
-        let output = run_error_fallback_workflow().await.expect("workflow should succeed after fallback");
+        let output = run_error_fallback_workflow()
+            .await
+            .expect("workflow should succeed after fallback");
         assert_eq!(output, "recovered");
     }
 }

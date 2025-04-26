@@ -1,13 +1,11 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{
-    braced, parse_macro_input, Token
-};
+use syn::{braced, parse_macro_input, Token};
 
 pub fn node(item: TokenStream) -> TokenStream {
-    use syn::{parse_macro_input, Visibility, Ident, Type, Token, braced};
-    use syn::parse::{Parse, ParseStream};
     use quote::quote;
+    use syn::parse::{Parse, ParseStream};
+    use syn::{braced, parse_macro_input, Ident, Token, Type, Visibility};
 
     struct NodeDef {
         vis: Visibility,
@@ -72,14 +70,33 @@ pub fn node(item: TokenStream) -> TokenStream {
             let input_arg: Ident = input.parse()?;
             input.parse::<Token![|]>()?;
             let body: syn::Block = input.parse()?;
-            Ok(NodeDef { vis, name, fields, ctx_ty, input_ty, output_ty, ctx_arg, input_arg, body })
+            Ok(NodeDef {
+                vis,
+                name,
+                fields,
+                ctx_ty,
+                input_ty,
+                output_ty,
+                ctx_arg,
+                input_arg,
+                body,
+            })
         }
     }
-    let NodeDef { vis, name, fields, ctx_ty, input_ty, output_ty, ctx_arg, input_arg, body } =
-        parse_macro_input!(item as NodeDef);
-    let field_defs = fields.iter().map(|(f, ty)| quote!{ pub #f: #ty });
-    let struct_def = quote!{ #[derive(Clone, Debug)] #vis struct #name { #(#field_defs),* } };
-    let expanded = quote!{
+    let NodeDef {
+        vis,
+        name,
+        fields,
+        ctx_ty,
+        input_ty,
+        output_ty,
+        ctx_arg,
+        input_arg,
+        body,
+    } = parse_macro_input!(item as NodeDef);
+    let field_defs = fields.iter().map(|(f, ty)| quote! { pub #f: #ty });
+    let struct_def = quote! { #[derive(Clone, Debug)] #vis struct #name { #(#field_defs),* } };
+    let expanded = quote! {
         #struct_def
         #[::async_trait::async_trait]
         impl ::floxide_core::node::Node<#ctx_ty> for #name

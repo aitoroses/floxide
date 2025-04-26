@@ -3,9 +3,9 @@ use std::fmt::{Debug, Display};
 use async_trait::async_trait;
 // Demonstrates workflow! macro with generic node types
 use floxide::{workflow, Workflow};
+use floxide_core::error::FloxideError;
 use floxide_core::node::Node;
 use floxide_core::transition::Transition;
-use floxide_core::error::FloxideError;
 use floxide_core::WorkflowCtx;
 
 // A generic FooNode<T>
@@ -18,11 +18,7 @@ pub struct FooNode<T> {
 impl<T: Display + Debug + Clone + Sync + Send + 'static> Node<()> for FooNode<T> {
     type Input = T;
     type Output = String;
-    async fn process(
-        &self,
-        _ctx: &(),
-        input: T,
-    ) -> Result<Transition<String>, FloxideError> {
+    async fn process(&self, _ctx: &(), input: T) -> Result<Transition<String>, FloxideError> {
         println!("FooNode processing: {:?}", input);
         Ok(Transition::Next(format!("foo-{}", self.value.clone())))
     }
@@ -38,11 +34,7 @@ pub struct BarNode<U> {
 impl<U: Display + Debug + Clone + Sync + Send + 'static> Node<()> for BarNode<U> {
     type Input = String;
     type Output = usize;
-    async fn process(
-        &self,
-        _ctx: &(),
-        input: String,
-    ) -> Result<Transition<usize>, FloxideError> {
+    async fn process(&self, _ctx: &(), input: String) -> Result<Transition<usize>, FloxideError> {
         println!("BarNode processing: {}", input);
         Ok(Transition::Next(input.len()))
     }
@@ -66,7 +58,9 @@ workflow! {
 pub async fn run_generics_example() -> Result<usize, Box<dyn std::error::Error>> {
     let wf = GenericsWorkflow {
         foo: FooNode { value: 42 },
-        bar: BarNode { value: "hello".to_string() },
+        bar: BarNode {
+            value: "hello".to_string(),
+        },
     };
     let ctx = WorkflowCtx::new(());
     let result = wf.run(&ctx, 123u32).await?;
@@ -92,4 +86,4 @@ mod tests {
         // The BarNode returns the length of the string passed from FooNode
         assert_eq!(result, "foo-42".len());
     }
-} 
+}

@@ -83,6 +83,5 @@
 //!
 
 // Re-export the core module (always included)
-pub use floxide_core::*;
 pub use ::floxide_macros::*;
-
+pub use floxide_core::*;

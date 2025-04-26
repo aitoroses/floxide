@@ -1,6 +1,9 @@
 use async_trait::async_trait;
 use std::{
-    collections::{HashMap, VecDeque}, fmt::Debug, marker::PhantomData, sync::{Arc, RwLock}
+    collections::{HashMap, VecDeque},
+    fmt::Debug,
+    marker::PhantomData,
+    sync::{Arc, RwLock},
 };
 use thiserror::Error;
 
@@ -73,11 +76,7 @@ impl<C: Context, WI: WorkItem> Default for InMemoryCheckpointStore<C, WI> {
 }
 
 #[async_trait]
-impl<
-        C: Context,
-        WI: WorkItem,
-    > CheckpointStore<C, WI> for InMemoryCheckpointStore<C, WI>
-{
+impl<C: Context, WI: WorkItem> CheckpointStore<C, WI> for InMemoryCheckpointStore<C, WI> {
     async fn save(
         &self,
         workflow_id: &str,

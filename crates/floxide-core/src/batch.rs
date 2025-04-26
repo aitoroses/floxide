@@ -1,12 +1,12 @@
 use crate::context::Context;
+use crate::error::FloxideError;
 use crate::node::Node;
 use crate::transition::Transition;
-use crate::error::FloxideError;
 use async_trait::async_trait;
-use tokio::task;
 use futures::future::join_all;
-use std::vec::Vec;
 use std::marker::PhantomData;
+use std::vec::Vec;
+use tokio::task;
 use tracing;
 
 /// A node adapter that runs an inner node on a batch of inputs, collecting outputs in parallel
@@ -20,7 +20,11 @@ pub struct BatchNode<C: Context, N: Node<C>> {
 impl<C: Context, N: Node<C>> BatchNode<C, N> {
     /// Wraps an existing node into a batch adapter with a batch size
     pub fn new(node: N, batch_size: usize) -> Self {
-        BatchNode { node, batch_size, _phantom: PhantomData }
+        BatchNode {
+            node,
+            batch_size,
+            _phantom: PhantomData,
+        }
     }
 }
 
@@ -33,13 +37,17 @@ impl<C: Context, N: Node<C>> BatchNode<C, N> {
         inputs: <Self as Node<C>>::Input,
     ) -> Result<<Self as Node<C>>::Output, FloxideError>
     where
-        C: Context+ 'static,
+        C: Context + 'static,
         N: Node<C> + Clone + Send + Sync + 'static,
         <N as Node<C>>::Input: Clone + Send + 'static,
         <N as Node<C>>::Output: Send + 'static,
     {
         use tracing::{debug, error};
-        debug!(batch_size = self.batch_size, num_inputs = inputs.len(), "Starting batch processing");
+        debug!(
+            batch_size = self.batch_size,
+            num_inputs = inputs.len(),
+            "Starting batch processing"
+        );
         let mut outputs = Vec::new();
         let node = self.node.clone();
         let ctx_clone = ctx.clone();
@@ -50,9 +58,8 @@ impl<C: Context, N: Node<C>> BatchNode<C, N> {
             // clone the context reference (does not require C: Clone)
             let ctx = ctx_clone.clone();
             let task = task::spawn_blocking(move || {
-                tokio::runtime::Handle::current().block_on(async move {
-                    node.process(&ctx, input).await
-                })
+                tokio::runtime::Handle::current()
+                    .block_on(async move { node.process(&ctx, input).await })
             });
             tasks.push(task);
 
@@ -64,19 +71,19 @@ impl<C: Context, N: Node<C>> BatchNode<C, N> {
                     match res {
                         Ok(Ok(Transition::Next(o))) => outputs.push(o),
                         Ok(Ok(Transition::NextAll(os))) => outputs.extend(os),
-                        Ok(Ok(Transition::Hold)) => {},
+                        Ok(Ok(Transition::Hold)) => {}
                         Ok(Ok(Transition::Abort(e))) => {
                             error!(?e, "Node aborted during batch");
-                            return Err(e)
-                        },
+                            return Err(e);
+                        }
                         Ok(Err(e)) => {
                             error!(?e, "Node errored during batch");
-                            return Err(e)
-                        },
+                            return Err(e);
+                        }
                         Err(e) => {
                             error!(?e, "Join error during batch");
-                            return Err(FloxideError::Generic(format!("Join error: {e}")))
-                        },
+                            return Err(FloxideError::Generic(format!("Join error: {e}")));
+                        }
                     }
                 }
             }
@@ -89,19 +96,19 @@ impl<C: Context, N: Node<C>> BatchNode<C, N> {
                 match res {
                     Ok(Ok(Transition::Next(o))) => outputs.push(o),
                     Ok(Ok(Transition::NextAll(os))) => outputs.extend(os),
-                    Ok(Ok(Transition::Hold)) => {},
+                    Ok(Ok(Transition::Hold)) => {}
                     Ok(Ok(Transition::Abort(e))) => {
                         error!(?e, "Node aborted during final batch");
-                        return Err(e)
-                    },
+                        return Err(e);
+                    }
                     Ok(Err(e)) => {
                         error!(?e, "Node errored during final batch");
-                        return Err(e)
-                    },
+                        return Err(e);
+                    }
                     Err(e) => {
                         error!(?e, "Join error during final batch");
-                        return Err(FloxideError::Generic(format!("Join error: {e}")))
-                    },
+                        return Err(FloxideError::Generic(format!("Join error: {e}")));
+                    }
                 }
             }
         }

@@ -2,12 +2,12 @@
 //! This preserves the existing `Transition` API without adding a retry variant.
 //!
 //! Users can opt in by wrapping nodes in `RetryNode`, which applies the `RetryPolicy`.
-use std::time::Duration;
-use crate::error::FloxideError;
 use crate::context::{Context, WorkflowCtx};
-use async_trait::async_trait;
+use crate::error::FloxideError;
 use crate::node::Node;
 use crate::transition::Transition;
+use async_trait::async_trait;
+use std::time::Duration;
 
 /// Helper trait: run a delay respecting cancellation and timeouts if available.
 #[async_trait]
@@ -16,11 +16,8 @@ pub trait RetryDelay {
     async fn wait(&self, dur: Duration) -> Result<(), FloxideError>;
 }
 
-
-
 #[async_trait]
-impl<S: Context> RetryDelay for WorkflowCtx<S>
-{
+impl<S: Context> RetryDelay for WorkflowCtx<S> {
     async fn wait(&self, dur: Duration) -> Result<(), FloxideError> {
         self.run_future(async {
             tokio::time::sleep(dur).await;
@@ -118,9 +115,7 @@ impl RetryPolicy {
     /// Compute the backoff duration before the next retry given the attempt count (1-based).
     pub fn backoff_duration(&self, attempt: usize) -> Duration {
         let base = match self.strategy {
-            BackoffStrategy::Linear => {
-                self.initial_backoff.saturating_mul(attempt as u32)
-            }
+            BackoffStrategy::Linear => self.initial_backoff.saturating_mul(attempt as u32),
             BackoffStrategy::Exponential => {
                 // Compute 2^(attempt-1) with shift, saturating at 32 bits
                 let exp = attempt.saturating_sub(1);
@@ -208,7 +203,7 @@ where
         input: Self::Input,
     ) -> Result<Transition<Self::Output>, FloxideError> {
         let mut attempt = 1;
-            loop {
+        loop {
             match self.inner.process(ctx, input.clone()).await {
                 Ok(Transition::NextAll(vs)) => return Ok(Transition::NextAll(vs)),
                 Ok(Transition::Next(out)) => return Ok(Transition::Next(out)),
@@ -280,7 +275,10 @@ mod tests {
             RetryError::All,
         );
         policy = policy.with_jitter(Duration::from_millis(25));
-        assert_eq!(policy.backoff_duration(2), Duration::from_millis(100*2 + 25));
+        assert_eq!(
+            policy.backoff_duration(2),
+            Duration::from_millis(100 * 2 + 25)
+        );
     }
 
     #[test]

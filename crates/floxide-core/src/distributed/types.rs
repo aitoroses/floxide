@@ -1,8 +1,8 @@
+use crate::{context::Context, error::FloxideError, workflow::Workflow};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use std::fmt::Debug;
 use thiserror::Error;
-use crate::{context::Context, error::FloxideError, workflow::Workflow};
 
 /// Status of a workflow run.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -84,5 +84,10 @@ pub trait StepCallbacks<C: Context, W: Workflow<C>>: Send + Sync {
     async fn on_started(&self, run_id: String, item: W::WorkItem) -> Result<(), FloxideError>;
 
     /// Called when a step is completed.
-    async fn on_item_processed(&self, run_id: String, item: W::WorkItem, outcome: ItemProcessedOutcome) -> Result<(), FloxideError>;
+    async fn on_item_processed(
+        &self,
+        run_id: String,
+        item: W::WorkItem,
+        outcome: ItemProcessedOutcome,
+    ) -> Result<(), FloxideError>;
 }

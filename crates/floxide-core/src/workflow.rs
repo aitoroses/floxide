@@ -33,19 +33,21 @@ use std::fmt::{Debug, Display};
 use std::sync::Arc;
 
 // crates/floxide-core/src/workflow.rs
+use crate::context::Context;
+use crate::distributed::{StepCallbacks, StepError, WorkQueue};
+use crate::error::FloxideError;
+use crate::CheckpointStore;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use crate::context::Context;
-use crate::error::FloxideError;
-use crate::distributed::{StepCallbacks, StepError, WorkQueue};
-use crate::CheckpointStore;
 
 /// Trait for a workflow work item.
 ///
 /// Implementations provide a way to serialize and deserialize work items, and
 /// track unique instances within a workflow run.
-pub trait WorkItem: Debug + Display + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq + Eq {
+pub trait WorkItem:
+    Debug + Display + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq + Eq
+{
     /// Returns a unique identifier for this work item instance.
     fn instance_id(&self) -> String;
 }
@@ -53,8 +55,7 @@ pub trait WorkItem: Debug + Display + Send + Sync + Serialize + DeserializeOwned
 /// Trait for a workflow.
 ///
 #[async_trait]
-pub trait Workflow<C: Context>: Debug + Clone + Send + Sync
-{
+pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
     /// Input type for the workflow
     type Input: Send + Sync + Serialize + DeserializeOwned;
     /// Output type returned by the workflow's terminal branch

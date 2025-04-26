@@ -1,9 +1,11 @@
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::{format_ident, quote};
 use syn::{
-    braced, bracketed, parse::{Parse, ParseStream}, parse_macro_input, Generics, Ident, Result, Token, Type, Visibility, LitStr
+    braced, bracketed,
+    parse::{Parse, ParseStream},
+    parse_macro_input, Generics, Ident, LitStr, Result, Token, Type, Visibility,
 };
-use proc_macro2::Span;
 
 /// AST for struct-based workflow: struct fields, start field, and per-node edges
 // Internal representation of a composite edge arm: matches Output enum variant
@@ -16,7 +18,10 @@ struct CompositeArm {
 // AST for struct-based workflow: struct fields, start field, and routing edges
 enum EdgeKind {
     /// Direct edges: list of successor nodes on success, optional fallback on failure
-    Direct { succs: Vec<Ident>, on_failure: Option<Vec<Ident>> },
+    Direct {
+        succs: Vec<Ident>,
+        on_failure: Option<Vec<Ident>>,
+    },
     /// Composite edges: match on enum variants
     Composite(Vec<CompositeArm>),
 }
@@ -36,7 +41,7 @@ impl Parse for WorkflowDef {
     fn parse(input: ParseStream) -> Result<Self> {
         // parse optional visibility
         let vis: Visibility = if input.peek(Token![pub]) {
-            input.parse()?  // pub or pub(...) etc
+            input.parse()? // pub or pub(...) etc
         } else {
             Visibility::Inherited
         };
@@ -85,7 +90,9 @@ impl Parse for WorkflowDef {
                 match kw.to_string().as_str() {
                     "start" => {
                         if seen.contains("start") {
-                            return Err(input.error("Duplicate 'start' field in workflow definition."));
+                            return Err(
+                                input.error("Duplicate 'start' field in workflow definition.")
+                            );
                         }
                         input.parse::<Ident>()?; // start
                         input.parse::<Token![=]>()?;
@@ -96,7 +103,9 @@ impl Parse for WorkflowDef {
                     }
                     "context" => {
                         if seen.contains("context") {
-                            return Err(input.error("Duplicate 'context' field in workflow definition."));
+                            return Err(
+                                input.error("Duplicate 'context' field in workflow definition.")
+                            );
                         }
                         input.parse::<Ident>()?; // context
                         input.parse::<Token![=]>()?;
@@ -107,15 +116,20 @@ impl Parse for WorkflowDef {
                     }
                     "edges" => {
                         if seen.contains("edges") {
-                            return Err(input.error("Duplicate 'edges' field in workflow definition."));
+                            return Err(
+                                input.error("Duplicate 'edges' field in workflow definition.")
+                            );
                         }
                         input.parse::<Ident>()?; // edges
                         let edges_content;
                         braced!(edges_content in input);
                         // Collect direct-success, direct-failure, and composite arms
-                        let mut direct_success = std::collections::HashMap::<Ident, Vec<Ident>>::new();
-                        let mut direct_failure = std::collections::HashMap::<Ident, Vec<Ident>>::new();
-                        let mut composite_map = std::collections::HashMap::<Ident, Vec<CompositeArm>>::new();
+                        let mut direct_success =
+                            std::collections::HashMap::<Ident, Vec<Ident>>::new();
+                        let mut direct_failure =
+                            std::collections::HashMap::<Ident, Vec<Ident>>::new();
+                        let mut composite_map =
+                            std::collections::HashMap::<Ident, Vec<CompositeArm>>::new();
                         while !edges_content.is_empty() {
                             let src: Ident = edges_content.parse()?;
                             if edges_content.peek(Ident) {
@@ -136,7 +150,9 @@ impl Parse for WorkflowDef {
                                     direct_failure.insert(src.clone(), fails);
                                     continue;
                                 } else {
-                                    return Err(edges_content.error("Unexpected identifier. Expected `on_failure` or `=>`."));
+                                    return Err(edges_content.error(
+                                        "Unexpected identifier. Expected `on_failure` or `=>`.",
+                                    ));
                                 }
                             }
                             // success or composite entry
@@ -171,7 +187,12 @@ impl Parse for WorkflowDef {
                                         .into_iter()
                                         .collect();
                                     nested.parse::<Token![;]>()?;
-                                    arms.push(CompositeArm { action_path, variant, binding, succs });
+                                    arms.push(CompositeArm {
+                                        action_path,
+                                        variant,
+                                        binding,
+                                        succs,
+                                    });
                                 }
                                 edges_content.parse::<Token![;]>()?;
                                 composite_map.insert(src.clone(), arms);
@@ -182,11 +203,23 @@ impl Parse for WorkflowDef {
                         // direct-success entries
                         for (src, succs) in direct_success.into_iter() {
                             let failure = direct_failure.remove(&src);
-                            edges_vec.push((src, EdgeKind::Direct { succs, on_failure: failure }));
+                            edges_vec.push((
+                                src,
+                                EdgeKind::Direct {
+                                    succs,
+                                    on_failure: failure,
+                                },
+                            ));
                         }
                         // direct-failure-only entries
                         for (src, fails) in direct_failure.into_iter() {
-                            edges_vec.push((src, EdgeKind::Direct { succs: Vec::new(), on_failure: Some(fails) }));
+                            edges_vec.push((
+                                src,
+                                EdgeKind::Direct {
+                                    succs: Vec::new(),
+                                    on_failure: Some(fails),
+                                },
+                            ));
                         }
                         // composite entries
                         for (src, arms) in composite_map.into_iter() {
@@ -196,7 +229,10 @@ impl Parse for WorkflowDef {
                         seen.insert("edges");
                     }
                     other => {
-                        return Err(input.error(format!("Unexpected identifier '{}'. Expected one of: start, context, edges.", other)));
+                        return Err(input.error(format!(
+                            "Unexpected identifier '{}'. Expected one of: start, context, edges.",
+                            other
+                        )));
                     }
                 }
             } else {
@@ -204,18 +240,34 @@ impl Parse for WorkflowDef {
             }
         }
         // Check required fields
-        let start = start.ok_or_else(|| input.error("Missing required 'start' field in workflow definition."))?;
+        let start = start
+            .ok_or_else(|| input.error("Missing required 'start' field in workflow definition."))?;
         let context = context.unwrap_or_else(|| syn::parse_quote! { () });
-        let edges = edges.ok_or_else(|| input.error("Missing required 'edges' field in workflow definition."))?;
-        Ok(WorkflowDef { vis, name, generics, fields, start, context, edges })
+        let edges = edges
+            .ok_or_else(|| input.error("Missing required 'edges' field in workflow definition."))?;
+        Ok(WorkflowDef {
+            vis,
+            name,
+            generics,
+            fields,
+            start,
+            context,
+            edges,
+        })
     }
 }
 
-
 pub fn workflow(item: TokenStream) -> TokenStream {
     // parse the struct-based workflow definition
-    let WorkflowDef { vis, name, generics, fields, start, context, edges } =
-        parse_macro_input!(item as WorkflowDef);
+    let WorkflowDef {
+        vis,
+        name,
+        generics,
+        fields,
+        start,
+        context,
+        edges,
+    } = parse_macro_input!(item as WorkflowDef);
 
     // Helper: convert snake_case to CamelCase for identifiers and labels
     let to_camel_case = |s: &str| -> String {
@@ -238,16 +290,19 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         || matches!(kind, EdgeKind::Composite(ar) if ar.is_empty())
     }).expect("Workflow must have a terminal branch").0.clone();
     // Find the type of the terminal field
-    let terminal_ty = fields.iter()
+    let terminal_ty = fields
+        .iter()
         .find(|(fld, _, _)| fld == &terminal_src)
         .map(|(_, ty, _)| ty.clone())
         .expect("Terminal field not found among fields");
     // Identify policy fields (names used in #[retry = policy])
-    let policy_idents: Vec<Ident> = fields.iter()
+    let policy_idents: Vec<Ident> = fields
+        .iter()
         .filter_map(|(_, _, retry)| retry.clone())
         .collect();
     // Only actual workflow node fields should produce variants and arms
-    let node_fields: Vec<_> = fields.iter()
+    let node_fields: Vec<_> = fields
+        .iter()
         .filter(|(fld, _, _)| !policy_idents.iter().any(|p| p == fld))
         .collect();
     // Generate WorkItem variants for node fields, parameterized by context C
@@ -259,10 +314,13 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         quote! { #var_ident(String, <#ty as floxide_core::node::Node<#context>>::Input) }
     });
     // Collect variant idents for Display and WorkItem impl
-    let work_variant_idents: Vec<_> = node_fields.iter().map(|(fld, _, _)| {
-        let var_name = to_camel_case(&fld.to_string());
-        format_ident!("{}", var_name)
-    }).collect();
+    let work_variant_idents: Vec<_> = node_fields
+        .iter()
+        .map(|(fld, _, _)| {
+            let var_name = to_camel_case(&fld.to_string());
+            format_ident!("{}", var_name)
+        })
+        .collect();
     // Compute the WorkItem variant name for the terminal field
     let terminal_var = {
         let var_name = to_camel_case(&terminal_src.to_string());
@@ -490,8 +548,11 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         format_ident!("{}", var_name)
     };
     // Start field type for Input
-    let start_ty = fields.iter().find(|(fld,_,_)| fld == &start)
-        .map(|(_, ty, _)| ty).expect("start field not found");
+    let start_ty = fields
+        .iter()
+        .find(|(fld, _, _)| fld == &start)
+        .map(|(_, ty, _)| ty)
+        .expect("start field not found");
 
     // Generate DOT string at compile time
     let dot = {
@@ -505,7 +566,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         // Nodes
         for (fld, _, _) in &node_fields {
             let var = to_camel_case(&fld.to_string());
-            dot.push_str("  "); dot.push_str(&var); dot.push_str(";\n");
+            dot.push_str("  ");
+            dot.push_str(&var);
+            dot.push_str(";\n");
         }
         // Edges
         for (src, kind) in &edges {
@@ -514,14 +577,19 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 EdgeKind::Direct { succs, on_failure } => {
                     for succ in succs {
                         let succ_var = to_camel_case(&succ.to_string());
-                        dot.push_str("  "); dot.push_str(&src_var);
-                        dot.push_str(" -> "); dot.push_str(&succ_var); dot.push_str(";\n");
+                        dot.push_str("  ");
+                        dot.push_str(&src_var);
+                        dot.push_str(" -> ");
+                        dot.push_str(&succ_var);
+                        dot.push_str(";\n");
                     }
                     if let Some(fails) = on_failure {
                         for fail in fails {
                             let fail_var = to_camel_case(&fail.to_string());
-                            dot.push_str("  "); dot.push_str(&src_var);
-                            dot.push_str(" -> "); dot.push_str(&fail_var);
+                            dot.push_str("  ");
+                            dot.push_str(&src_var);
+                            dot.push_str(" -> ");
+                            dot.push_str(&fail_var);
                             dot.push_str(" [style=\"dotted\" color=\"red\" label=\"fallback\"];\n");
                         }
                     }
@@ -531,15 +599,19 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let label = arm.variant.to_string();
                         for succ in &arm.succs {
                             let succ_var = to_camel_case(&succ.to_string());
-                            dot.push_str("  "); dot.push_str(&src_var);
-                            dot.push_str(" -> "); dot.push_str(&succ_var);
-                            dot.push_str(" [label=\""); dot.push_str(&label); dot.push_str("\"];\n");
+                            dot.push_str("  ");
+                            dot.push_str(&src_var);
+                            dot.push_str(" -> ");
+                            dot.push_str(&succ_var);
+                            dot.push_str(" [label=\"");
+                            dot.push_str(&label);
+                            dot.push_str("\"];\n");
                         }
                     }
                 }
             }
         }
-        
+
         dot.push_str("}\n");
         dot
     };
@@ -591,7 +663,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 ctx: &'a floxide_core::WorkflowCtx<#context>,
                 item: #work_item_ident,
                 __q: &mut std::collections::VecDeque<#work_item_ident>
-            ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>           
+            ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>
             {
                 use floxide_core::transition::Transition;
                 use tracing::{debug, error, warn};
@@ -786,7 +858,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             use std::collections::VecDeque;
             use tracing::{debug, span, Level};
             use floxide_core::distributed::ItemProcessedOutcome;
-            
+
             // 1) Dequeue one work item from any workflow
             let work = queue.dequeue().await
                 .map_err(|e| floxide_core::distributed::StepError {
@@ -926,7 +998,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 ctx: &'a floxide_core::WorkflowCtx<#context>,
                 item: #work_item_ident,
                 __q: &mut std::collections::VecDeque<#work_item_ident>
-            ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>           
+            ) -> Result<Option<<#terminal_ty as floxide_core::node::Node<#context>>::Output>, floxide_core::error::FloxideError>
             {
                 self._process_work_item(ctx, item, __q).await
             }

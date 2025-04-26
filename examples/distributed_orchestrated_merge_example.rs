@@ -5,7 +5,9 @@ use floxide::{
     checkpoint::InMemoryCheckpointStore,
     context::SharedState,
     distributed::{
-        InMemoryErrorStore, InMemoryLivenessStore, InMemoryMetricsStore, InMemoryRunInfoStore, InMemoryWorkItemStateStore, InMemoryWorkQueue, OrchestratorBuilder, RunStatus, WorkerBuilder, WorkerPool
+        InMemoryErrorStore, InMemoryLivenessStore, InMemoryMetricsStore, InMemoryRunInfoStore,
+        InMemoryWorkItemStateStore, InMemoryWorkQueue, OrchestratorBuilder, RunStatus,
+        WorkerBuilder, WorkerPool,
     },
 };
 use floxide_core::*;
@@ -100,7 +102,8 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
     let metrics_store: InMemoryMetricsStore = InMemoryMetricsStore::default();
     let error_store: InMemoryErrorStore = InMemoryErrorStore::default();
     let liveness_store: InMemoryLivenessStore = InMemoryLivenessStore::default();
-    let work_item_state_store: InMemoryWorkItemStateStore<MergeWorkflowWorkItem> = InMemoryWorkItemStateStore::default();
+    let work_item_state_store: InMemoryWorkItemStateStore<MergeWorkflowWorkItem> =
+        InMemoryWorkItemStateStore::default();
 
     // Orchestrator with in-memory defaults
     let orchestrator = OrchestratorBuilder::new()
@@ -138,33 +141,32 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
     // Wait for completion
     let status = tokio::time::timeout(
         std::time::Duration::from_secs(20),
-        orchestrator
-            .wait_for_completion(&run_id, std::time::Duration::from_millis(100))
+        orchestrator.wait_for_completion(&run_id, std::time::Duration::from_millis(100)),
     )
     .await;
 
-    let print_stats= || async {
+    let print_stats = || async {
         let run_info = orchestrator.list_runs(None).await?;
         println!("Run info: {:#?}", run_info);
-    
+
         let checkpoint = orchestrator.checkpoint(&run_id).await?;
         println!("Checkpoint: {:#?}", checkpoint);
-    
+
         let metrics = orchestrator.metrics(&run_id).await?;
         println!("Metrics: {:#?}", metrics);
-    
+
         let errors = orchestrator.errors(&run_id).await?;
         println!("Errors: {:#?}", errors);
-        
+
         let liveness = orchestrator.liveness().await?;
-        println!("Liveness: {:#?}", liveness);    
+        println!("Liveness: {:#?}", liveness);
 
         let pending_work = orchestrator.pending_work(&run_id).await.unwrap_or_default();
         println!("Pending work: {:#?}", pending_work);
 
         let work_items = orchestrator.list_work_items(&run_id).await?;
         println!("Work items: {:#?}", work_items);
-        
+
         Ok::<(), Box<dyn std::error::Error>>(())
     };
 
@@ -177,14 +179,17 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
                 print_stats().await?;
                 break Ok(RunStatus::Completed);
             }
-            Ok(Ok(RunStatus::Failed)) | Err(Elapsed { ..}) => { // timeout or other error
+            Ok(Ok(RunStatus::Failed)) | Err(Elapsed { .. }) => {
+                // timeout or other error
                 print_stats().await?;
                 println!("Resuming run");
                 orchestrator.resume(&run_id).await?;
                 final_status = tokio::time::timeout(
                     std::time::Duration::from_secs(10),
-                    orchestrator.wait_for_completion(&run_id, std::time::Duration::from_millis(100))
-                ).await;
+                    orchestrator
+                        .wait_for_completion(&run_id, std::time::Duration::from_millis(100)),
+                )
+                .await;
             }
             Ok(Ok(RunStatus::Cancelled)) => {
                 print_stats().await?;

@@ -2,12 +2,12 @@
 use async_trait::async_trait;
 use floxide_core::*;
 use floxide_macros::workflow;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 /// Context type for the workflow
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct MyCtx {
     pub value: u64,
-}   
+}
 
 /// Action enum for FooNode: branch carries different payloads
 #[derive(Clone, Debug)]
@@ -133,6 +133,8 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_threshold_workflow_example() {
-        run_threshold_workflow_example().await.expect("workflow should run for both inputs");
+        run_threshold_workflow_example()
+            .await
+            .expect("workflow should run for both inputs");
     }
 }

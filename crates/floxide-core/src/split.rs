@@ -1,7 +1,7 @@
 use crate::context::Context;
+use crate::error::FloxideError;
 use crate::node::Node;
 use crate::transition::Transition;
-use crate::error::FloxideError;
 use async_trait::async_trait;
 use std::marker::PhantomData;
 
@@ -24,7 +24,10 @@ where
 {
     /// Create a new SplitNode from a function that maps an input to a Vec of outputs.
     pub fn new(splitter: F) -> Self {
-        SplitNode { splitter, _phantom: PhantomData }
+        SplitNode {
+            splitter,
+            _phantom: PhantomData,
+        }
     }
 }
 
@@ -42,11 +45,7 @@ where
     type Output = O;
 
     /// Process an input value, producing multiple outputs via NextAll transition.
-    async fn process(
-        &self,
-        _ctx: &C,
-        input: I,
-    ) -> Result<Transition<O>, FloxideError> {
+    async fn process(&self, _ctx: &C, input: I) -> Result<Transition<O>, FloxideError> {
         let outputs = (self.splitter)(input);
         Ok(Transition::NextAll(outputs))
     }

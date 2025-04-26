@@ -14,7 +14,10 @@ struct FlakyNode {
 
 impl FlakyNode {
     fn new(max_failures: usize) -> Self {
-        FlakyNode { max_failures, state: Arc::new(Mutex::new(0)) }
+        FlakyNode {
+            max_failures,
+            state: Arc::new(Mutex::new(0)),
+        }
     }
 }
 
@@ -76,6 +79,8 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_retry_example() {
-        run_retry_example().await.expect("flaky node should eventually succeed");
+        run_retry_example()
+            .await
+            .expect("flaky node should eventually succeed");
     }
 }

@@ -1,17 +1,17 @@
 //! The context for a workflow execution.
 
-use std::fmt;
-use std::{fmt::Debug, sync::Arc};
-use std::time::Duration;
-use std::future::Future;
+use crate::error::FloxideError;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::future::Future;
+use std::time::Duration;
+use std::{fmt::Debug, sync::Arc};
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
-use crate::error::FloxideError;
 
 pub trait Context: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync {}
-impl<T: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync > Context for T {}
+impl<T: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync> Context for T {}
 
 /// The context for a workflow execution.
 #[derive(Clone, Debug)]
@@ -26,8 +26,7 @@ pub struct WorkflowCtx<S: Context> {
     timeout: Option<Duration>,
 }
 
-impl<S: Context> WorkflowCtx<S>
-{
+impl<S: Context> WorkflowCtx<S> {
     /// Creates a new workflow context with the given store.
     pub fn new(store: S) -> Self {
         Self {
@@ -115,7 +114,10 @@ impl<T: Serialize + Clone> Serialize for SharedState<T> {
     {
         use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("Arc<Mutex<T>>", 1)?;
-        let value = self.0.try_lock().expect("Failed to lock mutex on SharedState while serializing");
+        let value = self
+            .0
+            .try_lock()
+            .expect("Failed to lock mutex on SharedState while serializing");
         state.serialize_field("value", &value.clone())?;
         state.end()
     }

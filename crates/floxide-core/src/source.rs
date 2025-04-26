@@ -1,12 +1,11 @@
 //! Abstraction for value-producing (source) nodes: nodes with Input=() that emit a stream of outputs.
-use std::sync::Arc;
-use std::fmt::Debug;
-use tokio::sync::Mutex;
+use crate::context::Context;
 use crate::error::FloxideError;
 use crate::workflow::Workflow;
-use crate::context::Context;
 use crate::WorkflowCtx;
-
+use std::fmt::Debug;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 // -----------------------------------------------------------------------------
 /// A channel source: external code can send values in, and this source
@@ -20,7 +19,10 @@ pub struct Source<C, O> {
 impl<C: Context, O> Source<C, O> {
     /// Wrap an existing receiver into a Source
     pub fn new(rx: tokio::sync::mpsc::Receiver<O>) -> Self {
-        Self { receiver: Arc::new(Mutex::new(rx)), _phantom: std::marker::PhantomData }
+        Self {
+            receiver: Arc::new(Mutex::new(rx)),
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 
@@ -42,7 +44,6 @@ where
         Ok(())
     }
 }
-
 
 /// Create a channel-backed source node and its sender handle.
 ///

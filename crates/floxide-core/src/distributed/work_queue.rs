@@ -7,8 +7,8 @@ use async_trait::async_trait;
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Debug;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use thiserror::Error;
+use tokio::sync::Mutex;
 
 use crate::context::Context;
 use crate::workflow::WorkItem;
@@ -92,4 +92,3 @@ impl<C: Context, WI: WorkItem + 'static> WorkQueue<C, WI> for InMemoryWorkQueue<
         Ok(q.iter().cloned().collect())
     }
 }
-

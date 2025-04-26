@@ -4,7 +4,7 @@
 
 use floxide::{workflow, WorkflowCtx};
 // use async_trait::async_trait;
-use floxide_core::{Node, source, transition::Transition, error::FloxideError, Workflow};
+use floxide_core::{error::FloxideError, source, transition::Transition, Node, Workflow};
 use floxide_macros::node;
 use tokio::time::{sleep, Duration};
 
@@ -68,7 +68,7 @@ pub async fn run_timer_example() -> Result<(), FloxideError> {
     let ctx = WorkflowCtx::new(());
     let wf = PrintDouble {
         doubler: DoubleNode {},
-        printer:  PrintNode  {},
+        printer: PrintNode {},
     };
     // Drive the workflow for each incoming tick until source closes.
     source.run(&wf, &ctx).await?;
@@ -88,6 +88,8 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_timer_example() {
-        run_timer_example().await.expect("timer workflow should run");
+        run_timer_example()
+            .await
+            .expect("timer workflow should run");
     }
 }

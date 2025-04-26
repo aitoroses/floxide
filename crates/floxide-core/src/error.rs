@@ -1,5 +1,5 @@
-use thiserror::Error;
 use std::time::Duration;
+use thiserror::Error;
 
 #[derive(Debug, Error, Clone)]
 pub enum FloxideError {
@@ -12,9 +12,9 @@ pub enum FloxideError {
     #[error("Workflow timed out after {0:?}")]
     Timeout(Duration),
     /// The workflow was never started, so cannot be resumed.
-    #[error("Workflow has not been started")] 
+    #[error("Workflow has not been started")]
     NotStarted,
     /// The workflow has already completed; no more work to resume.
-    #[error("Workflow already completed")] 
+    #[error("Workflow already completed")]
     AlreadyCompleted,
-} 
+}

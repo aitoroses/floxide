@@ -2,7 +2,8 @@ use crate::checkpoint::CheckpointStore;
 use crate::context::{Context, WorkflowCtx};
 use crate::distributed::{
     ErrorStore, LivenessStatus, LivenessStore, LivenessStoreError, MetricsStore, RunInfo,
-    RunInfoError, RunInfoStore, RunMetrics, RunStatus, WorkItemStateStore, WorkQueue, WorkflowError,
+    RunInfoError, RunInfoStore, RunMetrics, RunStatus, WorkItemStateStore, WorkQueue,
+    WorkflowError,
 };
 use crate::error::FloxideError;
 use crate::workflow::Workflow;
@@ -13,7 +14,6 @@ use std::time::Duration;
 use uuid;
 
 use super::{WorkItemState, WorkItemStateStoreError, WorkItemStatus, WorkerHealth};
-
 
 pub struct DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>
 where
@@ -168,10 +168,14 @@ where
     where
         C: std::fmt::Debug + Clone + Send + Sync,
     {
-        let run_info = self.run_info_store.get_run(run_id).await.map_err(|e| match e {
-            RunInfoError::NotFound => FloxideError::NotStarted,
-            e => FloxideError::Generic(format!("run_info_store error: {e}")),
-        })?;
+        let run_info = self
+            .run_info_store
+            .get_run(run_id)
+            .await
+            .map_err(|e| match e {
+                RunInfoError::NotFound => FloxideError::NotStarted,
+                e => FloxideError::Generic(format!("run_info_store error: {e}")),
+            })?;
 
         if run_info.is_none() {
             return Err(FloxideError::NotStarted);
@@ -183,11 +187,26 @@ where
             }
             RunStatus::Failed => {
                 // Re-establish the work queue from the work item state store
-                for item in self.list_work_items(run_id).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))? {
+                for item in self.list_work_items(run_id).await.map_err(|e| {
+                    FloxideError::Generic(format!("work_item_state_store error: {e}"))
+                })? {
                     if item.status != WorkItemStatus::Completed {
-                        self.work_item_state_store.set_status(run_id, &item.work_item, WorkItemStatus::Pending).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
-                        self.work_item_state_store.reset_attempts(run_id, &item.work_item).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
-                        self.queue.enqueue(run_id, item.work_item.clone()).await.map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
+                        self.work_item_state_store
+                            .set_status(run_id, &item.work_item, WorkItemStatus::Pending)
+                            .await
+                            .map_err(|e| {
+                                FloxideError::Generic(format!("work_item_state_store error: {e}"))
+                            })?;
+                        self.work_item_state_store
+                            .reset_attempts(run_id, &item.work_item)
+                            .await
+                            .map_err(|e| {
+                                FloxideError::Generic(format!("work_item_state_store error: {e}"))
+                            })?;
+                        self.queue
+                            .enqueue(run_id, item.work_item.clone())
+                            .await
+                            .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
                     }
                 }
 
@@ -208,8 +227,15 @@ where
             }
             RunStatus::Paused => {
                 // Change the status of all work items to Pending
-                for item in self.list_work_items(run_id).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))? {
-                    self.work_item_state_store.set_status(run_id, &item.work_item, WorkItemStatus::Pending).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
+                for item in self.list_work_items(run_id).await.map_err(|e| {
+                    FloxideError::Generic(format!("work_item_state_store error: {e}"))
+                })? {
+                    self.work_item_state_store
+                        .set_status(run_id, &item.work_item, WorkItemStatus::Pending)
+                        .await
+                        .map_err(|e| {
+                            FloxideError::Generic(format!("work_item_state_store error: {e}"))
+                        })?;
                 }
                 // Reset run status to Running
                 self.run_info_store
@@ -239,7 +265,9 @@ where
     where
         C: std::fmt::Debug + Clone + Send + Sync,
     {
-        self.liveness_store.list_health().await
+        self.liveness_store
+            .list_health()
+            .await
             .map_err(|e| FloxideError::Generic(format!("liveness_store error: {e}")))
     }
 
@@ -251,7 +279,9 @@ where
         match self.store.load(run_id).await {
             Ok(Some(checkpoint)) => Ok(checkpoint),
             Ok(None) => Err(FloxideError::NotStarted),
-            Err(e) => Err(FloxideError::Generic(format!("checkpoint_store error: {e}"))),
+            Err(e) => Err(FloxideError::Generic(format!(
+                "checkpoint_store error: {e}"
+            ))),
         }
     }
 
@@ -272,7 +302,9 @@ where
     where
         C: std::fmt::Debug + Clone + Send + Sync,
     {
-        self.queue.pending_work(run_id).await
+        self.queue
+            .pending_work(run_id)
+            .await
             .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))
     }
 
@@ -320,7 +352,10 @@ where
     }
 
     /// Get all work items for a run.
-    pub async fn list_work_items(&self, run_id: &str) -> Result<Vec<WorkItemState<W::WorkItem>>, WorkItemStateStoreError> {
+    pub async fn list_work_items(
+        &self,
+        run_id: &str,
+    ) -> Result<Vec<WorkItemState<W::WorkItem>>, WorkItemStateStoreError> {
         self.work_item_state_store.get_all(run_id).await
     }
 
@@ -456,7 +491,9 @@ where
             metrics_store: self.metrics_store.ok_or("metrics_store is required")?,
             error_store: self.error_store.ok_or("error_store is required")?,
             liveness_store: self.liveness_store.ok_or("liveness_store is required")?,
-            work_item_state_store: self.work_item_state_store.ok_or("work_item_state_store is required")?,
+            work_item_state_store: self
+                .work_item_state_store
+                .ok_or("work_item_state_store is required")?,
             phantom: std::marker::PhantomData,
         })
     }

@@ -1,9 +1,9 @@
 // examples/terminal_node_example.rs
 // Demonstrates a workflow with a single terminal node returning a value
 
-use floxide_macros::workflow;
-use floxide_core::*;
 use async_trait::async_trait;
+use floxide_core::*;
+use floxide_macros::workflow;
 
 /// A node that multiplies its input by 3
 #[derive(Clone, Debug)]
@@ -18,8 +18,7 @@ impl Node for TripleNode {
         &self,
         _ctx: &(),
         input: i32,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         let out = input * 3;
         println!("TripleNode: {} * 3 = {}", input, out);
         Ok(Transition::Next(out))
@@ -40,9 +39,7 @@ workflow! {
 
 /// Runs the terminal workflow with input 7 and returns the output
 pub async fn run_terminal_node_example() -> Result<i32, Box<dyn std::error::Error>> {
-    let wf = TerminalWorkflow {
-        triple: TripleNode,
-    };
+    let wf = TerminalWorkflow { triple: TripleNode };
     let ctx = WorkflowCtx::new(());
     let input = 7;
     println!("Running workflow with input {}:", input);
@@ -65,7 +62,9 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_terminal_node_example() {
-        let output = run_terminal_node_example().await.expect("workflow should run");
+        let output = run_terminal_node_example()
+            .await
+            .expect("workflow should run");
         assert_eq!(output, 21);
     }
 }

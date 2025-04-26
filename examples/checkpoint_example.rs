@@ -108,7 +108,6 @@ workflow! {
 
 /// Runs the checkpoint workflow example and returns Ok(()) if all scenarios succeed
 pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> {
-
     // Each job has its own context (e.g., job name)
     let ctx = WorkflowCtx::new(Ctx {
         failed: Arc::new(Mutex::new(false)),

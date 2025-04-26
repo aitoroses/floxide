@@ -1,9 +1,9 @@
 // examples/nested_workflow_example.rs
 // Demonstrates nesting a workflow as a Node via a local CompositeNode in an example
 
-use floxide_macros::workflow;
-use floxide_core::{Node, Workflow, WorkflowCtx, Transition, FloxideError, CompositeNode};
 use async_trait::async_trait;
+use floxide_core::{CompositeNode, FloxideError, Node, Transition, Workflow, WorkflowCtx};
+use floxide_macros::workflow;
 
 /// A simple node that doubles its input
 #[derive(Clone, Debug)]
@@ -16,8 +16,7 @@ impl Node for DoubleNode {
         &self,
         _ctx: &(),
         input: i32,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("DoubleNode: {} -> {}", input, input * 2);
         Ok(Transition::Next(input * 2))
     }
@@ -34,8 +33,7 @@ impl Node for AddTenNode {
         &self,
         _ctx: &(),
         input: i32,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("AddTenNode: {} -> {}", input, input + 10);
         Ok(Transition::Next(input + 10))
     }
@@ -66,8 +64,7 @@ impl Node for PrintNode {
         &self,
         _ctx: &(),
         input: i32,
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("PrintNode: final output = {}", input);
         Ok(Transition::Next(()))
     }
@@ -90,9 +87,15 @@ workflow! {
 /// Runs the nested workflow with input 5 and returns Ok(()) if it succeeds
 pub async fn run_nested_workflow_example() -> Result<(), Box<dyn std::error::Error>> {
     // Build the inner workflow and wrap it
-    let inner = InnerWorkflow { double: DoubleNode, addten: AddTenNode };
+    let inner = InnerWorkflow {
+        double: DoubleNode,
+        addten: AddTenNode,
+    };
     let ctx = WorkflowCtx::new(());
-    let wf = OuterWorkflow { sub: CompositeNode::new(inner, &ctx), print: PrintNode };
+    let wf = OuterWorkflow {
+        sub: CompositeNode::new(inner, &ctx),
+        print: PrintNode,
+    };
     println!("Running nested workflow starting at 5:");
     wf.run(&ctx, 5).await?;
     Ok(())
@@ -111,6 +114,8 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_nested_workflow_example() {
-        run_nested_workflow_example().await.expect("nested workflow should run");
+        run_nested_workflow_example()
+            .await
+            .expect("nested workflow should run");
     }
 }

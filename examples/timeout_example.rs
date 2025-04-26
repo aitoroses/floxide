@@ -1,11 +1,11 @@
 // examples/timeout_example.rs
 // Demonstrates workflow timeout: a long-running node will be aborted if it exceeds the context timeout.
 
-use floxide_macros::workflow;
-use floxide_core::*;
 use async_trait::async_trait;
-use tokio::time::sleep;
+use floxide_core::*;
+use floxide_macros::workflow;
 use std::time::Duration;
+use tokio::time::sleep;
 
 /// A node that sleeps for a specified duration before completing.
 #[derive(Clone, Debug)]
@@ -22,8 +22,7 @@ impl Node for SlowNode {
         &self,
         _ctx: &(),
         _input: (),
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("SlowNode: sleeping for {:?}", self.dur);
         sleep(self.dur).await;
         println!("SlowNode: woke up");
@@ -46,13 +45,15 @@ workflow! {
 /// Runs the timeout workflow and returns whether it timed out (true if timeout error, false if completed)
 pub async fn run_timeout_workflow() -> Result<bool, Box<dyn std::error::Error>> {
     let wf = TimeoutWorkflow {
-        slow: SlowNode { dur: Duration::from_secs(2) },
+        slow: SlowNode {
+            dur: Duration::from_secs(2),
+        },
     };
     let mut ctx = WorkflowCtx::new(());
     // Set a timeout shorter than the node's sleep
     ctx.set_timeout(Duration::from_millis(500));
     match wf.run(&ctx, ()).await {
-        Ok(_) => Ok(false), // did not timeout
+        Ok(_) => Ok(false),  // did not timeout
         Err(_e) => Ok(true), // timed out
     }
 }

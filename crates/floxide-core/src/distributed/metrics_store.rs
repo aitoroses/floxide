@@ -3,8 +3,8 @@
 //! This module defines the MetricsStore trait for tracking workflow run metrics (e.g., completed, failed, retries),
 //! and provides an in-memory implementation for testing and local development.
 
-use async_trait::async_trait;
 use crate::distributed::RunMetrics;
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;

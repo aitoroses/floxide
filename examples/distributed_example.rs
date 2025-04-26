@@ -137,7 +137,12 @@ Let us know if you want a diagram, code comments, or further breakdown of any pa
 //   - Log and checkpoint state after each node
 
 use async_trait::async_trait;
-use floxide::{checkpoint::InMemoryCheckpointStore, context::SharedState, distributed::{ItemProcessedOutcome, StepCallbacks}};
+use floxide::{
+    checkpoint::InMemoryCheckpointStore,
+    context::SharedState,
+    distributed::{ItemProcessedOutcome, StepCallbacks},
+};
+use floxide_core::distributed::InMemoryWorkQueue;
 use floxide_core::*;
 use floxide_macros::workflow;
 use serde::{Deserialize, Serialize};
@@ -147,7 +152,6 @@ use std::{
 };
 use tokio::time::Duration;
 use tracing::Instrument;
-use floxide_core::distributed::InMemoryWorkQueue;
 
 // Global flag to simulate failure in BranchB for demonstration purposes
 static SHOULD_FAIL: LazyLock<Arc<tokio::sync::Mutex<bool>>> =
@@ -160,7 +164,6 @@ struct Ctx {
     local_counter: SharedState<i32>, // Shared counter, updated by each node
     logs: SharedState<Vec<String>>,  // Shared log, records node activity
 }
-
 
 // === Parallel workflow example illustrating worker collaboration ===
 // Define simple nodes: split into two parallel branches, then terminal nodes and an initial node
@@ -247,7 +250,9 @@ impl Node<Ctx> for BranchB {
         let should_fail = *SHOULD_FAIL.lock().await;
         if should_fail {
             logs.push(format!("BranchB failed"));
-            return Ok(Transition::Abort(FloxideError::Generic("branch_b_failed".to_string())))
+            return Ok(Transition::Abort(FloxideError::Generic(
+                "branch_b_failed".to_string(),
+            )));
         }
         logs.push(format!("BranchB executed"));
         Ok(Transition::Next("branch_b_success".to_string()))
@@ -276,18 +281,43 @@ struct NoopCallbacks;
 
 #[async_trait]
 impl StepCallbacks<Ctx, ParallelWorkflow> for NoopCallbacks {
-    async fn on_started(&self, run_id: String, item: ParallelWorkflowWorkItem) -> Result<(), FloxideError> {
-        tracing::info!("NoopCallbacks: on_started for run {} and item {:?}", run_id, item);
+    async fn on_started(
+        &self,
+        run_id: String,
+        item: ParallelWorkflowWorkItem,
+    ) -> Result<(), FloxideError> {
+        tracing::info!(
+            "NoopCallbacks: on_started for run {} and item {:?}",
+            run_id,
+            item
+        );
         Ok(())
     }
-    async fn on_item_processed(&self, run_id: String, item: ParallelWorkflowWorkItem, outcome: ItemProcessedOutcome) -> Result<(), FloxideError> {
-        tracing::info!("NoopCallbacks: on_item_processed for run {} and item {:?}", run_id, item);
+    async fn on_item_processed(
+        &self,
+        run_id: String,
+        item: ParallelWorkflowWorkItem,
+        outcome: ItemProcessedOutcome,
+    ) -> Result<(), FloxideError> {
+        tracing::info!(
+            "NoopCallbacks: on_item_processed for run {} and item {:?}",
+            run_id,
+            item
+        );
         match outcome {
             ItemProcessedOutcome::SuccessTerminal => {
-                tracing::info!("NoopCallbacks: on_item_processed for run {} and item {:?} completed", run_id, item);
+                tracing::info!(
+                    "NoopCallbacks: on_item_processed for run {} and item {:?} completed",
+                    run_id,
+                    item
+                );
             }
             ItemProcessedOutcome::SuccessNonTerminal => {
-                tracing::info!("NoopCallbacks: on_item_processed for run {} and item {:?} non-terminal", run_id, item);
+                tracing::info!(
+                    "NoopCallbacks: on_item_processed for run {} and item {:?} non-terminal",
+                    run_id,
+                    item
+                );
             }
             ItemProcessedOutcome::Error(e) => {
                 tracing::error!("NoopCallbacks: on_item_processed for run {} and item {:?} failed with error: {:?}", run_id, item, e);
@@ -330,19 +360,27 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
             async move {
                 // Each worker processes steps until it sees its terminal branch event
                 loop {
-                    let step_result = wf.step_distributed(&store, &queue, i, Arc::new(NoopCallbacks)).await;
+                    let step_result = wf
+                        .step_distributed(&store, &queue, i, Arc::new(NoopCallbacks))
+                        .await;
                     let mut should_fail = SHOULD_FAIL.lock().await;
 
                     match (*should_fail, step_result) {
                         (true, Err(e)) => {
                             *should_fail = false; // Reset the should_fail flag after simulating failure
-                            println!("Worker {} failed to process branch of run {} with error: {:?}", i, run_id, e);
+                            println!(
+                                "Worker {} failed to process branch of run {} with error: {:?}",
+                                i, run_id, e
+                            );
                         }
                         (false, Err(_)) => {
                             unreachable!();
                         }
                         (_, Ok(Some((run_id, res)))) => {
-                            println!("Worker {} processed branch of run {} with result: {:?}", i, run_id, res);
+                            println!(
+                                "Worker {} processed branch of run {} with result: {:?}",
+                                i, run_id, res
+                            );
                             break; // Worker is done with its branch
                         }
                         (_, Ok(None)) => {

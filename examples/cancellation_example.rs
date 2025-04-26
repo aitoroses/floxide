@@ -1,11 +1,11 @@
 // examples/cancellation_example.rs
 // Demonstrates workflow cancellation: a long-running node will be aborted when its cancellation token is triggered.
 
-use floxide_macros::workflow;
-use floxide_core::*;
 use async_trait::async_trait;
-use tokio::time::sleep;
+use floxide_core::*;
+use floxide_macros::workflow;
 use std::time::Duration;
+use tokio::time::sleep;
 
 /// A node that sleeps for a specified duration before completing.
 #[derive(Clone, Debug)]
@@ -22,8 +22,7 @@ impl Node for SlowNode {
         &self,
         _ctx: &(),
         _input: (),
-    ) -> Result<Transition<Self::Output>, FloxideError>
-    {
+    ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("SlowNode: sleeping for {:?}", self.dur);
         sleep(self.dur).await;
         println!("SlowNode: woke up");
@@ -45,7 +44,9 @@ workflow! {
 /// Runs the cancel workflow and returns whether it was cancelled (true if cancelled, false if completed)
 pub async fn run_cancellation_example() -> Result<bool, Box<dyn std::error::Error>> {
     let wf = CancelWorkflow {
-        slow: SlowNode { dur: Duration::from_secs(2) },
+        slow: SlowNode {
+            dur: Duration::from_secs(2),
+        },
     };
     let ctx = WorkflowCtx::new(());
     // Clone the cancellation token and trigger it after a delay
@@ -56,7 +57,7 @@ pub async fn run_cancellation_example() -> Result<bool, Box<dyn std::error::Erro
         canceller.cancel();
     });
     match wf.run(&ctx, ()).await {
-        Ok(_) => Ok(false), // did not cancel
+        Ok(_) => Ok(false),  // did not cancel
         Err(_e) => Ok(true), // cancelled
     }
 }
@@ -80,7 +81,9 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_cancellation_example() {
-        let cancelled = run_cancellation_example().await.expect("should run workflow");
+        let cancelled = run_cancellation_example()
+            .await
+            .expect("should run workflow");
         assert!(cancelled, "Workflow should be cancelled");
     }
 }

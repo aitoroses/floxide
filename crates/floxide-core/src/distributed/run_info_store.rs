@@ -3,8 +3,8 @@
 //! This module defines the RunInfoStore trait for tracking workflow run metadata and status,
 //! and provides an in-memory implementation for testing and local development.
 
-use async_trait::async_trait;
 use crate::distributed::{RunInfo, RunStatus};
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -31,7 +31,11 @@ pub trait RunInfoStore {
     /// Update the status for a workflow run.
     async fn update_status(&self, run_id: &str, status: RunStatus) -> Result<(), RunInfoError>;
     /// Update the finished_at timestamp for a workflow run.
-    async fn update_finished_at(&self, run_id: &str, finished_at: DateTime<Utc>) -> Result<(), RunInfoError>;
+    async fn update_finished_at(
+        &self,
+        run_id: &str,
+        finished_at: DateTime<Utc>,
+    ) -> Result<(), RunInfoError>;
     /// Get the run info for a workflow run.
     async fn get_run(&self, run_id: &str) -> Result<Option<RunInfo>, RunInfoError>;
     /// List all workflow runs, optionally filtered by status.
@@ -60,7 +64,11 @@ impl RunInfoStore for InMemoryRunInfoStore {
             Err(RunInfoError::NotFound)
         }
     }
-    async fn update_finished_at(&self, run_id: &str, finished_at: DateTime<Utc>) -> Result<(), RunInfoError> {
+    async fn update_finished_at(
+        &self,
+        run_id: &str,
+        finished_at: DateTime<Utc>,
+    ) -> Result<(), RunInfoError> {
         let mut map = self.inner.lock().await;
         if let Some(info) = map.get_mut(run_id) {
             info.finished_at = Some(finished_at);
@@ -75,7 +83,8 @@ impl RunInfoStore for InMemoryRunInfoStore {
     }
     async fn list_runs(&self, filter: Option<RunStatus>) -> Result<Vec<RunInfo>, RunInfoError> {
         let map = self.inner.lock().await;
-        let runs = map.values()
+        let runs = map
+            .values()
             .filter(|info| filter.as_ref().map_or(true, |f| *f == info.status))
             .cloned()
             .collect();
