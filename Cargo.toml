@@ -12,7 +12,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "1.1.2"
+version = "2.0.0"
 edition = "2021"
 authors = ["Floxide Contributors"]
 license = "MIT"
@@ -73,8 +73,8 @@ serde_json.workspace = true
 tokio-stream.workspace = true
 
 # Core crate (always included)
-floxide-core = { path = "./crates/floxide-core", version = "=1.1.2" }
-floxide-macros = { path = "./crates/floxide-macros", version = "=1.1.2" }
+floxide-core = { path = "./crates/floxide-core", version = "=2.0.0" }
+floxide-macros = { path = "./crates/floxide-macros", version = "=2.0.0" }
 
 [profile.dev]
 opt-level = 0
