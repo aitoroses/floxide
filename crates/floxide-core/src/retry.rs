@@ -174,7 +174,7 @@ pub fn with_retry<N>(node: N, policy: RetryPolicy) -> RetryNode<N> {
 /// Wrapper node that applies a `RetryPolicy` on inner node failures.
 ///
 /// Internally it will re-run the inner node up to `policy.max_attempts`,
-/// using backoff delays between attempts. Node trait impl is TODO.
+/// using backoff delays between attempts.
 #[derive(Clone, Debug)]
 pub struct RetryNode<N> {
     /// Inner node to invoke.

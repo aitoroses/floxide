@@ -207,22 +207,9 @@ where
                 return Err(FloxideError::AlreadyCompleted);
             }
             RunStatus::Paused => {
-                // TODO: Change the status of all work items to Pending
-                // Repopulate the work queue from the persisted checkpoint
-                self.queue
-                    .purge_run(run_id)
-                    .await
-                    .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
-                let cp_opt = self.store
-                    .load(run_id)
-                    .await
-                    .map_err(|e| FloxideError::Generic(format!("checkpoint_store error: {e}")))?;
-                let cp = cp_opt.ok_or_else(|| FloxideError::NotStarted)?;
-                for item in cp.queue.iter() {
-                    self.queue
-                        .enqueue(run_id, item.clone())
-                        .await
-                        .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
+                // Change the status of all work items to Pending
+                for item in self.list_work_items(run_id).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))? {
+                    self.work_item_state_store.set_status(run_id, &item.work_item, WorkItemStatus::Pending).await.map_err(|e| FloxideError::Generic(format!("work_item_state_store error: {e}")))?;
                 }
                 // Reset run status to Running
                 self.run_info_store
