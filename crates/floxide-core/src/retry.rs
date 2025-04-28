@@ -28,7 +28,7 @@ impl<S: Context> RetryDelay for WorkflowCtx<S> {
 }
 
 #[async_trait]
-impl RetryDelay for () {
+impl<S: Context> RetryDelay for S {
     async fn wait(&self, dur: Duration) -> Result<(), FloxideError> {
         tokio::time::sleep(dur).await;
         Ok(())

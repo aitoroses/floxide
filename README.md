@@ -82,7 +82,7 @@ node! {
 
 // --- Workflow Definition: Connecting the nodes ---
 workflow! {
-    pub st`uct ArticleWriterWorkflow {
+    pub struct ArticleWriterWorkflow {
         outline: OutlineNode,
         draft: DraftNode,
         review: ReviewNode,
@@ -105,7 +105,7 @@ workflow! {
 The `examples/` directory contains various demonstrations of Floxide's features:
 
 *   **`node_macro_example.rs`**: Basic usage of the `node!` macro to define a node with internal state and custom context.
-*   **`simple_context_example.rs`**: Demonstrates a workflow with a shared context (`MyCtx`) and composite nodes that branch based on an enum output (`FooAction`).
+*   **`branching_example.rs`**: Demonstrates a workflow with a shared context (`MyCtx`) and composite nodes that branch based on an enum output (`FooAction`).
 *   **`split_example.rs`**: Shows how to use `SplitNode` to fan-out a single input into multiple items for parallel processing.
 *   **`merge_example.rs`**: Complements `split_example` by using a custom `MergeNode` to collect results from parallel branches, holding until all expected inputs arrive.
 *   **`batch_example.rs`**: Demonstrates `BatchNode` for processing items in groups, followed by routing based on batch results.
@@ -122,6 +122,7 @@ The `examples/` directory contains various demonstrations of Floxide's features:
 *   **`distributed_orchestrated_merge_example.rs`**: A more complex distributed example showcasing `OrchestratorBuilder`, `WorkerBuilder`, `WorkerPool`, and various in-memory distributed stores (`RunInfoStore`, `MetricsStore`, etc.) for a split/merge workflow with potential failures.
 *   **`workflow_dot.rs`**: Demonstrates generating a Graphviz DOT representation of a workflow's structure using the `to_dot()` method.
 *   **`terminal_node_example.rs`**: A minimal workflow where the starting node is also the terminal node, directly returning the final result.
+*   **`order_example.rs`**: A workflow that simulates an order processing system, including validation, payment processing, and stock allocation.
 
 ## Installation
 

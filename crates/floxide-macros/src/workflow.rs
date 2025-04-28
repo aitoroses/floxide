@@ -377,7 +377,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     let pushes = fails.iter().map(|succ| {
                         let var_name = to_camel_case(&succ.to_string());
                         let succ_var = format_ident!("{}", var_name);
-                        quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), x.clone())); }
+                        quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), input.clone())); }
                     });
                     quote! { #(#pushes)* return Ok(None) }
                 } else {
@@ -413,8 +413,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     let __store = &ctx.store;
                     let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
                     let _node_enter = node_span.enter();
-                    tracing::debug!(ctx = ?ctx.store, ?x, "Node input and context");
-                    match ctx.run_future(__node.process(__store, x)).await {
+                    tracing::debug!(ctx = ?ctx.store, ?input, "Node input and context");
+                    match ctx.run_future(__node.process(__store, input.clone())).await {
                         Ok(Transition::NextAll(actions)) => {
                             // Fan-out: multiple outputs
                             #push_all
@@ -449,8 +449,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let __store = &ctx.store;
                         let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
                         let _node_enter = node_span.enter();
-                        tracing::debug!(store = ?ctx.store, ?x, "Node input and store");
-                        match ctx.run_future(__node.process(__store, x)).await? {
+                        tracing::debug!(store = ?ctx.store, ?input, "Node input and store");
+                        match ctx.run_future(__node.process(__store, input.clone())).await? {
                             // Hold: pause without emitting successors
                             Transition::Hold => {
                                 tracing::debug!("Node produced Transition::Hold");
@@ -508,8 +508,8 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         let __store = &ctx.store;
                         let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
                         let _node_enter = node_span.enter();
-                        tracing::debug!(store = ?ctx.store, ?x, "Node input and store");
-                        match ctx.run_future(__node.process(__store, x)).await? {
+                        tracing::debug!(store = ?ctx.store, ?input, "Node input and store");
+                        match ctx.run_future(__node.process(__store, input.clone())).await? {
                             Transition::Hold => {
                                 tracing::debug!("Node produced Transition::Hold");
                                 return Ok(None);
@@ -536,7 +536,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             }
         };
         quote! {
-            #work_item_ident::#var_ident(_id, x) => {
+            #work_item_ident::#var_ident(_id, input) => {
                 #arm_tokens
             }
         }
