@@ -8,12 +8,13 @@
 // serde = { version = "1", features = ["derive"] }
 
 use floxide::{
-    context::SharedState, node, workflow, BackoffStrategy, FloxideError, Node, RetryError, RetryPolicy, Transition, Workflow, WorkflowCtx
+    context::SharedState, node, workflow, BackoffStrategy, FloxideError, Node, RetryError,
+    RetryPolicy, Transition, Workflow, WorkflowCtx,
 };
 use serde::{Deserialize, Serialize};
-use tracing::Level;
 use std::time::Duration;
-use tokio::time::sleep; // For simulating work
+use tokio::time::sleep;
+use tracing::Level; // For simulating work
 
 // --- Data Structures ---
 
@@ -78,7 +79,7 @@ node! {
         if details.item == "FailPayment" {
              let err_msg = "Payment Failed: Card declined.".to_string();
              return Err(FloxideError::Generic(err_msg));
-        } 
+        }
         ctx.status.set(OrderStatus::PaymentProcessed).await;
         Ok(Transition::Next(details))
     }
@@ -179,32 +180,43 @@ workflow! {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().with_max_level(Level::DEBUG).init();
+    tracing_subscriber::fmt()
+        .with_max_level(Level::DEBUG)
+        .init();
     // --- Run 1: Successful Order ---
     tracing::info!("--- Running Successful Order ---");
-    run_workflow(OrderDetails {
-        order_id: "ORD-123".to_string(),
-        item: "Laptop".to_string(),
-        quantity: 1,
-    }, true)
+    run_workflow(
+        OrderDetails {
+            order_id: "ORD-123".to_string(),
+            item: "Laptop".to_string(),
+            quantity: 1,
+        },
+        true,
+    )
     .await;
 
     // // --- Run 2: Order that fails payment ---
     tracing::info!("--- Running Order Failing Payment ---");
-    run_workflow(OrderDetails {
-        order_id: "ORD-456".to_string(),
-        item: "FailPayment".to_string(), // This causes payment failure
-        quantity: 2,
-    }, false)
+    run_workflow(
+        OrderDetails {
+            order_id: "ORD-456".to_string(),
+            item: "FailPayment".to_string(), // This causes payment failure
+            quantity: 2,
+        },
+        false,
+    )
     .await;
 
     // --- Run 3: Order that requires stock retry ---
     tracing::info!("--- Running Order Requiring Stock Retry ---");
-    run_workflow(OrderDetails {
-        order_id: "ORD-789".to_string(),
-        item: "RetryStock".to_string(), // This causes transient stock failure
-        quantity: 1,
-    }, false)
+    run_workflow(
+        OrderDetails {
+            order_id: "ORD-789".to_string(),
+            item: "RetryStock".to_string(), // This causes transient stock failure
+            quantity: 1,
+        },
+        false,
+    )
     .await;
 
     // --- Print DOT Visualization ---
@@ -212,7 +224,6 @@ async fn main() {
 
 // Helper function to run a workflow and print results
 async fn run_workflow(details: OrderDetails, print_dot: bool) {
-    
     let workflow = OrderProcessingWorkflow {
         validate: ValidateOrderNode {},
         payment: ProcessPaymentNode {},
@@ -246,14 +257,18 @@ async fn run_workflow(details: OrderDetails, print_dot: bool) {
         Ok(status_from_result) => {
             tracing::info!(
                 "Workflow completed. Result Status: {:?}, Context Status: {:?}, Error: {:?}",
-                status_from_result, final_status, error_msg
+                status_from_result,
+                final_status,
+                error_msg
             );
         }
         Err(e) => {
             // This happens if validation fails (or another node fails without on_failure)
             tracing::error!(
                 "Workflow failed unexpectedly: {:?}. Context Status: {:?}, Error: {:?}",
-                e, final_status, error_msg
+                e,
+                final_status,
+                error_msg
             );
         }
     }

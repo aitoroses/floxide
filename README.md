@@ -29,52 +29,88 @@ Floxide models workflows using these key components:
 Here's a conceptual workflow simulating article generation using LLM-like steps:
 
 ```rust
-use floxide::{workflow, node, Transition, WorkflowCtx, FloxideError};
-use async_trait::async_trait;
+use floxide::{node, workflow, FloxideError, Node, Transition, Workflow, WorkflowCtx};
+use rllm::{
+    builder::{LLMBackend, LLMBuilder},
+    chat::{ChatMessage, ChatRole, MessageType},
+    LLMProvider,
+};
+use std::sync::Arc;
+use std::{
+    env,
+    fmt::{self, Debug},
+};
+use tracing::Level;
 
-// Context: Shared data for the workflow (none needed here)
-type Ctx = ();
+#[derive(Clone)]
+pub struct LLMProviderWrapper {
+    inner: Arc<Box<dyn LLMProvider>>,
+}
 
-// --- Node 1: Generate Outline --- 
+impl LLMProviderWrapper {
+    pub fn new(inner: Arc<Box<dyn LLMProvider>>) -> Self {
+        Self { inner }
+    }
+}
+
+impl Debug for LLMProviderWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "LLMProviderWrapper")
+    }
+}
+
+// --- Node 1: Generate Outline ---
 node! {
-    pub struct OutlineNode {};
-    context = Ctx;
+    pub struct OutlineNode {
+        llm: LLMProviderWrapper,
+    };
+    context = ();
     input = String; // Input: Article Topic
     output = String; // Output: Outline Text
-    | _ctx: &Ctx, topic: String | {
+    | _ctx, topic | {
         println!("OutlineNode: Generating outline for topic: '{}'", topic);
-        // Simulate calling an LLM to generate an outline
-        let outline = format!("Outline for {}:\n- Introduction\n- Section 1\n- Section 2\n- Conclusion", topic);
+        // Call LLM to generate an outline
+        let prompt = format!("Generate an outline for an article about: {}", topic);
+        let messages = vec![ChatMessage { role: ChatRole::User, content: prompt, message_type: MessageType::Text }];
+        let outline: String = self.llm.inner.chat(&messages).await.map_err(|e| FloxideError::Generic(e.to_string()))?.text().unwrap_or_default();
         // Pass the outline to the next step
         Ok(Transition::Next(outline))
     }
 }
 
-// --- Node 2: Draft Article --- 
+// --- Node 2: Draft Article ---
 node! {
-    pub struct DraftNode {};
-    context = Ctx;
+    pub struct DraftNode {
+        llm: LLMProviderWrapper,
+    };
+    context = ();
     input = String; // Input: Outline Text
     output = String; // Output: Draft Article Text
-    | _ctx: &Ctx, outline: String | {
+    | _ctx, outline | {
         println!("DraftNode: Drafting article based on outline...");
-        // Simulate calling an LLM to draft based on the outline
-        let draft = format!("Draft based on {}\n\n[... Full draft content based on outline sections ...]", outline);
+        // Call LLM to draft the article based on the outline
+        let prompt = format!("Write a detailed draft article based on the following outline:\n{}", outline);
+        let messages = vec![ChatMessage { role: ChatRole::User, content: prompt, message_type: MessageType::Text }];
+        let draft: String = self.llm.inner.chat(&messages).await.map_err(|e| FloxideError::Generic(e.to_string()))?.text().unwrap_or_default();
         // Pass the draft to the next step
         Ok(Transition::Next(draft))
     }
 }
 
-// --- Node 3: Review Article --- 
+// --- Node 3: Review Article ---
 node! {
-    pub struct ReviewNode {};
-    context = Ctx;
+    pub struct ReviewNode {
+        llm: LLMProviderWrapper,
+    };
+    context = ();
     input = String; // Input: Draft Article Text
     output = String; // Output: Final Article Text
-    | _ctx: &Ctx, draft: String | {
+    | _ctx, draft | {
         println!("ReviewNode: Reviewing and finalizing draft...");
-        // Simulate a review step (e.g., adding a title, minor edits)
-        let final_article = format!("**Final Article**\n\n{}", draft.replace("Draft based on", "Article based on"));
+        // Call LLM to review and finalize the draft
+        let prompt = format!("Review and finalize the following article draft. Provide the final polished version without any additional text:\n{}", draft);
+        let messages = vec![ChatMessage { role: ChatRole::User, content: prompt, message_type: MessageType::Text }];
+        let final_article: String = self.llm.inner.chat(&messages).await.map_err(|e| FloxideError::Generic(e.to_string()))?.text().unwrap_or_default();
         // Pass the final article as the workflow result
         Ok(Transition::Next(final_article))
     }
@@ -88,17 +124,47 @@ workflow! {
         review: ReviewNode,
     }
     start = outline; // Start with the outline node
-    context = Ctx;
+    context = ();
     edges {
         // Define the sequence: outline -> draft -> review
-        outline => draft;
-        draft => review;
+        outline => { [draft] };
+        draft => { [review] };
         review => {}; // review is the final node
     }
 }
 
-// Note: Running this workflow requires setting up an executor and providing 
-// the initial topic input. See the tutorials for complete examples.
+#[tokio::main]
+async fn main() -> Result<(), FloxideError> {
+    tracing_subscriber::fmt()
+        .with_max_level(Level::DEBUG)
+        .init();
+
+    // Initialize the LLM for chat completion
+    let llm = LLMBuilder::new()
+        .backend(LLMBackend::OpenAI)
+        .api_key(env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set"))
+        .model("gpt-4o")
+        .temperature(0.7)
+        .build()
+        .expect("Failed to build LLM");
+
+    let llm = LLMProviderWrapper::new(Arc::new(llm));
+
+    let workflow = ArticleWriterWorkflow {
+        outline: OutlineNode { llm: llm.clone() },
+        draft: DraftNode { llm: llm.clone() },
+        review: ReviewNode { llm: llm.clone() },
+    };
+    
+    let ctx = WorkflowCtx::new(());
+    let result = workflow
+        .run(&ctx, "Rust Programming Language".to_string())
+        .await?;
+
+    println!("Generated article: {}", result);
+    
+    Ok(())
+}
 ```
 ## Examples
 
@@ -123,7 +189,7 @@ The `examples/` directory contains various demonstrations of Floxide's features:
 *   **`workflow_dot.rs`**: Demonstrates generating a Graphviz DOT representation of a workflow's structure using the `to_dot()` method.
 *   **`terminal_node_example.rs`**: A minimal workflow where the starting node is also the terminal node, directly returning the final result.
 *   **`order_example.rs`**: A workflow that simulates an order processing system, including validation, payment processing, and stock allocation.
-
+*   **`llm_example.rs`**: A simple linear workflow that shows how to use LLM-like steps to generate an article.
 ## Installation
 
 Add Floxide to your `Cargo.toml` dependencies:
