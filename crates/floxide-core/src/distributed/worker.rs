@@ -466,14 +466,56 @@ where
                 let work_item = work_item.clone();
                 let work_item_state_store = self.work_item_state_store.clone();
                 let backoff = policy.backoff_duration(attempt);
+                tracing::info!(
+                    worker_id,
+                    run_id = %run_id,
+                    ?work_item,
+                    ?backoff,
+                    "Spawning task to re-enqueue work item after backoff"
+                );
                 tokio::spawn(async move {
+                    tracing::info!(
+                        run_id = %run_id,
+                        ?work_item,
+                        ?backoff,
+                        "Re-enqueue task started, sleeping..."
+                    );
                     tokio::time::sleep(backoff).await;
+                    tracing::info!(
+                        run_id = %run_id,
+                        ?work_item,
+                        "Re-enqueue task awake, setting status to Pending"
+                    );
                     // Set to Pending before re-enqueue
-                    work_item_state_store
+                    if let Err(e) = work_item_state_store
                         .set_status(&run_id, &work_item, WorkItemStatus::Pending)
                         .await
-                        .ok();
-                    queue.enqueue(&run_id, work_item).await.ok();
+                    {
+                        tracing::error!(
+                            run_id = %run_id,
+                            ?work_item,
+                            error = %e,
+                            "Re-enqueue task failed to set status to Pending"
+                        );
+                        // Optionally, decide if we should still attempt enqueue or just return
+                        return;
+                    }
+
+                    tracing::info!(run_id = %run_id, ?work_item, "Re-enqueue task attempting enqueue");
+                    if let Err(e) = queue.enqueue(&run_id, work_item.clone()).await {
+                         tracing::error!(
+                            run_id = %run_id,
+                            ?work_item,
+                            error = %e,
+                            "Re-enqueue task FAILED to enqueue work item!"
+                        );
+                        // CRITICAL: The item failed to re-enqueue. It's now potentially lost.
+                        // Consider adding logic here to signal this failure more robustly,
+                        // maybe update the WorkItemStatus to a specific 'EnqueueFailed' state,
+                        // or alert an external monitoring system.
+                    } else {
+                        tracing::info!(run_id = %run_id, ?work_item, "Re-enqueue task successfully enqueued work item");
+                    }
                 });
             }
         }
