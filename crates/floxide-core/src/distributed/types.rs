@@ -1,11 +1,12 @@
 use crate::{context::Context, error::FloxideError, workflow::Workflow};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use thiserror::Error;
 
 /// Status of a workflow run.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RunStatus {
     Running,
     Completed,
@@ -15,7 +16,7 @@ pub enum RunStatus {
 }
 
 /// Information about a workflow run.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunInfo {
     pub run_id: String,
     pub status: RunStatus,
@@ -24,7 +25,7 @@ pub struct RunInfo {
 }
 
 /// Error information for a workflow work item.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowError {
     pub work_item: String, // Could be improved to use WorkItem type
     pub error: String,
@@ -33,7 +34,7 @@ pub struct WorkflowError {
 }
 
 /// Metrics for a workflow run.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RunMetrics {
     pub total_work_items: usize,
     pub completed: usize,
@@ -57,7 +58,7 @@ pub enum LivenessStoreError {
     Other(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LivenessStatus {
     Alive,
     Stale,

@@ -112,22 +112,23 @@ impl<T: Serialize + Clone> Serialize for SharedState<T> {
     where
         S: serde::Serializer,
     {
-        use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("Arc<Mutex<T>>", 1)?;
         let value = self
             .0
             .try_lock()
             .expect("Failed to lock mutex on SharedState while serializing");
-        state.serialize_field("value", &value.clone())?;
-        state.end()
+        // Directly serialize the inner value T
+        T::serialize(&*value, serializer)
     }
 }
+
+// No helper struct needed now
 
 impl<'de, T: Deserialize<'de> + Clone> Deserialize<'de> for SharedState<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
+        // Directly deserialize into T
         let value = T::deserialize(deserializer)?;
         Ok(SharedState(Arc::new(Mutex::new(value))))
     }
@@ -139,5 +140,60 @@ impl<T: Debug> Debug for SharedState<T> {
             Ok(value) => write!(f, "{:?}", value),
             Err(_) => write!(f, "SharedState(Locked)"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[tokio::test]
+    async fn test_shared_state_serde_direct() {
+        let initial_data = vec![10, 20, 30];
+        let shared_state = SharedState::new(initial_data.clone());
+
+        // Serialize
+        let serialized = serde_json::to_string(&shared_state).expect("Serialization failed");
+        // Should serialize directly as the inner Vec<i32>
+        assert_eq!(serialized, "[10,20,30]");
+
+        // Deserialize
+        let deserialized: SharedState<Vec<i32>> =
+            serde_json::from_str(&serialized).expect("Deserialization failed");
+
+        // Verify data
+        let final_data = deserialized.get().await;
+        assert_eq!(*final_data, initial_data);
+    }
+
+    #[tokio::test]
+    async fn test_shared_state_serde_within_struct() {
+        // Removed PartialEq derive
+        #[derive(Serialize, Deserialize, Debug)]
+        struct Container {
+            id: u32,
+            state: SharedState<String>,
+        }
+
+        let initial_string = "hello".to_string();
+        let container = Container {
+            id: 1,
+            state: SharedState::new(initial_string.clone()),
+        };
+
+        // Serialize
+        let serialized = serde_json::to_string(&container).expect("Serialization failed");
+        // state should be serialized directly as the string
+        assert_eq!(serialized, r#"{"id":1,"state":"hello"}"#);
+
+        // Deserialize
+        let deserialized: Container =
+            serde_json::from_str(&serialized).expect("Deserialization failed");
+
+        // Verify data manually
+        assert_eq!(deserialized.id, container.id);
+        let final_string = deserialized.state.get().await;
+        assert_eq!(*final_string, initial_string);
     }
 }

@@ -6,11 +6,12 @@
 use crate::distributed::LivenessStoreError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum WorkerStatus {
     #[default]
     Idle,
@@ -19,7 +20,7 @@ pub enum WorkerStatus {
 }
 
 /// Health and status information for a workflow worker.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkerHealth {
     /// Unique worker ID.
     pub worker_id: usize,
@@ -33,6 +34,19 @@ pub struct WorkerHealth {
     pub current_work_item: Option<String>,
     /// Worker's current work item's run ID.
     pub current_work_item_run_id: Option<String>,
+}
+
+impl Default for WorkerHealth {
+    fn default() -> Self {
+        Self {
+            worker_id: 0,
+            last_heartbeat: chrono::Utc::now(),
+            error_count: 0,
+            status: WorkerStatus::Idle,
+            current_work_item: None,
+            current_work_item_run_id: None,
+        }
+    }
 }
 
 /// Trait for a distributed workflow liveness/health store.
