@@ -211,7 +211,7 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
             .load(id)
             .await
             .map_err(|e| FloxideError::Generic(e.to_string()))?
-            .ok_or_else(|| FloxideError::NotStarted)?;
+            .ok_or(FloxideError::NotStarted)?;
         debug!("Loaded checkpoint for resume");
         let wf_ctx = crate::WorkflowCtx::new(cp.context.clone());
         let ctx = &wf_ctx;
