@@ -52,6 +52,8 @@ pub trait WorkItem:
 {
     /// Returns a unique identifier for this work item instance.
     fn instance_id(&self) -> String;
+    /// Returns true if this work item is a terminal node (no successors)
+    fn is_terminal(&self) -> bool;
 }
 
 /// Trait for a workflow.
@@ -216,6 +218,11 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
         let mut queue: VecDeque<Self::WorkItem> = cp.queue.clone();
         if queue.is_empty() {
             info!("Workflow already completed (empty queue)");
+            return Err(FloxideError::AlreadyCompleted);
+        }
+        // If the queue contains exactly one item and it is terminal, treat as already completed
+        if queue.len() == 1 && queue.front().map(|item| item.is_terminal()).unwrap_or(false) {
+            info!("Workflow already completed (terminal node in queue)");
             return Err(FloxideError::AlreadyCompleted);
         }
         while let Some(item) = queue.pop_front() {

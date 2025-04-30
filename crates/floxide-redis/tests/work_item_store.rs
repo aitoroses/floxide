@@ -20,6 +20,9 @@ impl floxide_core::workflow::WorkItem for DummyWorkItem {
     fn instance_id(&self) -> String {
         self.id.clone()
     }
+    fn is_terminal(&self) -> bool {
+        false
+    }
 }
 
 #[tokio::test]

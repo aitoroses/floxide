@@ -297,6 +297,19 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         .find(|(fld, _, _)| fld == &terminal_src)
         .map(|(_, ty, _)| ty.clone())
         .expect("Terminal field not found among fields");
+    // Find the terminal variant ident(s)
+    let terminal_variant_idents: Vec<_> = edges.iter().filter_map(|(src, kind)| {
+        let is_terminal = match kind {
+            EdgeKind::Direct { succs, on_failure } => succs.is_empty() && on_failure.is_none(),
+            EdgeKind::Composite(arms) => arms.is_empty(),
+        };
+        if is_terminal {
+            let var_name = to_camel_case(&src.to_string());
+            Some(format_ident!("{}", var_name))
+        } else {
+            None
+        }
+    }).collect();
     // Identify policy fields (names used in #[retry = policy])
     let policy_idents: Vec<Ident> = fields
         .iter()
@@ -643,6 +656,14 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     #(
                         #work_item_ident::#work_variant_idents(id, _) => id.clone(),
                     )*
+                }
+            }
+            fn is_terminal(&self) -> bool {
+                match self {
+                    #(
+                        #work_item_ident::#terminal_variant_idents(..) => true,
+                    )*
+                    _ => false,
                 }
             }
         }
