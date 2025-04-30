@@ -26,9 +26,9 @@ impl<E> Default for EventLog<E> {
     }
 }
 
-impl<E> Debug for EventLog<E> {
+impl<E: Debug + Clone> Debug for EventLog<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EventLog {{ events: {:?} }}", self.events.lock().unwrap().len())
+        write!(f, "EventLog {{ {:?} }}", self.events.lock().unwrap().iter().map(|e| e.event.clone()).collect::<Vec<_>>())
     }
 }
 
