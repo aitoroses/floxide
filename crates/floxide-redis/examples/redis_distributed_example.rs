@@ -175,7 +175,6 @@ async fn run_distributed_orchestrated_merge_with_url(
         .build()
         .unwrap();
 
-
     // Worker with Redis stores
     let worker = WorkerBuilder::new()
         .workflow(wf)
