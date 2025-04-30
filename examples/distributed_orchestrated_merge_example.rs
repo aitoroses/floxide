@@ -106,7 +106,7 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
     let ctx = MergeContext {
         event_log: EventLog::new(),
         expected: Fixed::new(10),
-        random_fail_chance: Fixed::new(0.7),
+        random_fail_chance: Fixed::new(0.3),
     };
     let wf_ctx = WorkflowCtx::new(ctx);
 

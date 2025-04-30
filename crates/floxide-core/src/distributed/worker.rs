@@ -276,11 +276,15 @@ where
             .ok();
         let now = chrono::Utc::now();
         tracing::debug!(worker_id, run_id=%run_id, "Attempting to set run status to Completed");
-        let _ = self
+        self
             .run_info_store
             .update_status(run_id, RunStatus::Completed)
-            .await;
-        let _ = self.run_info_store.update_finished_at(run_id, now).await;
+            .await
+            .map_err(|e| FloxideError::Generic(format!("Failed to set run status to Completed: {}", e)))?;
+        self.run_info_store
+            .update_finished_at(run_id, now)
+            .await
+            .map_err(|e| FloxideError::Generic(format!("Failed to set run finished at: {}", e)))?;
         Ok(())
     }
 
