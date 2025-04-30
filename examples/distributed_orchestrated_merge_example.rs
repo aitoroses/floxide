@@ -5,7 +5,7 @@ use floxide::{
     distributed::{
         InMemoryContextStore, InMemoryErrorStore, InMemoryLivenessStore, InMemoryMetricsStore,
         InMemoryRunInfoStore, InMemoryWorkItemStateStore, InMemoryWorkQueue, OrchestratorBuilder,
-        RunStatus, WorkerBuilder, WorkerPool,
+        RunInfo, RunStatus, WorkerBuilder, WorkerPool,
     },
     merge::Fixed,
 };
@@ -81,7 +81,9 @@ node! {
         }
         ctx.event_log.append(MergeEvent::Log(format!("Merged values: {:?}", input)));
         println!("Merged values: {:?}", input);
-        Ok(Transition::Next(input))
+        let mut output = input.clone();
+        output.sort();
+        Ok(Transition::Next(output))
     }
 }
 
@@ -101,7 +103,7 @@ workflow! {
     }
 }
 
-async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::error::Error>> {
+async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::error::Error>> {
     // --- Distributed setup ---
     let ctx = MergeContext {
         event_log: EventLog::new(),
@@ -199,12 +201,14 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
     let mut final_status = status;
     loop {
         match final_status {
-            Ok(Ok(RunStatus::Completed)) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Completed => {
                 print_stats().await?;
-                break Ok(RunStatus::Completed);
+                break Ok(info.clone());
             }
-            Ok(Ok(RunStatus::Failed)) | Err(Elapsed { .. }) => {
-                // timeout or other error
+            Ok(Ok(ref info))
+                if info.status == RunStatus::Failed
+                    || matches!(final_status, Err(Elapsed { .. })) =>
+            {
                 print_stats().await?;
                 println!("Resuming run");
                 orchestrator.resume(&run_id).await?;
@@ -215,21 +219,36 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
                 )
                 .await;
             }
-            Ok(Ok(RunStatus::Cancelled)) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Cancelled => {
                 print_stats().await?;
                 break Err(FloxideError::Generic("run cancelled".to_string()).into());
             }
-            Ok(Ok(RunStatus::Paused)) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Paused => {
                 print_stats().await?;
                 break Err(FloxideError::Generic("run paused".to_string()).into());
             }
-            Ok(Ok(RunStatus::Running)) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Running => {
                 print_stats().await?;
                 break Err(FloxideError::Generic("run running".to_string()).into());
             }
-            Ok(Err(e)) => {
+            Ok(Err(ref e)) => {
                 print_stats().await?;
-                break Err(e.into());
+                break Err(e.clone().into());
+            }
+            Err(Elapsed { .. }) => {
+                print_stats().await?;
+                println!("Timeout reached, resuming run");
+                orchestrator.resume(&run_id).await?;
+                final_status = tokio::time::timeout(
+                    std::time::Duration::from_secs(10),
+                    orchestrator
+                        .wait_for_completion(&run_id, std::time::Duration::from_millis(100)),
+                )
+                .await;
+            }
+            _ => {
+                print_stats().await?;
+                break Err(FloxideError::Generic("unexpected status".to_string()).into());
             }
         }
     }
@@ -246,12 +265,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::*;
     #[tokio::test]
     async fn test_distributed_orchestrated_merge() {
-        let status = run_distributed_orchestrated_merge()
+        let info = run_distributed_orchestrated_merge()
             .await
             .expect("distributed orchestrated merge example failed");
-        assert_eq!(status, RunStatus::Completed);
+        assert_eq!(info.status, RunStatus::Completed);
+        let expected = json!(vec![0, 10, 20, 30, 40, 50, 60, 70, 80, 90]);
+        assert_eq!(info.output, Some(expected));
     }
 }

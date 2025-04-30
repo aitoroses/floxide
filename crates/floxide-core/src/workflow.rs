@@ -43,6 +43,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::{debug, info, span, Level};
 use crate::distributed::context_store::ContextStore;
+use serde_json;
 
 /// Trait for a workflow work item.
 ///
@@ -363,11 +364,16 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
                     work_item: Some(item.clone()),
                 })?;
                 debug!(worker = worker_id, run_id = %run_id, "Context merged (terminal)");
+                let output_json = serde_json::to_value(&out).map_err(|e| StepError {
+                    error: FloxideError::Generic(format!("Failed to serialize output: {}", e)),
+                    run_id: Some(run_id.clone()),
+                    work_item: Some(item.clone()),
+                })?;
                 let on_item_processed_result = callbacks
                     .on_item_processed(
                         run_id.clone(),
                         item.clone(),
-                        ItemProcessedOutcome::SuccessTerminal,
+                        ItemProcessedOutcome::SuccessTerminal(output_json),
                     )
                     .await;
                 if let Err(e) = on_item_processed_result {

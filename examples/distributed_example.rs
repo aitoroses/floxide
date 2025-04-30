@@ -317,7 +317,7 @@ impl StepCallbacks<Ctx, ParallelWorkflow> for NoopCallbacks {
             item
         );
         match outcome {
-            ItemProcessedOutcome::SuccessTerminal => {
+            ItemProcessedOutcome::SuccessTerminal(_) => {
                 tracing::info!(
                     "NoopCallbacks: on_item_processed for run {} and item {:?} completed",
                     run_id,

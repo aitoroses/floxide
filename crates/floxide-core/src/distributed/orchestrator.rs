@@ -94,6 +94,7 @@ where
             status: RunStatus::Running,
             started_at: Utc::now(),
             finished_at: None,
+            output: None,
         };
         self.run_info_store
             .insert_run(run_info)
@@ -379,14 +380,18 @@ where
         &self,
         run_id: &str,
         poll_interval: std::time::Duration,
-    ) -> Result<RunStatus, FloxideError> {
+    ) -> Result<RunInfo, FloxideError> {
         loop {
-            let status = self.status(run_id).await?;
-            match status {
-                RunStatus::Completed | RunStatus::Failed | RunStatus::Cancelled => {
-                    return Ok(status)
+            let status = self.run_info_store.get_run(run_id).await.map_err(|e| FloxideError::Generic(format!("run_info_store error: {e}")))?;
+            if let Some(info) = status {
+                match info.status {
+                    RunStatus::Completed | RunStatus::Failed | RunStatus::Cancelled => {
+                        return Ok(info)
+                    }
+                    _ => tokio::time::sleep(poll_interval).await,
                 }
-                _ => tokio::time::sleep(poll_interval).await,
+            } else {
+                return Err(FloxideError::NotStarted);
             }
         }
     }

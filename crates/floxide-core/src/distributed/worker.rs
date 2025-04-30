@@ -14,6 +14,7 @@ use tokio::time::{sleep, Duration};
 use tokio_util::sync::CancellationToken;
 use tracing::error;
 use rand::Rng;
+use serde_json;
 
 use super::{ItemProcessedOutcome, StepCallbacks};
 
@@ -228,6 +229,7 @@ where
         worker_id: usize,
         run_id: &str,
         work_item: &W::WorkItem,
+        output: &serde_json::Value,
     ) -> Result<(), FloxideError> {
         let status_result = self
             .work_item_state_store
@@ -281,6 +283,11 @@ where
             .update_status(run_id, RunStatus::Completed)
             .await
             .map_err(|e| FloxideError::Generic(format!("Failed to set run status to Completed: {}", e)))?;
+        // Set the output field
+        self.run_info_store
+            .update_output(run_id, output.clone())
+            .await
+            .map_err(|e| FloxideError::Generic(format!("Failed to set run output: {}", e)))?;
         self.run_info_store
             .update_finished_at(run_id, now)
             .await
@@ -969,12 +976,13 @@ where
         outcome: ItemProcessedOutcome,
     ) -> Result<(), FloxideError> {
         let result = match outcome {
-            ItemProcessedOutcome::SuccessTerminal => {
+            ItemProcessedOutcome::SuccessTerminal(output) => {
                 self.worker
                     .on_item_processed_success_terminal_state_updates(
                         self.worker_id,
                         &run_id,
                         &item,
+                        &output,
                     )
                     .await
             }

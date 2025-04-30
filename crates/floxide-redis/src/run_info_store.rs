@@ -261,4 +261,53 @@ impl RunInfoStore for RedisRunInfoStore {
         trace!("Listed {} runs", runs.len());
         Ok(runs)
     }
+
+    async fn update_output(
+        &self,
+        run_id: &str,
+        output: serde_json::Value,
+    ) -> Result<(), RunInfoError> {
+        let run_key = self.run_info_key(run_id);
+        let mut conn = self.client.conn.clone();
+
+        // Get the current run info
+        let result: Option<String> = conn
+            .get(&run_key)
+            .await
+            .map_err(|e| {
+                error!("Redis error while getting run info: {}", e);
+                RunInfoError::Io(e.to_string())
+            })?;
+
+        let mut info = match result {
+            Some(serialized) => {
+                let serializable = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+                    error!("Failed to deserialize run info: {}", e);
+                    RunInfoError::Other(format!("Deserialization error: {}", e))
+                })?;
+                RunInfo::from(serializable)
+            },
+            None => return Err(RunInfoError::NotFound),
+        };
+
+        // Update the output field
+        info.output = Some(output);
+
+        // Serialize the updated run info
+        let serialized = serde_json::to_string(&info).map_err(|e| {
+            error!("Failed to serialize run info: {}", e);
+            RunInfoError::Other(format!("Serialization error: {}", e))
+        })?;
+
+        // Store the updated run info
+        let _result: () = conn.set(&run_key, serialized)
+            .await
+            .map_err(|e| {
+                error!("Redis error while updating output: {}", e);
+                RunInfoError::Io(e.to_string())
+            })?;
+
+        trace!("Updated output for run {}", run_id);
+        Ok(())
+    }
 }

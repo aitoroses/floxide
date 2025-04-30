@@ -18,6 +18,7 @@ async fn test_run_info_store_crud() {
         status: RunStatus::Running,
         started_at: Utc::now(),
         finished_at: None,
+        output: None,
     };
 
     // Insert

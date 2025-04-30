@@ -22,6 +22,7 @@ pub struct RunInfo {
     pub status: RunStatus,
     pub started_at: DateTime<Utc>,
     pub finished_at: Option<DateTime<Utc>>,
+    pub output: Option<serde_json::Value>,
 }
 
 /// Error information for a workflow work item.
@@ -74,7 +75,7 @@ pub struct StepError<W: std::fmt::Debug + Clone> {
 
 #[derive(Debug, Clone)]
 pub enum ItemProcessedOutcome {
-    SuccessTerminal,
+    SuccessTerminal(serde_json::Value),
     SuccessNonTerminal,
     Error(FloxideError),
 }

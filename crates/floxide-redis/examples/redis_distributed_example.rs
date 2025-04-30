@@ -3,7 +3,7 @@
 
 use floxide_core::{
     distributed::{
-        OrchestratorBuilder, RunStatus, WorkerBuilder, WorkerPool,
+        OrchestratorBuilder, RunStatus, WorkerBuilder, WorkerPool, RunInfo,
     },
     merge::Fixed,
 };
@@ -124,11 +124,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     run_distributed_orchestrated_merge_with_url(&redis_url).await?;
 
     // Stop the Redis container
-    container.rm().await.unwrap();
+    // container.rm().await.unwrap();
     Ok(())
 }
 
-async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<RunStatus, Box<dyn std::error::Error>> {
+async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<RunInfo, Box<dyn std::error::Error>> {
     // --- Redis setup ---
     let redis_config = RedisConfig::new(redis_url)
         .with_key_prefix("floxide_example:");
@@ -232,11 +232,11 @@ async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<
             break Err(FloxideError::Generic("max retries reached".to_string()).into());
         }
         match final_status {
-            Ok(Ok(RunStatus::Completed)) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Completed => {
                 print_stats().await?;
-                break Ok(RunStatus::Completed);
+                break Ok(info.clone());
             }
-            Ok(Ok(RunStatus::Failed)) | Err(Elapsed { .. }) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Failed || matches!(final_status, Err(Elapsed { .. })) => {
                 // timeout or other error
                 print_stats().await?;
                 println!("Resuming run");
@@ -248,21 +248,36 @@ async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<
                 )
                 .await;
             }
-            Ok(Ok(RunStatus::Cancelled)) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Cancelled => {
                 print_stats().await?;
                 break Err(FloxideError::Generic("run cancelled".to_string()).into());
             }
-            Ok(Ok(RunStatus::Paused)) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Paused => {
                 print_stats().await?;
                 break Err(FloxideError::Generic("run paused".to_string()).into());
             }
-            Ok(Ok(RunStatus::Running)) => {
+            Ok(Ok(ref info)) if info.status == RunStatus::Running => {
                 print_stats().await?;
                 break Err(FloxideError::Generic("run running".to_string()).into());
             }
-            Ok(Err(e)) => {
+            Ok(Err(ref e)) => {
                 print_stats().await?;
-                break Err(e.into());
+                break Err(e.clone().into());
+            }
+            Err(Elapsed { .. }) => {
+                print_stats().await?;
+                println!("Timeout reached, resuming run");
+                orchestrator.resume(&run_id).await?;
+                final_status = tokio::time::timeout(
+                    std::time::Duration::from_secs(10),
+                    orchestrator
+                        .wait_for_completion(&run_id, std::time::Duration::from_millis(100)),
+                )
+                .await;
+            }
+            _ => {
+                print_stats().await?;
+                break Err(FloxideError::Generic("unexpected status".to_string()).into());
             }
         }
     };
