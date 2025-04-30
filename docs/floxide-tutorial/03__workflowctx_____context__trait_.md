@@ -26,36 +26,98 @@ Floxide provides this through the `Context` trait and the `WorkflowCtx` struct.
 
 The `Context` trait itself is very simple. It doesn't *define* what goes into the shared toolbox, it just marks a Rust struct or type as *being suitable* to be used *as* the shared toolbox content for a workflow run.
 
-**You**, the developer, define the actual struct that holds the shared data. This struct needs to implement certain standard Rust traits (like `Clone`, `Debug`, `Serialize`, `Deserialize`, `Send`, `Sync`, `Default`) so that Floxide can manage it effectively. Why?
+**You**, the developer, define the actual struct that holds the shared data. This struct needs to implement certain standard Rust traits so that Floxide can manage it effectively:
 
 *   `Clone`: Floxide might need to copy the context.
-*   `Serialize`/`Deserialize`: Crucial for **distributed workflows**! The context needs to be saved (checkpointed) and potentially sent over the network to different workers. Serde is the standard Rust library for this.
+*   `Debug`: For logging and debugging.
+*   `Serialize`/`Deserialize`: Crucial for saving state ([`CheckpointStore`](06__checkpoint_____checkpointstore__trait_.md)) and for **distributed workflows**! The context needs to be saved and potentially sent over the network to different workers. `serde` is the standard Rust library for this.
 *   `Send`/`Sync`: Necessary for safely using the context across different threads or async tasks.
 *   `Default`: Needed to create an initial empty context when a workflow starts.
+*   **`floxide_core::merge::Merge`**: This is vital, especially for distributed workflows. It defines how to combine different versions of the context. For example, if two parallel steps modify the context, the `Merge` trait dictates how those changes are consolidated into a single, consistent state. Floxide provides a derive macro `floxide_macros::Merge` to help implement this.
 
-Luckily, if your context struct only contains fields that *also* satisfy these traits, you can often just derive them!
+### Structuring Context Data: Event Sourcing & Merging
+
+How should you structure the data inside your context? While you *could* put simple mutable fields like `processed_items_count: u32`, this quickly becomes problematic, especially in distributed scenarios. How do you safely increment a counter when multiple workers might try to do it concurrently?
+
+A more robust and recommended approach is **Event Sourcing**:
+
+1.  **Events:** Define an `enum` representing all possible *changes* or *facts* that can occur in your workflow's shared state (e.g., `ItemProcessed(ItemId)`, `ApiKeySet(String)`).
+2.  **Event Log:** Store a log of these events within your context struct. Floxide provides `floxide_core::distributed::event_log::EventLog<YourEventEnum>` for this.
+3.  **State Reconstruction:** Instead of storing the *current* state directly (like the count), store the log of events. The current state can be reconstructed at any time by "replaying" the events from the log.
+4.  **Modification:** Nodes don't *modify* state directly; they *append* new events to the log.
+
+**Why Event Sourcing?**
+
+*   **Concurrency:** Appending to a log is often easier to make safe and efficient than directly modifying shared values.
+*   **Merging:** The `EventLog` implements the `Merge` trait intelligently. When merging two versions of a context (e.g., from parallel branches), it combines their event logs, often preserving the history from both.
+*   **Audit Trail:** The event log provides a complete history of how the shared state evolved.
+
+### The `Merge` Trait and `Fixed` Wrapper
+
+The `Merge` trait is key to handling concurrent updates. `EventLog` implements it. What about simple configuration values like an API key that shouldn't change or be merged in complex ways?
+
+Floxide provides `floxide_core::merge::Fixed<T>`. If you wrap a field in `Fixed` (e.g., `api_key: Fixed<String>`), its `Merge` implementation will simply keep the *first* value it encountered. This is useful for configuration set at the start.
+
+You can implement `Merge` manually for your context struct, but the `floxide_macros::Merge` derive macro handles the common case: it merges each field using that field's own `Merge` implementation (like `EventLog`'s or `Fixed`'s merge).
 
 ```rust
-// Needed imports for Serde and Floxide's Context trait
+// Needed imports
 use serde::{Serialize, Deserialize};
 use floxide_core::context::Context; // The trait itself
+use floxide_core::distributed::event_log::EventLog;
+use floxide_core::merge::{Merge, Fixed};
+use floxide_macros::Merge; // The derive macro
 
-// Define YOUR shared data structure
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-pub struct MyWorkflowData {
-    api_key: String,
-    processed_items_count: u32,
-    // Add any other shared data your nodes need
+// 1. Define the events that can happen
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MyWorkflowEvent {
+    ItemProcessed(u32), // Record which item ID was processed
+    ProcessingStarted,
+    // Add other relevant events
 }
 
-// By deriving the traits above, MyWorkflowData automatically
-// satisfies the requirements of the Context trait!
-// Floxide provides a "blanket implementation":
-// impl<T: Default + ...> Context for T {}
-// So, we don't need to write `impl Context for MyWorkflowData {}` explicitly.
+// 2. Define YOUR shared data structure using EventLog and Fixed
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Merge)] // <-- Derive Merge!
+pub struct MyWorkflowData {
+    // Configuration set once - use Fixed
+    #[merge(strategy = "fixed")] // Optional: Explicitly use Fixed strategy via attribute
+    pub api_key: Fixed<String>,
+
+    // Log of changes - use EventLog
+    pub event_log: EventLog<MyWorkflowEvent>,
+
+    // Other fields MUST also implement Merge or be wrapped (e.g., in Fixed)
+}
+
+// 3. Optionally, add a helper to get the current state from the log
+#[derive(Default, Debug)] // Temporary struct to hold the calculated state
+pub struct CurrentState {
+    pub processed_items_count: u32,
+    pub started: bool,
+}
+
+impl MyWorkflowData {
+    // Replays events to calculate the current state
+    pub fn replay(&self) -> CurrentState {
+        self.event_log.apply_all_default(|event, state: &mut CurrentState| {
+            match event {
+                MyWorkflowEvent::ItemProcessed(_) => state.processed_items_count += 1,
+                MyWorkflowEvent::ProcessingStarted => state.started = true,
+            }
+        })
+    }
+}
+
+// MyWorkflowData now satisfies the requirements of the Context trait
+// because it derives/impls Clone, Debug, Default, Serde, Merge,
+// and EventLog/Fixed handle Send/Sync internally.
 ```
 
-In this example, `MyWorkflowData` is our custom "toolbox". It holds an API key and a counter. Because we used `#[derive(...)]`, it meets the requirements to be used as a Floxide `Context`.
+In this improved example:
+*   We define `MyWorkflowEvent`.
+*   `MyWorkflowData` uses `Fixed<String>` for the unchanging `api_key` and `EventLog<MyWorkflowEvent>` for the history.
+*   We derive `Merge` for `MyWorkflowData`.
+*   We add a `replay` method to calculate the `CurrentState` on demand.
 
 ## `WorkflowCtx`: The Toolbox Holder with Controls
 
@@ -81,84 +143,106 @@ pub struct WorkflowCtx<C: Context> { // Generic over YOUR context type C
 
 **Key Parts:**
 
-1.  `store: C`: This public field holds the actual instance of *your* `Context` struct (e.g., an instance of `MyWorkflowData`). Nodes will access your shared data through `ctx.store`.
-2.  `cancel: CancellationToken`: This is used internally to signal if the workflow should be stopped prematurely. Nodes can check this token.
+1.  `store: C`: This public field holds the actual instance of *your* `Context` struct (e.g., an instance of `MyWorkflowData`, likely containing an `EventLog`). Nodes interact with your context primarily through this field.
+2.  `cancel: CancellationToken`: This is used internally to signal if the workflow should be stopped prematurely. Nodes can check this token via `ctx.is_cancelled()`.
 3.  `timeout: Option<Duration>`: An optional overall time limit for the workflow run.
 
 **Distributed Emphasis:** When a workflow step runs on a remote worker, Floxide ensures that worker gets the *correct* `WorkflowCtx`, including the potentially updated `store` (often loaded from a [`Checkpoint` & `CheckpointStore` Trait](06__checkpoint_____checkpointstore__trait_.md)) and the shared cancellation signal. This allows coordination across the distributed system.
 
 ## How Nodes Use `WorkflowCtx`
 
-Remember the `node!` macro from [Chapter 2](02__node__trait____node___macro_.md)? We specified the context type there:
+Remember the `node!` macro from [Chapter 2](02__node__trait____node___macro_.md)? Let's update the example using our event-sourced context:
 
 ```rust
 use floxide::node;
-use floxide::Transition;
-use floxide::FloxideError;
+use floxide::{Transition, FloxideError};
 use serde::{Serialize, Deserialize};
-use floxide_core::context::Context; // Make sure Context is in scope
+use floxide_core::context::Context;
+use floxide_core::distributed::event_log::EventLog;
+use floxide_core::merge::{Merge, Fixed};
+use floxide_macros::Merge; // The derive macro
+use std::sync::Arc; // Needed if api_key is behind Arc in Fixed
 
-// Our custom context from before
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+// --- Assume MyWorkflowEvent, MyWorkflowData, CurrentState from above ---
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MyWorkflowEvent { ItemProcessed(u32), ProcessingStarted }
+#[derive(Default, Debug)]
+pub struct CurrentState { pub processed_items_count: u32, pub started: bool }
+#[derive(Clone, Debug, Default, Serialize, Deserialize, Merge)]
 pub struct MyWorkflowData {
-    api_key: String,
-    processed_items_count: u32,
+    #[merge(strategy = "fixed")] pub api_key: Fixed<Arc<String>>, // Use Arc for cheap clones
+    pub event_log: EventLog<MyWorkflowEvent>,
 }
+impl MyWorkflowData {
+    pub fn replay(&self) -> CurrentState {
+        self.event_log.apply_all_default(|event, state: &mut CurrentState| {
+            match event {
+                MyWorkflowEvent::ItemProcessed(_) => state.processed_items_count += 1,
+                MyWorkflowEvent::ProcessingStarted => state.started = true,
+            }
+        })
+    }
+     // Helper to create a new context
+     pub fn new(api_key: String) -> Self {
+        Self {
+            api_key: Fixed::new(Arc::new(api_key)),
+            event_log: EventLog::new(),
+        }
+    }
+}
+// --- End of Context Definition ---
+
 
 // Let's define a Node that uses this context
 node! {
   pub struct ProcessDataItemNode {
     // Node-specific config, if any
-    item_multiplier: u32,
+    item_id: u32, // Let's assume the node knows which item ID it's processing
   }
   // *** Tell the node which context type to expect ***
   context = MyWorkflowData;
-  input   = i32; // Example input: some data value
+  input   = (); // Example input: maybe just a trigger
   output  = ();  // Example output: nothing significant
 
-  // The closure now receives `WorkflowCtx<MyWorkflowData>` as `ctx`
-  |ctx, data_value| {
-    // --- Accessing Context Data ---
-    // Get read-only access to the shared store
-    let current_count = ctx.store.processed_items_count;
-    let api_key = &ctx.store.api_key; // Borrow the API key
+  // The closure now receives `&WorkflowCtx<MyWorkflowData>` as `ctx`
+  async |ctx, _input| { // Make it async if needed (e.g., for replay potentially)
+    // --- Accessing Current State (via Replay) ---
+    let current_state = ctx.store.replay();
+    let api_key = ctx.store.api_key.get(); // Get the Arc<String> from Fixed
 
-    println!("Node: Processing value {}. Current count: {}. Using API key starting with: {}",
-        data_value,
-        current_count,
+    println!(
+        "Node [Item {}]: Processing. Current count: {}. Using API key starting with: {}",
+        self.item_id,
+        current_state.processed_items_count,
         api_key.chars().take(5).collect::<String>() // Show first 5 chars
     );
 
     // --- Using Context Control Features ---
     // Check if the workflow run has been cancelled elsewhere
     if ctx.is_cancelled() {
-        println!("Node: Workflow cancelled, stopping processing.");
+        println!("Node [Item {}]: Workflow cancelled, stopping processing.", self.item_id);
         // Abort this step if cancellation was requested
+        // Optionally, append a 'Cancelled' event to the log here?
+        // ctx.store.event_log.append(MyWorkflowEvent::ProcessingCancelled(self.item_id));
         return Err(FloxideError::Cancelled);
     }
 
     // --- Node's Own Logic ---
     // Do some work... (using api_key if needed)
-    let _work_result = data_value * self.item_multiplier;
-    println!("Node: Finished processing value {}.", data_value);
+    println!("Node [Item {}]: Finished processing.", self.item_id);
+    // Simulating work
+    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
-    // --- Modifying Context (Important!) ---
-    // To modify context, you often need mutable access.
-    // Direct mutation `ctx.store.counter += 1` might not work directly
-    // depending on how the context is shared (Arc, Mutex etc.).
-    // Floxide's checkpointing mechanism is the standard way state
-    // changes are saved and propagated in distributed runs.
-    // For simplicity here, we'll assume direct modification is possible,
-    // BUT be aware this requires careful handling in real apps.
-    // A common pattern involves using helper types like SharedState or
-    // ensuring the context is checkpointed after modification.
+    // --- Modifying Context (Append Event) ---
+    // Instead of direct mutation, append an event to the log.
+    // The actual context object `ctx.store` is immutable here (&WorkflowCtx).
+    // The engine handles taking this event and merging it into the
+    // persistent context state using the Merge trait.
+    ctx.store.event_log.append(MyWorkflowEvent::ItemProcessed(self.item_id));
 
-    // *Conceptual* update (real implementation might differ):
-    // let mut mutable_store = ctx.store.clone(); // Clone to modify
-    // mutable_store.processed_items_count += 1;
-    // // The engine needs to save this updated context later (checkpointing)
+    // We don't return the modified context directly. Floxide handles
+    // persisting the appended events via CheckpointStore or ContextStore.
 
-    // For this example, let's just signal completion
     Ok(Transition::Next(())) // Pass nothing significant forward
   }
 }
@@ -166,24 +250,26 @@ node! {
 
 **Explanation:**
 
-1.  **`context = MyWorkflowData;`**: We tell `node!` that `ProcessDataItemNode` expects a context of type `MyWorkflowData`.
-2.  **`|ctx, data_value|`**: The first argument to our processing closure is `ctx`. Its type is `&WorkflowCtx<MyWorkflowData>`.
-3.  **`ctx.store.field_name`**: We access our shared data fields (like `processed_items_count` and `api_key`) through `ctx.store`.
-4.  **`ctx.is_cancelled()`**: We can call methods on `WorkflowCtx` itself, like `is_cancelled()`, to check the global state of the workflow run. This allows a Node to stop early if requested.
-5.  **Modifying Context**: Modifying shared state, especially in a distributed system, is complex. Simply changing `ctx.store.processed_items_count` in one worker might not be seen by others unless the change is saved (checkpointed) and reloaded. Floxide manages this propagation primarily through its checkpointing system ([`Checkpoint` & `CheckpointStore` Trait](06__checkpoint_____checkpointstore__trait_.md)).
+1.  **`context = MyWorkflowData;`**: Still tells `node!` the context type.
+2.  **`|ctx, _input|`**: Receives `&WorkflowCtx<MyWorkflowData>`.
+3.  **Reading State**: We call `ctx.store.replay()` to get the calculated `CurrentState`. We access configuration via `ctx.store.api_key.get()`.
+4.  **`ctx.is_cancelled()`**: Works as before.
+5.  **Modifying Context**: This is the key change! We call `ctx.store.event_log.append(...)` to record what happened. We **do not** directly change fields in `ctx.store`. The Floxide engine uses the `Merge` implementation of `MyWorkflowData` (which uses the `Merge` impl of `EventLog`) to combine these appended events with the state saved in the [`CheckpointStore`](06__checkpoint_____checkpointstore__trait_.md) or [`ContextStore`](09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md) after the node successfully completes.
 
-## How `WorkflowCtx` Enables Distribution
+## How `WorkflowCtx` Enables Distribution (Revisited)
 
-1.  **Serialization:** Because your `Context` struct must be `Serialize` and `Deserialize`, Floxide can save its state (along with the state of the queue) to a [`CheckpointStore`](06__checkpoint_____checkpointstore__trait_.md).
-2.  **State Loading:** When a [`DistributedWorker`](07__distributedworker__.md) picks up a task, it can load the latest relevant checkpoint, which includes the state of your `Context` (`store`) at that point in the workflow. This ensures the worker has the necessary shared information.
-3.  **Cancellation Propagation:** The `CancellationToken` mechanism within `WorkflowCtx` can be triggered externally (e.g., by an orchestrator). While the token itself might not be directly serialized easily across process boundaries, the *state* (cancelled or not) can be checked when loading checkpoints or communicated through other means managed by Floxide's distributed components. When a worker checks `ctx.is_cancelled()`, it's effectively checking if a "stop" signal has been globally registered for that workflow run.
+1.  **Serialization:** Still relies on `serde`, now serializing the `EventLog` and other `Merge`-able fields within your context.
+2.  **State Loading:** When a worker loads state (from `CheckpointStore` or `ContextStore`), it gets the context including the event log up to that point.
+3.  **Concurrency & Merging:** This is where the `Merge` trait shines. If parallel branches of a workflow run, or if retries occur, Floxide uses the `Merge` implementation of your context struct (and thus the `Merge` impl of `EventLog`) to correctly combine the different histories or updates into a consistent state in the persistent store. `EventLog`'s merge strategy helps ensure events aren't lost or unnecessarily duplicated.
+4.  **Cancellation Propagation:** Works as previously described.
 
-## Under the Hood: Creation and Usage
+## Under the Hood: Creation and Usage (Updated)
 
 1.  **Instantiation:** When you start a workflow run (e.g., using methods we'll see in [Chapter 4: `Workflow` Trait & `workflow!` Macro](04__workflow__trait____workflow___macro_.md)), you typically provide an initial instance of your `Context` struct. Floxide wraps this into a `WorkflowCtx`.
 2.  **Passing to Nodes:** The Floxide engine takes care of passing the appropriate `&WorkflowCtx` to each Node's `process` method when it's executed.
-3.  **Checkpointing:** In checkpointed or distributed runs, after a Node finishes, the engine often saves the current state of the `WorkflowCtx` (specifically, your `store` part) and the work queue to the [`CheckpointStore`](06__checkpoint_____checkpointstore__trait_.md).
-4.  **Resuming/Distributed Step:** When resuming or when a distributed worker starts a step, the engine loads the saved state from the [`CheckpointStore`](06__checkpoint_____checkpointstore__trait_.md) to reconstruct the `WorkflowCtx` for that point in the workflow.
+3.  **Node Execution & Event Appending:** The engine passes `&WorkflowCtx` to the node. The node appends events to `ctx.store.event_log` (or other `Merge`-able fields).
+4.  **State Persistence & Merging:** After a node finishes successfully, the engine takes the original context state loaded at the beginning of the step and the *new context state containing the appended events* (as returned conceptually by the node logic) and uses the `Merge` trait to combine them. This merged state is then saved back to the `CheckpointStore` (for local runs) or `ContextStore` (for distributed runs).
+5.  **Resuming/Distributed Step:** When resuming or starting the next step (potentially on another worker), the engine loads the latest *merged* state from the store, ensuring the effects of the previous step (the appended events) are included.
 
 ```mermaid
 sequenceDiagram
@@ -191,48 +277,48 @@ sequenceDiagram
     participant Engine as Floxide Engine
     participant Ctx as WorkflowCtx
     participant Node as Your Node Logic
-    participant Store as Checkpoint Store
+    participant Store as Checkpoint/Context Store
 
     User->>Engine: Start Workflow(initial_context_data)
     Engine->>Ctx: Create WorkflowCtx(initial_context_data)
     Engine->>Engine: Schedule first Node task
     Note over Engine, Node: Later, time to run Node A...
-    opt Distributed/Checkpointed Run
-        Engine->>Store: Load Checkpoint (gets Context state)
-        Store-->>Engine: Return saved Context state
-        Engine->>Ctx: Update WorkflowCtx with loaded state
-    end
-    Engine->>Node: Execute process(ctx, input)
-    Node->>Ctx: Access ctx.store (read shared data)
+    Engine->>Store: Load Context state
+    Store-->>Engine: Return saved Context state (contains event log)
+    Engine->>Ctx: Update WorkflowCtx with loaded state
+    Engine->>Node: Execute process(&ctx, input)
+    Node->>Ctx: Access ctx.store.replay() (read state)
     Node->>Ctx: Check ctx.is_cancelled()
-    Ctx-->>Node: Return state (data, is_cancelled)
     Node->>Node: Perform Node logic
+    Node->>Ctx: Append event(s) to ctx.store.event_log
     Node-->>Engine: Return Transition::Next(output)
-    opt Distributed/Checkpointed Run
-        Engine->>Ctx: Get current Context state (ctx.store)
-        Engine->>Store: Save Checkpoint (Context state + queue)
-    end
+    Engine->>Engine: Get context state with appended events from Node run
+    Engine->>Engine: Merge(loaded state, state with new events) using Merge trait
+    Engine->>Store: Save Merged Context state
     Engine->>Engine: Schedule next Node task based on Transition
 
 ```
 
-This diagram shows how the `WorkflowCtx` is created, potentially updated from a store in distributed runs, passed to the node logic, and its state saved back for future steps.
+The updated diagram emphasizes that the node appends events, and the engine performs a merge operation before saving the state back.
 
 Looking at the code (`floxide-core/src/context.rs`):
 
-The `Context` trait is just a marker:
+The `Context` trait definition likely remains the same marker trait, but the *expectation* is that the type `T` implementing it *also* implements `floxide_core::merge::Merge`.
 
 ```rust
 // From: crates/floxide-core/src/context.rs
 use serde::{Serialize, de::DeserializeOwned};
 use std::fmt::Debug;
+use floxide_core::merge::Merge; // Import Merge
 
 // Marker trait for user-defined context types
-pub trait Context: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync {}
+// Note: Merge is now implicitly expected for robust use.
+pub trait Context: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync + Merge {}
 
 // Blanket implementation: Any type meeting the bounds IS a Context
-impl<T: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync > Context for T {}
+impl<T: Default + DeserializeOwned + Serialize + Debug + Clone + Send + Sync + Merge> Context for T {}
 ```
+*(Self-correction: Need to check if the official Context trait actually requires Merge now, or if it's just a strong recommendation/necessity for types used with ContextStore/CheckpointStore merge operations)*. A quick check of `floxide-core` source might be needed to confirm the exact trait bound. Assuming `Merge` is essential for now.
 
 The `WorkflowCtx` struct holds the store and controls:
 

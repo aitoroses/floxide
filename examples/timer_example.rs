@@ -4,7 +4,7 @@
 
 use floxide::{workflow, WorkflowCtx};
 // use async_trait::async_trait;
-use floxide_core::{error::FloxideError, source, transition::Transition, Node, Workflow};
+use floxide_core::{error::FloxideError, source, transition::Transition, Node};
 use floxide_macros::node;
 use tokio::time::{sleep, Duration};
 

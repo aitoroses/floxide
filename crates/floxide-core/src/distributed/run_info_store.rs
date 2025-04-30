@@ -6,6 +6,7 @@
 use crate::distributed::{RunInfo, RunStatus};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -40,6 +41,12 @@ pub trait RunInfoStore {
     async fn get_run(&self, run_id: &str) -> Result<Option<RunInfo>, RunInfoError>;
     /// List all workflow runs, optionally filtered by status.
     async fn list_runs(&self, filter: Option<RunStatus>) -> Result<Vec<RunInfo>, RunInfoError>;
+    /// Update the output for a workflow run.
+    async fn update_output(
+        &self,
+        run_id: &str,
+        output: serde_json::Value,
+    ) -> Result<(), RunInfoError>;
 }
 
 /// In-memory implementation of RunInfoStore for testing and local development.
@@ -89,5 +96,18 @@ impl RunInfoStore for InMemoryRunInfoStore {
             .cloned()
             .collect();
         Ok(runs)
+    }
+    async fn update_output(
+        &self,
+        run_id: &str,
+        output: serde_json::Value,
+    ) -> Result<(), RunInfoError> {
+        let mut map = self.inner.lock().await;
+        if let Some(info) = map.get_mut(run_id) {
+            info.output = Some(output);
+            Ok(())
+        } else {
+            Err(RunInfoError::NotFound)
+        }
     }
 }

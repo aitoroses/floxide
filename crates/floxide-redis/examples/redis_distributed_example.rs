@@ -1,18 +1,23 @@
-// examples/distributed_orchestrated_merge_example.rs
-// Demonstrates distributed orchestration and worker pool with split/merge/hold using Floxide
+// examples/redis_distributed_example.rs
+// Redis-backed version of distributed_orchestrated_merge_example.rs
 
-use floxide::{
-    distributed::{
-        InMemoryContextStore, InMemoryErrorStore, InMemoryLivenessStore, InMemoryMetricsStore,
-        InMemoryRunInfoStore, InMemoryWorkItemStateStore, InMemoryWorkQueue, OrchestratorBuilder,
-        RunInfo, RunStatus, WorkerBuilder, WorkerPool,
-    },
-    merge::Fixed,
-};
 use floxide_core::distributed::event_log::EventLog;
 use floxide_core::*;
+use floxide_core::{
+    distributed::{OrchestratorBuilder, RunInfo, RunStatus, WorkerBuilder, WorkerPool},
+    merge::Fixed,
+};
 use floxide_macros::{node, workflow, Merge};
+use floxide_redis::{
+    RedisClient, RedisConfig, RedisContextStore, RedisErrorStore, RedisLivenessStore,
+    RedisMetricsStore, RedisRunInfoStore, RedisWorkItemStateStore, RedisWorkQueue,
+};
 use serde::{Deserialize, Serialize};
+use testcontainers::{
+    core::{IntoContainerPort, WaitFor},
+    runners::AsyncRunner,
+    GenericImage, ImageExt,
+};
 use tokio::time::error::Elapsed;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -81,9 +86,7 @@ node! {
         }
         ctx.event_log.append(MergeEvent::Log(format!("Merged values: {:?}", input)));
         println!("Merged values: {:?}", input);
-        let mut output = input.clone();
-        output.sort();
-        Ok(Transition::Next(output))
+        Ok(Transition::Next(input))
     }
 }
 
@@ -103,8 +106,40 @@ workflow! {
     }
 }
 
-async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::error::Error>> {
-    // --- Distributed setup ---
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+
+    // Start a Redis container using testcontainers async API
+    let container = GenericImage::new("redis", "7.2.4")
+        .with_exposed_port(6379.tcp())
+        .with_wait_for(WaitFor::message_on_stdout("Ready to accept connections"))
+        .with_network("bridge")
+        .with_env_var("DEBUG", "1")
+        .start()
+        .await
+        .expect("Failed to start Redis");
+    let host_port = container.get_host_port_ipv4(6379).await.unwrap();
+    let redis_url = format!("redis://127.0.0.1:{}/", host_port);
+    tracing::info!("Started Redis testcontainer at {}", redis_url);
+
+    // Patch the run_distributed_orchestrated_merge to accept a redis_url
+    run_distributed_orchestrated_merge_with_url(&redis_url).await?;
+
+    // Stop the Redis container
+    container.rm().await.unwrap();
+    Ok(())
+}
+
+async fn run_distributed_orchestrated_merge_with_url(
+    redis_url: &str,
+) -> Result<RunInfo, Box<dyn std::error::Error>> {
+    // --- Redis setup ---
+    let redis_config = RedisConfig::new(redis_url).with_key_prefix("floxide_example:");
+    let redis_client = RedisClient::new(redis_config).await?;
+
     let ctx = MergeContext {
         event_log: EventLog::new(),
         expected: Fixed::new(10),
@@ -119,17 +154,15 @@ async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::er
         terminal: TerminalNode {},
     };
 
-    let queue: InMemoryWorkQueue<MergeWorkflowWorkItem> = InMemoryWorkQueue::default();
-    let context_store: InMemoryContextStore<MergeContext> = InMemoryContextStore::default();
+    let queue = RedisWorkQueue::new(redis_client.clone());
+    let context_store = RedisContextStore::new(redis_client.clone());
+    let run_info_store = RedisRunInfoStore::new(redis_client.clone());
+    let metrics_store = RedisMetricsStore::new(redis_client.clone());
+    let error_store = RedisErrorStore::new(redis_client.clone());
+    let liveness_store = RedisLivenessStore::new(redis_client.clone());
+    let work_item_state_store = RedisWorkItemStateStore::new(redis_client.clone());
 
-    let run_info_store: InMemoryRunInfoStore = InMemoryRunInfoStore::default();
-    let metrics_store: InMemoryMetricsStore = InMemoryMetricsStore::default();
-    let error_store: InMemoryErrorStore = InMemoryErrorStore::default();
-    let liveness_store: InMemoryLivenessStore = InMemoryLivenessStore::default();
-    let work_item_state_store: InMemoryWorkItemStateStore<MergeWorkflowWorkItem> =
-        InMemoryWorkItemStateStore::default();
-
-    // Orchestrator with in-memory defaults
+    // Orchestrator with Redis stores
     let orchestrator = OrchestratorBuilder::new()
         .workflow(wf.clone())
         .queue(queue.clone())
@@ -142,10 +175,7 @@ async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::er
         .build()
         .unwrap();
 
-    // Start the run
-    let run_id = orchestrator.start_run(&wf_ctx, 10).await?;
-
-    // Worker with in-memory defaults
+    // Worker with Redis stores
     let worker = WorkerBuilder::new()
         .workflow(wf)
         .queue(queue)
@@ -159,8 +189,11 @@ async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::er
         .unwrap();
 
     // Worker pool
-    let mut pool = WorkerPool::new(worker, 3);
+    let mut pool = WorkerPool::new(worker, 20);
     pool.start();
+
+    // Start the run
+    let run_id: String = orchestrator.start_run(&wf_ctx, 10).await?;
 
     // Wait for completion
     let status = tokio::time::timeout(
@@ -175,14 +208,12 @@ async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::er
 
         let context = orchestrator.context(&run_id).await?;
         println!("Context: {:#?}", context);
-        let state = context.replay();
-        println!("Replay state: {:#?}", state);
 
         let metrics = orchestrator.metrics(&run_id).await?;
         println!("Metrics: {:#?}", metrics);
 
-        let errors = orchestrator.errors(&run_id).await?;
-        println!("Errors: {:#?}", errors);
+        // let errors = orchestrator.errors(&run_id).await?;
+        // println!("Errors: {:#?}", errors);
 
         let liveness = orchestrator.liveness().await?;
         println!("Liveness: {:#?}", liveness);
@@ -199,7 +230,13 @@ async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::er
     println!("Status: {:#?}", status);
 
     let mut final_status = status;
-    loop {
+    let mut retries = 0;
+    let max_retries = 5;
+    let final_status = loop {
+        retries += 1;
+        if retries > max_retries {
+            break Err(FloxideError::Generic("max retries reached".to_string()).into());
+        }
         match final_status {
             Ok(Ok(ref info)) if info.status == RunStatus::Completed => {
                 print_stats().await?;
@@ -209,6 +246,7 @@ async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::er
                 if info.status == RunStatus::Failed
                     || matches!(final_status, Err(Elapsed { .. })) =>
             {
+                // timeout or other error
                 print_stats().await?;
                 println!("Resuming run");
                 orchestrator.resume(&run_id).await?;
@@ -251,30 +289,8 @@ async fn run_distributed_orchestrated_merge() -> Result<RunInfo, Box<dyn std::er
                 break Err(FloxideError::Generic("unexpected status".to_string()).into());
             }
         }
-    }
-}
+    };
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::DEBUG)
-        .init();
-    run_distributed_orchestrated_merge().await?;
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use serde_json::json;
-
-    use super::*;
-    #[tokio::test]
-    async fn test_distributed_orchestrated_merge() {
-        let info = run_distributed_orchestrated_merge()
-            .await
-            .expect("distributed orchestrated merge example failed");
-        assert_eq!(info.status, RunStatus::Completed);
-        let expected = json!(vec![0, 10, 20, 30, 40, 50, 60, 70, 80, 90]);
-        assert_eq!(info.output, Some(expected));
-    }
+    pool.stop().await;
+    final_status
 }

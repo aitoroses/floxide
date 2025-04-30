@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, VecDeque},
     fmt::Debug,
@@ -10,7 +11,10 @@ use thiserror::Error;
 use crate::{context::Context, workflow::WorkItem};
 
 /// A snapshot of a workflow's pending work and its context.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(
+    bound = "C: Serialize + for<'de2> Deserialize<'de2>, WI: Serialize + for<'de2> Deserialize<'de2>"
+)]
 pub struct Checkpoint<C: Context, WI: WorkItem> {
     /// The user-provided context for the workflow
     pub context: C,

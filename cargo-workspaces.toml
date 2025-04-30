@@ -12,5 +12,6 @@ update_workspace_deps = true
 publish_order = [
   "floxide-core",
   "floxide-macros",
+  "floxide-redis",
   "floxide"
 ]

@@ -9,12 +9,13 @@ But who actually *does* the work in a distributed setup? We have the blueprint (
 Imagine our distributed video processing factory. We have:
 *   A list of jobs (the [`WorkQueue`](05__workqueue__trait_.md)).
 *   Instructions for each job (the [`Node`](02__node__trait____node___macro_.md) logic within the [`Workflow`](04__workflow__trait____workflow___macro_.md) blueprint).
-*   A way to save progress after each job ([`CheckpointStore`](06__checkpoint_____checkpointstore__trait_.md)).
+*   A way to save shared project state (the [`ContextStore`](09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md)).
+*   Other ledgers for tracking progress, errors, etc. (the other [Distributed Stores](09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md)).
 
 But nothing happens on its own! We need programs – workers – that actively:
 1.  Look at the job list.
 2.  Pick up the next available job.
-3.  Figure out the current state of the project (load the latest save).
+3.  Figure out the current state of the project (load the latest shared [`Context`](03__workflowctx_____context__trait_.md) using the `ContextStore`).
 4.  Do the work for that job step.
 5.  Save the updated project state.
 6.  Potentially add new follow-up jobs to the list.
@@ -28,21 +29,26 @@ A `DistributedWorker` is an independent process or task whose main job is to exe
 
 1.  **Check Queue:** Repeatedly asks the shared [`WorkQueue`](05__workqueue__trait_.md): "Any jobs available?"
 2.  **Get Task:** If a task (`WorkItem`) is available, the worker takes it.
-3.  **Load State:** Reads the latest [`Checkpoint`](06__checkpoint_____checkpointstore__trait_.md) for the specific workflow run this task belongs to. This gives it the correct [`Context`](03__workflowctx_____context__trait_.md).
-4.  **Execute Step:** Runs the processing logic defined by the corresponding [`Node`](02__node__trait____node___macro_.md) (using the [`Workflow`](04__workflow__trait____workflow___macro_.md) definition to find the right code).
+3.  **Load State:** Reads the latest shared [`Context`](03__workflowctx_____context__trait_.md) for the specific workflow run this task belongs to using the `ContextStore`.
+4.  **Execute Step:** Runs the processing logic defined by the corresponding [`Node`](02__node__trait____node___macro_.md) (using the [`Workflow`](04__workflow__trait____workflow___macro_.md) definition to find the right code). The node might append events to the context it received.
 5.  **Handle Outcome:** Based on the [`Transition`](01__transition__enum_.md) returned by the Node:
     *   Enqueues new tasks onto the [`WorkQueue`](05__workqueue__trait_.md) for subsequent steps.
-    *   Updates the state if necessary.
-6.  **Save State:** Saves a new [`Checkpoint`](06__checkpoint_____checkpointstore__trait_.md) reflecting the updated context and remaining tasks for this run.
+    *   Updates the status of the current work item in the `WorkItemStateStore`.
+6.  **Save State:** Merges the changes made to the context (the appended events) with the previously loaded state and saves the result back to the `ContextStore` using its `merge` capability. Also updates metrics (`MetricsStore`) and potentially logs errors (`ErrorStore`).
 7.  **Repeat:** Goes back to checking the queue for the next job.
 
-**Distributed Emphasis:** The magic happens when you run *multiple* `DistributedWorker` instances. They can run on the same machine or, more importantly, on *different machines*. They all connect to the *same* shared `WorkQueue` and `CheckpointStore`. This allows them to work together in parallel, processing different tasks for different workflow runs (or even different tasks for the *same* run if a step used `Transition::NextAll`). This parallel, distributed processing is Floxide's core strength.
+**Distributed Emphasis:** The magic happens when you run *multiple* `DistributedWorker` instances. They can run on the same machine or, more importantly, on *different machines*. They all connect to the *same* shared `WorkQueue` and distributed stores (`ContextStore`, `ErrorStore`, etc.). This allows them to work together in parallel, processing different tasks for different workflow runs (or even different tasks for the *same* run if a step used `Transition::NextAll`). This parallel, distributed processing is Floxide's core strength.
 
 ```mermaid
 graph TD
     subgraph Shared Infrastructure
         WQ[(Work Queue)]
-        CS[(Checkpoint Store)]
+        CS[(Context Store)]
+        ES[(Error Store)]
+        MS[(Metrics Store)]
+        LS[(Liveness Store)]
+        WIS[(WorkItemState Store)]
+        RIS[(RunInfo Store)]
     end
 
     subgraph Machine 1
@@ -74,8 +80,8 @@ The `DistributedWorker` doesn't do everything from scratch. It relies heavily on
 
 *   [`Workflow`](04__workflow__trait____workflow___macro_.md): The worker needs the workflow definition to know *which* Node logic to execute for a given `WorkItem` and how to handle transitions based on the defined `edges`. It primarily uses the `step_distributed` method provided by the `Workflow` trait implementation (generated by the `workflow!` macro).
 *   [`WorkQueue`](05__workqueue__trait_.md): The worker constantly interacts with the queue to `dequeue` tasks to process and `enqueue` subsequent tasks.
-*   [`CheckpointStore`](06__checkpoint_____checkpointstore__trait_.md): Before executing a step, the worker `load`s the state. After execution, it `save`s the potentially updated state.
-*   [Distributed Stores (Chapter 9)](09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md): Workers also interact with other stores to report their status (`LivenessStore`), record errors (`ErrorStore`), update metrics (`MetricsStore`), and manage the state of individual work items (`WorkItemStateStore`). This provides observability and control.
+*   [`ContextStore`](09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md): Before executing a step, the worker `get`s the current context state. After successful execution, it `merge`s the changes (appended events) back into the store.
+*   [Other Distributed Stores (Chapter 9)](09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md): Workers also interact with these stores to report their status (`LivenessStore`), record errors (`ErrorStore`), update metrics (`MetricsStore`), track run status (`RunInfoStore`), and manage the state of individual work items (`WorkItemStateStore`). This provides observability and control.
 *   [`RetryPolicy` (Chapter 10)](10__retrypolicy_____retrynode__.md): The worker can be configured with a retry policy to automatically handle transient errors during step execution.
 
 ## The Worker Loop in Action (Simplified)
@@ -84,13 +90,14 @@ Let's walk through a single cycle for one worker (Worker #42):
 
 1.  **Dequeue:** Worker #42 calls `queue.dequeue()`.
 2.  **Result:** It receives `Some(("video_abc", WorkItem::ExtractAudio("chunk_3.mp4")))`. (It got a job!)
-3.  **Load Checkpoint:** Worker #42 calls `checkpoint_store.load("video_abc")`. It gets back the `Checkpoint` containing the current `Context` (maybe `{"api_key": "xyz", "processed_chunks": 2}`) and the pending queue for this run (maybe `[WorkItem::GenerateSubtitles("chunk_3.mp4")]`).
-4.  **Execute Step:** The worker looks at `WorkItem::ExtractAudio`. Using the `Workflow` definition, it finds the `ExtractAudioNode` logic. It calls the `process` method of that Node, passing the loaded `Context` and the input `"chunk_3.mp4"`.
-5.  **Node Returns:** The `ExtractAudioNode` finishes and returns `Ok(Transition::Next("chunk_3.aac"))`. It might have internally used the `api_key` from the context. Let's assume it also updated the context conceptually to `{"api_key": "xyz", "processed_chunks": 3}`.
+3.  **Load Context:** Worker #42 calls `context_store.get("video_abc")`. It gets back the latest `MyWorkflowData` context (perhaps with an event log indicating `processed_chunks: 2`).
+4.  **Execute Step:** The worker looks at `WorkItem::ExtractAudio`. Using the `Workflow` definition, it finds the `ExtractAudioNode` logic. It calls the `process` method of that Node, passing the loaded `Context` (via `WorkflowCtx`) and the input `"chunk_3.mp4"`.
+5.  **Node Returns & Appends Event:** The `ExtractAudioNode` finishes and returns `Ok(Transition::Next("chunk_3.aac"))`. Internally, it also called `ctx.store.event_log.append(MyWorkflowEvent::AudioExtracted(...))`.
 6.  **Handle Transition:** The worker sees `Transition::Next`. It checks the `Workflow`'s `edges` for `ExtractAudioNode`. Let's say the edge points to `GenerateSubtitlesNode`.
 7.  **Enqueue Next:** The worker creates `WorkItem::GenerateSubtitles("chunk_3.aac")` (using the output from step 5) and calls `queue.enqueue("video_abc", new_work_item)`.
-8.  **Save Checkpoint:** The worker creates a *new* `Checkpoint` containing the *updated* context (`{"processed_chunks": 3}`) and the *updated* pending queue (which is now empty, as the `GenerateSubtitles` item from step 3 was already present, and the new one from step 7 was added to the *main* work queue). It calls `checkpoint_store.save("video_abc", new_checkpoint)`.
-9.  **Loop:** Worker #42 goes back to step 1, ready for the next job.
+8.  **Merge & Save Context:** The worker takes the context returned from the node execution (containing the new `AudioExtracted` event) and calls `context_store.merge("video_abc", context_with_new_event)`. The `ContextStore` implementation uses the `Merge` trait on `MyWorkflowData` (and `EventLog`) to combine this correctly with any other concurrent changes.
+9.  **Update Other Stores:** The worker might also call `metrics_store.update_metrics(...)`, `work_item_state_store.set_status(...)`, etc.
+10. **Loop:** Worker #42 goes back to step 1, ready for the next job.
 
 If in step 2, `queue.dequeue()` returned `None`, the worker would typically wait for a short period and then try again.
 
@@ -102,32 +109,30 @@ First, you need instances of your workflow definition and all the required store
 
 ```rust
 use floxide::{
-    Workflow, DistributedWorker, WorkQueue, CheckpointStore, Context,
+    Workflow, DistributedWorker, WorkQueue, ContextStore, Context,
+    // Import other store traits: RunInfoStore, MetricsStore, ErrorStore, LivenessStore, WorkItemStateStore
     // Import your specific workflow, context, and store implementations
-    // e.g., TextProcessor, SimpleContext, RedisWorkQueue, RedisCheckpointStore etc.
+    // e.g., TextProcessor, SimpleContext, RedisWorkQueue, RedisContextStore etc.
 };
 use std::sync::Arc;
 // Assume these are properly configured instances for distributed use
 // let my_workflow: TextProcessor = // ... initialized workflow struct
 // let my_queue: RedisWorkQueue<...> = // ... connected queue
-// let my_checkpoint_store: RedisCheckpointStore<...> = // ... connected store
+// let my_context_store: RedisContextStore<...> = // ... connected context store
 // let my_run_info_store: RedisRunInfoStore = // ...
-// let my_metrics_store: RedisMetricsStore = // ...
-// let my_error_store: RedisErrorStore = // ...
-// let my_liveness_store: RedisLivenessStore = // ...
-// let my_work_item_state_store: RedisWorkItemStateStore<...> = // ...
+// ... etc for all stores ...
 
-// Create a worker instance
-let worker = DistributedWorker::new(
-    my_workflow,
-    my_queue,
-    my_checkpoint_store,
-    my_run_info_store,
-    my_metrics_store,
-    my_error_store,
-    my_liveness_store,
-    my_work_item_state_store
-);
+// Create a worker instance using the builder pattern
+let worker = DistributedWorker::builder()
+    .workflow(my_workflow)
+    .queue(my_queue)
+    .context_store(my_context_store)
+    .run_info_store(my_run_info_store)
+    .metrics_store(my_metrics_store)
+    .error_store(my_error_store)
+    .liveness_store(my_liveness_store)
+    .work_item_state_store(my_work_item_state_store)
+    .build();
 
 // Optional: Configure retry policy
 // worker.set_retry_policy(RetryPolicy::default());
@@ -169,12 +174,12 @@ The `worker.run_once(worker_id)` method essentially does this:
 1.  Calls `queue.dequeue()`.
 2.  If a `work_item` and `run_id` are received:
     *   Updates worker status (liveness, work item state) using the provided stores.
-    *   Calls `self.workflow.step_distributed(...)`, passing the `checkpoint_store`, `queue`, `run_id`, and `work_item`.
+    *   Calls `self.workflow.step_distributed(...)`, passing the `context_store`, `queue`, `run_id`, `work_item`, and potentially other stores needed for state updates within the step execution logic (like metrics/error stores).
     *   The `step_distributed` implementation (generated by `workflow!`) handles:
-        *   Loading the checkpoint (`store.load(run_id)`).
-        *   Calling the correct Node's `process` method (using `process_work_item`).
+        *   Loading the context (`context_store.get(run_id)`).
+        *   Calling the correct Node's `process` method (using `process_work_item`). Node appends events.
         *   Handling the `Transition` and enqueuing next items (`queue.enqueue(...)`).
-        *   Saving the new checkpoint (`store.save(run_id, ...)`).
+        *   Merging and saving the context (`context_store.merge(run_id, ...)`).
     *   Updates worker status based on the result of `step_distributed`.
 3.  If no item is dequeued, it indicates idleness.
 
@@ -185,14 +190,15 @@ sequenceDiagram
     participant Worker as DistributedWorker (run_once)
     participant WQ as WorkQueue
     participant WorkflowImpl as Workflow (step_distributed)
+    participant CtxStore as ContextStore
     participant Stores as Other Stores (Liveness, etc.)
 
     Worker->>WQ: dequeue()
     alt Task Found (run_id, item)
         WQ-->>Worker: Return Some((run_id, item))
         Worker->>Stores: Update status (starting item)
-        Worker->>WorkflowImpl: step_distributed(store, queue, run_id, item, ...)
-        Note right of WorkflowImpl: Loads Checkpoint, <br/>Executes Node,<br/>Saves Checkpoint,<br/>Enqueues Next Tasks
+        Worker->>WorkflowImpl: step_distributed(ctx_store, queue, run_id, item, ...)
+        Note right of WorkflowImpl: Loads Context (CtxStore), <br/>Executes Node (appends events),<br/>Merges/Saves Context (CtxStore),<br/>Enqueues Next Tasks (WQ)
         WorkflowImpl-->>Worker: Return Result (Ok(None) or Ok(Some(output)) or Err)
         Worker->>Stores: Update status (item finished/failed)
         Worker-->>Worker: Return result to caller
@@ -210,21 +216,30 @@ The `DistributedWorker` struct holds all the necessary components:
 
 ```rust
 // Simplified from crates/floxide-core/src/distributed/worker.rs
-pub struct DistributedWorker<W, C, Q, S, ...>
+use crate::distributed::{ ContextStore, ErrorStore, LivenessStore, MetricsStore, RunInfoStore, WorkItemStateStore, WorkQueue };
+
+pub struct DistributedWorker<W, C, Q, CS, RIS, MS, ES, LS, WIS>
 where
     W: Workflow<C, WorkItem: 'static>,
     C: Context,
     Q: WorkQueue<C, W::WorkItem>,
-    S: CheckpointStore<C, W::WorkItem>,
-    // ... other store bounds ...
+    CS: ContextStore<C>,
+    RIS: RunInfoStore,
+    MS: MetricsStore,
+    ES: ErrorStore,
+    LS: LivenessStore,
+    WIS: WorkItemStateStore<W::WorkItem>,
 {
     workflow: W,
     queue: Q,
-    checkpoint_store: S,
+    context_store: CS,
     run_info_store: RIS,
-    // ... other stores ...
+    metrics_store: MS,
+    error_store: ES,
+    liveness_store: LS,
+    work_item_state_store: WIS,
     retry_policy: Option<RetryPolicy>,
-    // ...
+    phantom: std::marker::PhantomData<C>,
 }
 ```
 
@@ -268,7 +283,7 @@ impl<...> DistributedWorker<...> {
         // *** Core Logic: Delegate to Workflow::step_distributed ***
         // This method encapsulates: dequeue, load, process, save, enqueue
         match self.workflow.step_distributed(
-            &self.checkpoint_store,
+            &self.context_store,
             &self.queue,
             worker_id,
             self.build_callbacks(worker_id) // Provides hooks for state updates
@@ -306,7 +321,7 @@ impl<...> DistributedWorker<...> {
 }
 ```
 
-The key takeaway is that the `DistributedWorker` acts as the runner or host process, performing the loop and calling the appropriate methods on the `Workflow`, `WorkQueue`, and `CheckpointStore` to execute the distributed steps defined by your application.
+The key takeaway is that the `DistributedWorker` acts as the runner or host process, performing the loop and calling the appropriate methods on the `Workflow`, `WorkQueue`, and `ContextStore` to execute the distributed steps defined by your application.
 
 ## Worker Pools
 
@@ -316,9 +331,9 @@ Running and managing individual worker tasks can be tedious. Floxide often provi
 
 The `DistributedWorker` is the active entity in a Floxide distributed workflow. It's the "employee" that continuously:
 *   Pulls tasks from the shared [`WorkQueue`](05__workqueue__trait_.md).
-*   Loads the necessary state from the [`CheckpointStore`](06__checkpoint_____checkpointstore__trait_.md).
+*   Loads the necessary state from the `ContextStore`.
 *   Executes the [`Node`](02__node__trait____node___macro_.md) logic defined in the [`Workflow`](04__workflow__trait____workflow___macro_.md) (via `step_distributed`).
-*   Saves the updated state back to the `CheckpointStore`.
+*   Saves the updated state back to the `ContextStore`.
 *   Enqueues follow-up tasks.
 
 By running multiple workers, potentially across many machines, all interacting with the same shared queue and stores, Floxide achieves parallel and distributed workflow execution.

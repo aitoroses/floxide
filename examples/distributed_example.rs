@@ -137,14 +137,14 @@ Let us know if you want a diagram, code comments, or further breakdown of any pa
 //   - Log and checkpoint state after each node
 
 use async_trait::async_trait;
-use floxide::{
-    checkpoint::InMemoryCheckpointStore,
-    context::SharedState,
-    distributed::{ItemProcessedOutcome, StepCallbacks},
-};
+use floxide::distributed::{ItemProcessedOutcome, StepCallbacks};
+use floxide_core::distributed::context_store::{ContextStore, InMemoryContextStore};
+use floxide_core::distributed::event_log::EventLog;
 use floxide_core::distributed::InMemoryWorkQueue;
+use floxide_core::merge::Merge;
 use floxide_core::*;
 use floxide_macros::workflow;
+use floxide_macros::Merge;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Debug,
@@ -157,12 +157,31 @@ use tracing::Instrument;
 static SHOULD_FAIL: LazyLock<Arc<tokio::sync::Mutex<bool>>> =
     LazyLock::new(|| Arc::new(tokio::sync::Mutex::new(false)));
 
-/// Shared workflow context, accessible and mutable by all nodes.
-/// Contains a counter and a log of node activity.
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-struct Ctx {
-    local_counter: SharedState<i32>, // Shared counter, updated by each node
-    logs: SharedState<Vec<String>>,  // Shared log, records node activity
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WorkflowEvent {
+    CounterIncremented(i32),
+    LogMessage(String),
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default, Merge)]
+pub struct Ctx {
+    pub event_log: EventLog<WorkflowEvent>,
+}
+
+#[derive(Default, Debug)]
+pub struct State {
+    pub counter: i32,
+    pub logs: Vec<String>,
+}
+
+impl Ctx {
+    pub fn replay(&self) -> State {
+        self.event_log
+            .apply_all_default(|event, state: &mut State| match event {
+                WorkflowEvent::CounterIncremented(delta) => state.counter += delta,
+                WorkflowEvent::LogMessage(msg) => state.logs.push(msg.clone()),
+            })
+    }
 }
 
 // === Parallel workflow example illustrating worker collaboration ===
@@ -181,10 +200,10 @@ impl Node<Ctx> for InitialNode {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("InitialNode: starting workflow");
-        let mut counter = ctx.local_counter.get().await;
-        *counter += 1;
-        let mut logs = ctx.logs.get().await;
-        logs.push("InitialNode: starting workflow".to_string());
+        ctx.event_log.append(WorkflowEvent::CounterIncremented(1));
+        ctx.event_log.append(WorkflowEvent::LogMessage(
+            "InitialNode: starting workflow".to_string(),
+        ));
         Ok(Transition::Next(()))
     }
 }
@@ -202,10 +221,10 @@ impl Node<Ctx> for SplitNode {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("SplitNode: spawning two branches");
-        let mut counter = ctx.local_counter.get().await;
-        *counter += 1;
-        let mut logs = ctx.logs.get().await;
-        logs.push("SplitNode: spawning two branches".to_string());
+        ctx.event_log.append(WorkflowEvent::CounterIncremented(1));
+        ctx.event_log.append(WorkflowEvent::LogMessage(
+            "SplitNode: spawning two branches".to_string(),
+        ));
         Ok(Transition::Next(()))
     }
 }
@@ -223,10 +242,9 @@ impl Node<Ctx> for BranchA {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchA executed");
-        let mut counter = ctx.local_counter.get().await;
-        *counter += 10;
-        let mut logs = ctx.logs.get().await;
-        logs.push("BranchA executed".to_string());
+        ctx.event_log.append(WorkflowEvent::CounterIncremented(10));
+        ctx.event_log
+            .append(WorkflowEvent::LogMessage("BranchA executed".to_string()));
         Ok(Transition::Next("branch_a_success".to_string()))
     }
 }
@@ -244,17 +262,17 @@ impl Node<Ctx> for BranchB {
         _input: (),
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchB executed");
-        let mut counter = ctx.local_counter.get().await;
-        *counter += 15;
-        let mut logs = ctx.logs.get().await;
         let should_fail = *SHOULD_FAIL.lock().await;
         if should_fail {
-            logs.push("BranchB failed".to_string());
+            ctx.event_log
+                .append(WorkflowEvent::LogMessage("BranchB failed".to_string()));
             return Ok(Transition::Abort(FloxideError::Generic(
                 "branch_b_failed".to_string(),
             )));
         }
-        logs.push("BranchB executed".to_string());
+        ctx.event_log.append(WorkflowEvent::CounterIncremented(15));
+        ctx.event_log
+            .append(WorkflowEvent::LogMessage("BranchB executed".to_string()));
         Ok(Transition::Next("branch_b_success".to_string()))
     }
 }
@@ -305,7 +323,7 @@ impl StepCallbacks<Ctx, ParallelWorkflow> for NoopCallbacks {
             item
         );
         match outcome {
-            ItemProcessedOutcome::SuccessTerminal => {
+            ItemProcessedOutcome::SuccessTerminal(_) => {
                 tracing::info!(
                     "NoopCallbacks: on_item_processed for run {} and item {:?} completed",
                     run_id,
@@ -329,8 +347,8 @@ impl StepCallbacks<Ctx, ParallelWorkflow> for NoopCallbacks {
 
 /// Runs the distributed example: seeds the workflow, spawns workers, prints final context
 async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
-    // Create in-memory runtime (queue and checkpoint store)
-    let store = InMemoryCheckpointStore::<Ctx, ParallelWorkflowWorkItem>::default();
+    // Create in-memory runtime (queue and context store)
+    let store = InMemoryContextStore::<Ctx>::default();
     let queue = InMemoryWorkQueue::<ParallelWorkflowWorkItem>::default();
 
     // Build workflow and context
@@ -341,8 +359,7 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
         b: BranchB,
     };
     let ctx = WorkflowCtx::new(Ctx {
-        local_counter: SharedState::new(0),
-        logs: SharedState::new(Vec::new()),
+        event_log: EventLog::new(),
     });
 
     let run_id = "run1";
@@ -401,9 +418,14 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
     }
 
     // All work is done; print final context
-    if let Some(cp) = store.load(run_id).await? {
-        println!("Run {} completed; final context: {:?}", run_id, cp.context);
-        Ok(cp.context)
+    if let Some(ctx) = store
+        .get(run_id)
+        .await
+        .map_err(|e| FloxideError::Generic(e.to_string()))?
+    {
+        let final_state = ctx.replay();
+        println!("Run {} completed; final context: {:?}", run_id, final_state);
+        Ok(ctx)
     } else {
         Err(FloxideError::NotStarted.into())
     }
@@ -424,9 +446,10 @@ mod tests {
     #[tokio::test]
     async fn test_distributed_example() {
         let ctx = run_distributed_example().await.unwrap();
-        assert_eq!(*ctx.local_counter.get().await, 27);
+        let final_state = ctx.replay();
+        assert_eq!(final_state.counter, 27);
         assert_eq!(
-            *ctx.logs.get().await,
+            final_state.logs,
             vec![
                 "InitialNode: starting workflow",
                 "SplitNode: spawning two branches",

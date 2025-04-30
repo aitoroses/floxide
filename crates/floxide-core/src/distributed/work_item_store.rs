@@ -29,7 +29,8 @@ pub enum WorkItemStateStoreError {
     Other(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(bound = "W: Serialize + for<'de2> Deserialize<'de2>")]
 pub struct WorkItemState<W: WorkItem> {
     pub status: WorkItemStatus,
     pub attempts: u32,

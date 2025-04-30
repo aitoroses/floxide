@@ -1,4 +1,6 @@
+pub mod context_store;
 pub mod error_store;
+pub mod event_log;
 pub mod liveness_store;
 pub mod metrics_store;
 pub mod orchestrator;
@@ -8,7 +10,9 @@ pub mod work_item_store;
 pub mod work_queue;
 pub mod worker;
 
+pub use context_store::*;
 pub use error_store::*;
+pub use event_log::*;
 pub use liveness_store::*;
 pub use metrics_store::*;
 pub use orchestrator::*;
