@@ -18,11 +18,24 @@ Floxide models workflows using these key components:
 *   **`Node`**: A single, reusable step in a workflow. Defined using the `node!` macro.
 *   **`Workflow`**: The overall directed graph structure, connecting Nodes. Defined using the `workflow!` macro.
 *   **`Transition`**: The result of a Node's execution, indicating what happens next (`Next`, `NextAll`, `Hold`, `Abort`).
-*   **`WorkflowCtx` / `Context`**: Shared data or state accessible by all Nodes within a specific workflow run.
+*   **`WorkflowCtx` / `Context`**: Shared data or state accessible by all Nodes within a specific workflow run. Often structured using event sourcing (`EventLog`) and requires implementing the `Merge` trait for distributed consistency.
 *   **`WorkQueue`**: (For distributed workflows) A queue holding tasks (`WorkItem`s) ready to be processed by Workers.
-*   **`Checkpoint`**: (For distributed workflows) Saved state of a workflow run, enabling recovery.
-*   **`DistributedWorker`**: A process that dequeues tasks from the `WorkQueue` and executes Nodes.
-*   **`DistributedOrchestrator`**: Manages the lifecycle of distributed workflow runs.
+*   **(`CheckpointStore`/`Checkpoint`)**: (For local persistence/resume) Saved state of a workflow run including context and pending tasks, enabling recovery.
+*   **`ContextStore`**: (For distributed workflows) Manages the persistent storage and merging of the shared `Context` data for a run.
+*   **Distributed Stores**: (For distributed workflows) A collection of specialized stores (`RunInfoStore`, `MetricsStore`, `ErrorStore`, `LivenessStore`, `WorkItemStateStore`) for tracking run metadata, errors, worker health, etc.
+*   **`DistributedWorker`**: A process that dequeues tasks from the `WorkQueue`, interacts with distributed stores (`ContextStore`, etc.) for state, and executes Nodes.
+*   **`DistributedOrchestrator`**: Manages the lifecycle of distributed workflow runs, interacting with all distributed stores.
+
+## Features
+*   **Type-Safe Workflow Definition:** Compile-time checks for node inputs/outputs and graph structure.
+*   **Declarative Macros:** `workflow!` and `node!` for clear, concise workflow logic.
+*   **State Management & Recovery:** Fault tolerance via `CheckpointStore` (local) or `ContextStore` (distributed), enabling resumability.
+*   **Distributed Execution:** Scale workflows across multiple workers using shared stores.
+*   **Event-Driven & Async:** Built on `tokio` for efficient asynchronous execution.
+*   **Extensible Stores:** Pluggable storage backends for queues and state (In-memory provided, Redis available).
+*   **Retry Policies:** Built-in support for automatic retries on node failures.
+*   **Observability:** Stores for tracking run status, metrics, errors, and worker liveness.
+*   **Redis Backend:** Optional `floxide-redis` crate provides implementations for all distributed stores using Redis.
 
 ## Quick Example
 
@@ -184,12 +197,14 @@ The `examples/` directory contains various demonstrations of Floxide's features:
 *   **`nested_workflow_example.rs`**: Embedding one workflow within another using `CompositeNode`.
 *   **`generics_example.rs`**: Defining workflows with nodes that have generic type parameters.
 *   **`timer_example.rs`**: Using a `source` node (backed by a channel) to drive a workflow with external events (like timer ticks).
-*   **`distributed_example.rs`**: Simulates a distributed workflow run using in-memory components (`InMemoryWorkQueue`, `InMemoryCheckpointStore`) and multiple worker tasks.
-*   **`distributed_orchestrated_merge_example.rs`**: A more complex distributed example showcasing `OrchestratorBuilder`, `WorkerBuilder`, `WorkerPool`, and various in-memory distributed stores (`RunInfoStore`, `MetricsStore`, etc.) for a split/merge workflow with potential failures.
+*   **`distributed_example.rs`**: Simulates a distributed workflow run using in-memory components (`InMemoryWorkQueue`, `InMemoryContextStore`) and multiple worker tasks, demonstrating event-sourced context.
+*   **`distributed_orchestrated_merge_example.rs`**: A more complex distributed example showcasing `OrchestratorBuilder`, `WorkerBuilder`, `WorkerPool`, and various in-memory distributed stores (`InMemoryContextStore`, `RunInfoStore`, etc.) using the `Merge` trait for a split/merge workflow with potential failures.
 *   **`workflow_dot.rs`**: Demonstrates generating a Graphviz DOT representation of a workflow's structure using the `to_dot()` method.
 *   **`terminal_node_example.rs`**: A minimal workflow where the starting node is also the terminal node, directly returning the final result.
 *   **`order_example.rs`**: A workflow that simulates an order processing system, including validation, payment processing, and stock allocation.
 *   **`llm_example.rs`**: A simple linear workflow that shows how to use LLM-like steps to generate an article.
+*   **`floxide-redis` crate tests**: The integration tests within the `crates/floxide-redis/tests` directory serve as examples for configuring and using the Redis-backed implementations of all distributed stores (`RedisContextStore`, `RedisWorkQueue`, etc.).
+
 ## Installation
 
 Add Floxide to your `Cargo.toml` dependencies:
@@ -197,6 +212,9 @@ Add Floxide to your `Cargo.toml` dependencies:
 ```toml
 [dependencies]
 floxide = "*" # Check crates.io for the latest version
+
+# Optional: For Redis-backed distributed stores
+# floxide-redis = "*" 
 ```
 
 ## Getting Started
