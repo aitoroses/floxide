@@ -4,6 +4,12 @@
 [![Documentation](https://docs.rs/floxide/badge.svg)](https://docs.rs/floxide)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Tired of Ad-Hoc Process Management? Build Resilient Systems with Workflows!
+
+Building reliable applications often involves complex sequences of operations, background jobs, or distributed tasks. Handling failures gracefully, managing state consistently, ensuring steps execute in order, and retrying transient errors can lead to brittle, hard-to-maintain code scattered across your system.
+
+**Floxide solves this.** It provides a robust framework in Rust to explicitly model your complex processes as **workflows**. Define your steps, connect them declaratively, and let Floxide handle the orchestration, fault tolerance, state management, and distribution. Focus on your core logic, build more reliable systems faster.
+
 **Floxide** is an extensible framework for building distributed, parallel, and event-driven workflows in Rust. Model complex processes as type-safe, directed graphs with robust support for:
 
 *   **Distributed Execution:** Run workflows across multiple workers.
