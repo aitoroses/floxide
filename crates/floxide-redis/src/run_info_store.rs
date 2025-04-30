@@ -84,11 +84,10 @@ impl RunInfoStore for RedisRunInfoStore {
 
         let mut info = match result {
             Some(serialized) => {
-                let serializable = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+                serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
                     error!("Failed to deserialize run info: {}", e);
                     RunInfoError::Other(format!("Deserialization error: {}", e))
-                })?;
-                RunInfo::from(serializable)
+                })?
             }
             None => return Err(RunInfoError::NotFound),
         };
@@ -144,11 +143,10 @@ impl RunInfoStore for RedisRunInfoStore {
 
         let mut info = match result {
             Some(serialized) => {
-                let serializable = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+                serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
                     error!("Failed to deserialize run info: {}", e);
                     RunInfoError::Other(format!("Deserialization error: {}", e))
-                })?;
-                RunInfo::from(serializable)
+                })?
             }
             None => return Err(RunInfoError::NotFound),
         };
@@ -185,11 +183,10 @@ impl RunInfoStore for RedisRunInfoStore {
 
         // If the run info exists, deserialize it
         if let Some(serialized) = result {
-            let serializable = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+            let info = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
                 error!("Failed to deserialize run info: {}", e);
                 RunInfoError::Other(format!("Deserialization error: {}", e))
             })?;
-            let info = RunInfo::from(serializable);
 
             trace!("Got run info for run {}", run_id);
             Ok(Some(info))
@@ -231,11 +228,10 @@ impl RunInfoStore for RedisRunInfoStore {
             })?;
 
             if let Some(serialized) = result {
-                let serializable = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+                let info = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
                     error!("Failed to deserialize run info: {}", e);
                     RunInfoError::Other(format!("Deserialization error: {}", e))
                 })?;
-                let info = RunInfo::from(serializable);
                 runs.push(info);
             }
         }
@@ -260,11 +256,10 @@ impl RunInfoStore for RedisRunInfoStore {
 
         let mut info = match result {
             Some(serialized) => {
-                let serializable = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+                serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
                     error!("Failed to deserialize run info: {}", e);
                     RunInfoError::Other(format!("Deserialization error: {}", e))
-                })?;
-                RunInfo::from(serializable)
+                })?
             }
             None => return Err(RunInfoError::NotFound),
         };
