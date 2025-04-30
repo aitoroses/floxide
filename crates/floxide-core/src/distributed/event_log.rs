@@ -1,51 +1,126 @@
+use std::fmt::Debug;
 use std::vec::Vec;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, Mutex};
 
 use crate::merge::Merge;
 
-/// Trait for applying an event to a state.
-pub trait EventApplier<E, S> {
-    fn apply(&self, event: &E, state: &mut S);
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct LoggedEvent<E> {
+    pub uuid: Uuid,
+    pub timestamp: u128,
+    pub event: E,
 }
 
-/// In-memory append-only event log.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// In-memory append-only event log with interior mutability.
+#[derive(Clone)]
 pub struct EventLog<E> {
-    events: Vec<E>,
+    events: Arc<Mutex<Vec<LoggedEvent<E>>>>,
 }
 
 impl<E> Default for EventLog<E> {
     fn default() -> Self {
-        Self::new()
+        Self { events: Arc::new(Mutex::new(Vec::new())) }
     }
 }
 
-impl<E> Merge for EventLog<E> {
+impl<E> Debug for EventLog<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EventLog {{ events: {:?} }}", self.events.lock().unwrap().len())
+    }
+}
+
+impl<E: Clone> Merge for EventLog<E> {
+    /// Merges another EventLog into this one, deduplicating by UUID and ordering by (timestamp, uuid).
+    ///
+    /// # Deadlock Prevention
+    /// - If `self` and `other` are the same Arc, merging is a no-op (prevents self-deadlock).
+    /// - Otherwise, always lock the two logs in a consistent order (by pointer address) to prevent lock order inversion deadlocks.
     fn merge(&mut self, other: Self) {
-        self.events.extend(other.events);
+        let self_ptr = Arc::as_ptr(&self.events) as usize;
+        let other_ptr = Arc::as_ptr(&other.events) as usize;
+        if self_ptr == other_ptr {
+            // Prevent self-deadlock: merging a log with itself is a no-op
+            return;
+        }
+        // Lock in address order to prevent lock order inversion deadlocks
+        let (first, second) = if self_ptr < other_ptr {
+            (&self.events, &other.events)
+        } else {
+            (&other.events, &self.events)
+        };
+        let mut first_guard = first.lock().unwrap();
+        let mut second_guard = second.lock().unwrap();
+        // If self_ptr < other_ptr, first_guard is self, second_guard is other
+        // If self_ptr > other_ptr, first_guard is other, second_guard is self
+        // Always merge into self
+        if self_ptr < other_ptr {
+            first_guard.extend(second_guard.drain(..));
+            first_guard.sort_by(|a, b| a.timestamp.cmp(&b.timestamp).then(a.uuid.cmp(&b.uuid)));
+            first_guard.dedup_by_key(|e| e.uuid);
+        } else {
+            second_guard.extend(first_guard.drain(..));
+            second_guard.sort_by(|a, b| a.timestamp.cmp(&b.timestamp).then(a.uuid.cmp(&b.uuid)));
+            second_guard.dedup_by_key(|e| e.uuid);
+            // Move merged data back to self
+            *first_guard = second_guard.clone();
+        }
+    }
+}
+
+impl<E: Serialize> Serialize for EventLog<E> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let events = self.events.lock().unwrap();
+        events.serialize(serializer)
+    }
+}
+
+impl<'de, E: Deserialize<'de>> Deserialize<'de> for EventLog<E> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let events = Vec::<LoggedEvent<E>>::deserialize(deserializer)?;
+        Ok(EventLog {
+            events: Arc::new(Mutex::new(events)),
+        })
     }
 }
 
 impl<E> EventLog<E> {
     pub fn new() -> Self {
-        Self { events: Vec::new() }
+        Self { events: Arc::new(Mutex::new(Vec::new())) }
     }
 
-    pub fn append(&mut self, event: E) {
-        self.events.push(event);
+    pub fn append(&self, event: E) {
+        let logged = LoggedEvent {
+            uuid: Uuid::new_v4(),
+            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis(),
+            event,
+        };
+        self.events.lock().unwrap().push(logged);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &E> {
-        self.events.iter()
+    pub fn iter(&self) -> Vec<LoggedEvent<E>>
+    where
+        E: Clone,
+    {
+        self.events.lock().unwrap().clone()
     }
 
     /// Applies all events in order to the given state using the provided closure.
     pub fn apply_all<S, F>(&self, state: &mut S, apply_fn: F)
     where
         F: Fn(&E, &mut S),
+        E: Clone,
     {
-        for event in &self.events {
-            apply_fn(event, state);
+        for logged in self.iter() {
+            apply_fn(&logged.event, state);
         }
     }
 
@@ -54,6 +129,7 @@ impl<E> EventLog<E> {
     where
         S: Default,
         F: Fn(&E, &mut S),
+        E: Clone,
     {
         let mut state = S::default();
         self.apply_all(&mut state, apply_fn);
@@ -84,18 +160,18 @@ mod tests {
 
     #[test]
     fn test_append_and_iter() {
-        let mut log = EventLog::new();
+        let log = EventLog::new();
         log.append(WorkflowEvent::WorkStarted { id: 1 });
         log.append(WorkflowEvent::WorkCompleted { id: 1, result: 42 });
-        let events: Vec<_> = log.iter().cloned().collect();
+        let events: Vec<_> = log.iter();
         assert_eq!(events.len(), 2);
-        assert_eq!(events[0], WorkflowEvent::WorkStarted { id: 1 });
-        assert_eq!(events[1], WorkflowEvent::WorkCompleted { id: 1, result: 42 });
+        assert_eq!(events[0].event, WorkflowEvent::WorkStarted { id: 1 });
+        assert_eq!(events[1].event, WorkflowEvent::WorkCompleted { id: 1, result: 42 });
     }
 
     #[test]
     fn test_apply_all() {
-        let mut log = EventLog::new();
+        let log = EventLog::new();
         log.append(WorkflowEvent::WorkStarted { id: 1 });
         log.append(WorkflowEvent::WorkStarted { id: 2 });
         log.append(WorkflowEvent::WorkCompleted { id: 1, result: 10 });
@@ -126,7 +202,7 @@ mod tests {
 
     #[test]
     fn test_apply_all_default() {
-        let mut log = EventLog::new();
+        let log = EventLog::new();
         log.append(WorkflowEvent::WorkStarted { id: 1 });
         log.append(WorkflowEvent::WorkStarted { id: 2 });
         log.append(WorkflowEvent::WorkCompleted { id: 1, result: 10 });

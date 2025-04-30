@@ -2,61 +2,84 @@
 // Demonstrates distributed orchestration and worker pool with split/merge/hold using Floxide
 
 use floxide::{
-    checkpoint::InMemoryCheckpointStore,
-    context::SharedState,
     distributed::{
-        InMemoryErrorStore, InMemoryLivenessStore, InMemoryMetricsStore, InMemoryRunInfoStore,
-        InMemoryWorkItemStateStore, InMemoryWorkQueue, OrchestratorBuilder, RunStatus,
-        WorkerBuilder, WorkerPool,
+        InMemoryContextStore, InMemoryErrorStore, InMemoryLivenessStore, InMemoryMetricsStore,
+        InMemoryRunInfoStore, InMemoryWorkItemStateStore, InMemoryWorkQueue, OrchestratorBuilder,
+        RunStatus, WorkerBuilder, WorkerPool,
     },
+    merge::Fixed,
 };
+use floxide_core::distributed::event_log::EventLog;
 use floxide_core::*;
-use floxide_macros::{node, workflow};
+use floxide_macros::{node, workflow, Merge};
 use serde::{Deserialize, Serialize};
 use tokio::time::error::Elapsed;
 
-// --- Context ---
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-struct MergeContext {
-    values: SharedState<Vec<i32>>,
-    expected: usize,
-    random_fail_chance: f64,
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MergeEvent {
+    ValueReceived(i32),
+    Merged(Vec<i32>),
+    Log(String),
+}
+
+#[derive(Default, Debug, PartialEq, Eq)]
+pub struct MergeState {
+    pub values: Vec<i32>,
+    pub logs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default, Merge)]
+pub struct MergeContext {
+    pub event_log: EventLog<MergeEvent>,
+    pub expected: Fixed<usize>,
+    pub random_fail_chance: Fixed<f64>,
+}
+
+impl MergeContext {
+    pub fn replay(&self) -> MergeState {
+        self.event_log
+            .apply_all_default(|event, state: &mut MergeState| match event {
+                MergeEvent::ValueReceived(v) => state.values.push(*v),
+                MergeEvent::Merged(vals) => state.values = vals.clone(),
+                MergeEvent::Log(msg) => state.logs.push(msg.clone()),
+            })
+    }
 }
 
 // --- MergeNode using node! macro ---
-// Fails with some random chance
 node! {
     pub struct MergeNode {};
     context = MergeContext;
     input = i32;
     output = Vec<i32>;
     |ctx, input| {
-        if rand::random::<f64>() < ctx.random_fail_chance {
+        if rand::random::<f64>() < *ctx.random_fail_chance {
+            ctx.event_log.append(MergeEvent::Log("random failure in MergeNode".to_string()));
             return Ok(Transition::Abort(FloxideError::Generic("random failure".to_string())));
         }
-        let mut vals = ctx.values.get().await;
-        vals.push(input);
-        if vals.len() < ctx.expected {
+        ctx.event_log.append(MergeEvent::ValueReceived(input));
+        let state = ctx.replay();
+        if state.values.len() < *ctx.expected {
             Ok(Transition::Hold)
         } else {
-            let merged = vals.clone();
-            Ok(Transition::Next(merged))
+            ctx.event_log.append(MergeEvent::Merged(state.values.clone()));
+            Ok(Transition::Next(state.values))
         }
     }
-
 }
 
 // --- TerminalNode using node! macro ---
-// Fails with some random chance
 node! {
     pub struct TerminalNode {};
     context = MergeContext;
     input = Vec<i32>;
     output = Vec<i32>;
     |ctx, input| {
-        if rand::random::<f64>() < ctx.random_fail_chance {
+        if rand::random::<f64>() < *ctx.random_fail_chance {
+            ctx.event_log.append(MergeEvent::Log("random failure in TerminalNode".to_string()));
             return Ok(Transition::Abort(FloxideError::Generic("random failure".to_string())));
         }
+        ctx.event_log.append(MergeEvent::Log(format!("Merged values: {:?}", input)));
         println!("Merged values: {:?}", input);
         Ok(Transition::Next(input))
     }
@@ -74,16 +97,16 @@ workflow! {
     edges {
         split => { [merge] };
         merge => { [terminal] };
-        terminal => { [] };
+        terminal => {};
     }
 }
 
 async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::error::Error>> {
     // --- Distributed setup ---
     let ctx = MergeContext {
-        values: SharedState::new(Vec::new()),
-        expected: 10,
-        random_fail_chance: 0.7,
+        event_log: EventLog::new(),
+        expected: Fixed::new(10),
+        random_fail_chance: Fixed::new(0.7),
     };
     let wf_ctx = WorkflowCtx::new(ctx);
 
@@ -95,8 +118,7 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
     };
 
     let queue: InMemoryWorkQueue<MergeWorkflowWorkItem> = InMemoryWorkQueue::default();
-    let checkpoint_store: InMemoryCheckpointStore<MergeContext, MergeWorkflowWorkItem> =
-        InMemoryCheckpointStore::default();
+    let context_store: InMemoryContextStore<MergeContext> = InMemoryContextStore::default();
 
     let run_info_store: InMemoryRunInfoStore = InMemoryRunInfoStore::default();
     let metrics_store: InMemoryMetricsStore = InMemoryMetricsStore::default();
@@ -109,7 +131,7 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
     let orchestrator = OrchestratorBuilder::new()
         .workflow(wf.clone())
         .queue(queue.clone())
-        .checkpoint_store(checkpoint_store.clone())
+        .context_store(context_store.clone())
         .run_info_store(run_info_store.clone())
         .metrics_store(metrics_store.clone())
         .error_store(error_store.clone())
@@ -125,7 +147,7 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
     let worker = WorkerBuilder::new()
         .workflow(wf)
         .queue(queue)
-        .checkpoint_store(checkpoint_store)
+        .context_store(context_store)
         .run_info_store(run_info_store)
         .metrics_store(metrics_store)
         .error_store(error_store)
@@ -149,8 +171,10 @@ async fn run_distributed_orchestrated_merge() -> Result<RunStatus, Box<dyn std::
         let run_info = orchestrator.list_runs(None).await?;
         println!("Run info: {:#?}", run_info);
 
-        let checkpoint = orchestrator.checkpoint(&run_id).await?;
-        println!("Checkpoint: {:#?}", checkpoint);
+        let context = orchestrator.context(&run_id).await?;
+        println!("Context: {:#?}", context);
+        let state = context.replay();
+        println!("Replay state: {:#?}", state);
 
         let metrics = orchestrator.metrics(&run_id).await?;
         println!("Metrics: {:#?}", metrics);

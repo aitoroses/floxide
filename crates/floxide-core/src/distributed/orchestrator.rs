@@ -1,4 +1,3 @@
-use crate::checkpoint::CheckpointStore;
 use crate::context::{Context, WorkflowCtx};
 use crate::distributed::{
     ErrorStore, LivenessStatus, LivenessStore, LivenessStoreError, MetricsStore, RunInfo,
@@ -7,70 +6,70 @@ use crate::distributed::{
 };
 use crate::error::FloxideError;
 use crate::workflow::Workflow;
-use crate::Checkpoint;
 use chrono::Utc;
 use std::marker::PhantomData;
 use std::time::Duration;
 use uuid;
+use crate::distributed::context_store::ContextStore;
 
 use super::{WorkItemState, WorkItemStateStoreError, WorkItemStatus, WorkerHealth};
 
-pub struct DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>
+pub struct DistributedOrchestrator<W, C, Q, RIS, MS, ES, LS, WIS, CS>
 where
     W: Workflow<C>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync,
 {
     workflow: W,
     queue: Q,
-    store: S,
     run_info_store: RIS,
     metrics_store: MS,
     error_store: ES,
     liveness_store: LS,
     work_item_state_store: WIS,
+    context_store: CS,
     phantom: PhantomData<C>,
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS, WIS> DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>
+impl<W, C, Q, RIS, MS, ES, LS, WIS, CS> DistributedOrchestrator<W, C, Q, RIS, MS, ES, LS, WIS, CS>
 where
     W: Workflow<C>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync,
 {
     /// Create a new orchestrator.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         workflow: W,
         queue: Q,
-        store: S,
         run_info_store: RIS,
         metrics_store: MS,
         error_store: ES,
         liveness_store: LS,
         work_item_state_store: WIS,
+        context_store: CS,
     ) -> Self {
         Self {
             workflow,
             queue,
-            store,
             run_info_store,
             metrics_store,
             error_store,
             liveness_store,
             work_item_state_store,
+            context_store,
             phantom: PhantomData,
         }
     }
@@ -85,9 +84,9 @@ where
     ) -> Result<String, FloxideError> {
         // Generate a unique run_id
         let run_id = uuid::Uuid::new_v4().to_string();
-        // Seed the workflow (creates checkpoint and enqueues first work item)
+        // Seed the workflow (creates context and enqueues first work item)
         self.workflow
-            .start_distributed(ctx, input, &self.store, &self.queue, &run_id)
+            .start_distributed(ctx, input, &self.context_store, &self.queue, &run_id)
             .await?;
         // Insert run info into run_info_store
         let run_info = RunInfo {
@@ -168,7 +167,7 @@ where
     pub async fn resume(&self, run_id: &str) -> Result<(), FloxideError>
     where
         C: std::fmt::Debug + Clone + Send + Sync,
-    {
+    {        
         let run_info = self
             .run_info_store
             .get_run(run_id)
@@ -183,13 +182,20 @@ where
         }
 
         match run_info.unwrap().status {
+            // If already running, do nothing
             RunStatus::Running => Ok(()),
             RunStatus::Failed => {
+                // Fetch pending work too                
+                let pending_work = self.pending_work(run_id).await.map_err(|e| {
+                    FloxideError::Generic(format!("work_queue error: {e}"))
+                })?;
+
+
                 // Re-establish the work queue from the work item state store
                 for item in self.list_work_items(run_id).await.map_err(|e| {
                     FloxideError::Generic(format!("work_item_state_store error: {e}"))
                 })? {
-                    if item.status != WorkItemStatus::Completed {
+                    if item.status != WorkItemStatus::Completed && !pending_work.contains(&item.work_item) {
                         self.work_item_state_store
                             .set_status(run_id, &item.work_item, WorkItemStatus::Pending)
                             .await
@@ -217,7 +223,7 @@ where
                         RunInfoError::NotFound => FloxideError::NotStarted,
                         e => FloxideError::Generic(format!("run_info_store error: {e}")),
                     })
-            }
+            },
             RunStatus::Completed => Err(FloxideError::Generic("run already completed".to_string())),
             RunStatus::Cancelled => Err(FloxideError::AlreadyCompleted),
             RunStatus::Paused => {
@@ -266,16 +272,16 @@ where
             .map_err(|e| FloxideError::Generic(format!("liveness_store error: {e}")))
     }
 
-    // Get checkpoint for a run.
-    pub async fn checkpoint(&self, run_id: &str) -> Result<Checkpoint<C, W::WorkItem>, FloxideError>
+    // Get context for a run.
+    pub async fn context(&self, run_id: &str) -> Result<C, FloxideError>
     where
         C: std::fmt::Debug + Clone + Send + Sync,
     {
-        match self.store.load(run_id).await {
-            Ok(Some(checkpoint)) => Ok(checkpoint),
+        match self.context_store.get(run_id).await {
+            Ok(Some(context)) => Ok(context),
             Ok(None) => Err(FloxideError::NotStarted),
             Err(e) => Err(FloxideError::Generic(format!(
-                "checkpoint_store error: {e}"
+                "context_store error: {e}"
             ))),
         }
     }
@@ -386,51 +392,51 @@ where
     }
 }
 
-pub struct OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS, WIS>
+pub struct OrchestratorBuilder<W, C, Q, RIS, MS, ES, LS, WIS, CS>
 where
     W: Workflow<C>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync,
 {
     workflow: Option<W>,
     queue: Option<Q>,
-    store: Option<S>,
     run_info_store: Option<RIS>,
     metrics_store: Option<MS>,
     error_store: Option<ES>,
     liveness_store: Option<LS>,
     work_item_state_store: Option<WIS>,
+    context_store: Option<CS>,
     _phantom: std::marker::PhantomData<C>,
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS, WIS> OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS, WIS>
+impl<W, C, Q, RIS, MS, ES, LS, WIS, CS> OrchestratorBuilder<W, C, Q, RIS, MS, ES, LS, WIS, CS>
 where
     W: Workflow<C>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync,
 {
     pub fn new() -> Self {
         Self {
             workflow: None,
             queue: None,
-            store: None,
             run_info_store: None,
             metrics_store: None,
             error_store: None,
             liveness_store: None,
             work_item_state_store: None,
+            context_store: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -440,10 +446,6 @@ where
     }
     pub fn queue(mut self, queue: Q) -> Self {
         self.queue = Some(queue);
-        self
-    }
-    pub fn checkpoint_store(mut self, store: S) -> Self {
-        self.store = Some(store);
         self
     }
     pub fn run_info_store(mut self, ris: RIS) -> Self {
@@ -466,47 +468,49 @@ where
         self.work_item_state_store = Some(wiss);
         self
     }
+    pub fn context_store(mut self, context_store: CS) -> Self {
+        self.context_store = Some(context_store);
+        self
+    }
     #[allow(clippy::type_complexity)]
-    pub fn build(self) -> Result<DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>, String>
+    pub fn build(self) -> Result<DistributedOrchestrator<W, C, Q, RIS, MS, ES, LS, WIS, CS>, String>
     where
         W: Workflow<C>,
-        C: Context,
+        C: Context + crate::merge::Merge + Default,
         Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-        S: CheckpointStore<C, W::WorkItem> + Send + Sync,
         RIS: RunInfoStore + Send + Sync,
         MS: MetricsStore + Send + Sync,
         ES: ErrorStore + Send + Sync,
         LS: LivenessStore + Send + Sync,
         WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+        CS: ContextStore<C> + Send + Sync,
     {
         Ok(DistributedOrchestrator {
             workflow: self.workflow.ok_or("workflow is required")?,
             queue: self.queue.ok_or("queue is required")?,
-            store: self.store.ok_or("store is required")?,
             run_info_store: self.run_info_store.ok_or("run_info_store is required")?,
             metrics_store: self.metrics_store.ok_or("metrics_store is required")?,
             error_store: self.error_store.ok_or("error_store is required")?,
             liveness_store: self.liveness_store.ok_or("liveness_store is required")?,
-            work_item_state_store: self
-                .work_item_state_store
-                .ok_or("work_item_state_store is required")?,
+            work_item_state_store: self.work_item_state_store.ok_or("work_item_state_store is required")?,
+            context_store: self.context_store.ok_or("context_store is required")?,
             phantom: std::marker::PhantomData,
         })
     }
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS, WIS> Default
-    for OrchestratorBuilder<W, C, Q, S, RIS, MS, ES, LS, WIS>
+impl<W, C, Q, RIS, MS, ES, LS, WIS, CS> Default
+    for OrchestratorBuilder<W, C, Q, RIS, MS, ES, LS, WIS, CS>
 where
     W: Workflow<C>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WIS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync,
 {
     fn default() -> Self {
         Self::new()

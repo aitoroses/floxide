@@ -1,6 +1,7 @@
 //! The context for a workflow execution.
 
 use crate::error::FloxideError;
+use crate::Merge;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -121,8 +122,6 @@ impl<T: Serialize + Clone> Serialize for SharedState<T> {
     }
 }
 
-// No helper struct needed now
-
 impl<'de, T: Deserialize<'de> + Clone> Deserialize<'de> for SharedState<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -139,6 +138,34 @@ impl<T: Debug> Debug for SharedState<T> {
         match self.0.try_lock() {
             Ok(value) => write!(f, "{:?}", value),
             Err(_) => write!(f, "SharedState(Locked)"),
+        }
+    }
+}
+
+impl<T: Merge> Merge for SharedState<T> {
+    fn merge(&mut self, other: Self) {
+        let self_ptr = Arc::as_ptr(&self.0) as usize;
+        let other_ptr = Arc::as_ptr(&other.0) as usize;
+        if self_ptr == other_ptr {
+            // Prevent self-deadlock: merging with itself is a no-op
+            return;
+        }
+        // Lock in address order to prevent lock order inversion deadlocks
+        let (first, second) = if self_ptr < other_ptr {
+            (&self.0, &other.0)
+        } else {
+            (&other.0, &self.0)
+        };
+        let mut first_guard = first.blocking_lock();
+        let mut second_guard = second.blocking_lock();
+        // Always merge into self
+        if self_ptr < other_ptr {
+            let other_val = std::mem::take(&mut *second_guard);
+            first_guard.merge(other_val);
+        } else {
+            let mut temp = std::mem::take(&mut *first_guard);
+            temp.merge(std::mem::take(&mut *second_guard));
+            *first_guard = temp;
         }
     }
 }

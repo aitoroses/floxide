@@ -1,8 +1,7 @@
-use crate::checkpoint::CheckpointStore;
 use crate::context::Context;
 use crate::distributed::{
     ErrorStore, LivenessStore, MetricsStore, RunInfoStore, RunStatus, WorkItemStateStore,
-    WorkItemStatus, WorkQueue, WorkerHealth, WorkerStatus, WorkflowError,
+    WorkItemStatus, WorkQueue, WorkerHealth, WorkerStatus, WorkflowError, ContextStore,
 };
 use crate::error::FloxideError;
 use crate::retry::{BackoffStrategy, RetryError, RetryPolicy};
@@ -21,21 +20,21 @@ use super::{ItemProcessedOutcome, StepCallbacks};
 ///
 /// Use [`run_once`] to process a single work item, or [`run_forever`] to continuously poll for work.
 #[derive(Clone)]
-pub struct DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>
+pub struct DistributedWorker<W, C, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync + 'static,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
 {
     workflow: W,
     queue: Q,
-    checkpoint_store: S,
+    context_store: CS,
     run_info_store: RIS,
     metrics_store: MS,
     error_store: ES,
@@ -45,17 +44,17 @@ where
     phantom: PhantomData<C>,
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS, WISS> DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>
+impl<W, C, Q, RIS, MS, ES, LS, WISS, CS> DistributedWorker<W, C, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static> + 'static,
-    C: Context + 'static,
+    C: Context + crate::merge::Merge + Default + 'static,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync + Clone,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync + Clone + 'static,
     RIS: RunInfoStore + Send + Sync + Clone + 'static,
     MS: MetricsStore + Send + Sync + Clone + 'static,
     ES: ErrorStore + Send + Sync + Clone + 'static,
     LS: LivenessStore + Send + Sync + Clone + 'static,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync + Clone + 'static,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
     Self: Clone,
 {
     /// Create a new distributed worker with all required stores and workflow.
@@ -65,7 +64,7 @@ where
     pub fn new(
         workflow: W,
         queue: Q,
-        checkpoint_store: S,
+        context_store: CS,
         run_info_store: RIS,
         metrics_store: MS,
         error_store: ES,
@@ -75,7 +74,7 @@ where
         Self {
             workflow,
             queue,
-            checkpoint_store,
+            context_store,
             run_info_store,
             metrics_store,
             error_store,
@@ -95,7 +94,7 @@ where
     fn build_callbacks(
         &self,
         worker_id: usize,
-    ) -> Arc<StepCallbacksImpl<C, W, Q, S, RIS, MS, ES, LS, WISS>> {
+    ) -> Arc<StepCallbacksImpl<C, W, Q, RIS, MS, ES, LS, WISS, CS>> {
         let cloned_worker = self.clone();
         Arc::new(StepCallbacksImpl {
             worker: Arc::new(cloned_worker),
@@ -225,11 +224,12 @@ where
         run_id: &str,
         work_item: &W::WorkItem,
     ) -> Result<(), FloxideError> {
-        let status = self
+        let status_result = self
             .work_item_state_store
             .get_status(run_id, work_item)
-            .await
-            .ok();
+            .await;
+        let status = status_result.ok(); // Get Option<WorkItemStatus>
+        tracing::debug!(worker_id, run_id=%run_id, ?work_item, current_status=?status, "Processing successful terminal item");
         match status {
             Some(WorkItemStatus::Completed) => {
                 tracing::warn!(
@@ -270,6 +270,7 @@ where
             .await
             .ok();
         let now = chrono::Utc::now();
+        tracing::debug!(worker_id, run_id=%run_id, "Attempting to set run status to Completed");
         let _ = self
             .run_info_store
             .update_status(run_id, RunStatus::Completed)
@@ -285,11 +286,12 @@ where
         run_id: &str,
         work_item: &W::WorkItem,
     ) -> Result<(), FloxideError> {
-        let status = self
+        let status_result = self
             .work_item_state_store
             .get_status(run_id, work_item)
-            .await
-            .ok();
+            .await;
+        let status = status_result.ok(); // Get Option<WorkItemStatus>
+        tracing::debug!(worker_id, run_id=%run_id, ?work_item, current_status=?status, "Processing successful non-terminal item");
         match status {
             Some(WorkItemStatus::Completed) => {
                 tracing::warn!(
@@ -401,6 +403,7 @@ where
                 is_permanent = true;
             } else {
                 // Set to WaitingRetry for backoff
+                tracing::debug!(worker_id, run_id=%run_id, ?work_item, attempt, "Setting item status to WaitingRetry");
                 self.work_item_state_store
                     .set_status(run_id, work_item, WorkItemStatus::WaitingRetry)
                     .await
@@ -466,7 +469,7 @@ where
                 let work_item = work_item.clone();
                 let work_item_state_store = self.work_item_state_store.clone();
                 let backoff = policy.backoff_duration(attempt);
-                tracing::info!(
+                tracing::debug!(
                     worker_id,
                     run_id = %run_id,
                     ?work_item,
@@ -474,47 +477,50 @@ where
                     "Spawning task to re-enqueue work item after backoff"
                 );
                 tokio::spawn(async move {
-                    tracing::info!(
-                        run_id = %run_id,
-                        ?work_item,
-                        ?backoff,
-                        "Re-enqueue task started, sleeping..."
-                    );
+                    let task_run_id = run_id.clone();
+                    let task_work_item = work_item.clone();
+                    tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, ?backoff, "Retry task SPAWNED, will sleep");
                     tokio::time::sleep(backoff).await;
-                    tracing::info!(
-                        run_id = %run_id,
-                        ?work_item,
-                        "Re-enqueue task awake, setting status to Pending"
-                    );
+                    tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, "Retry task AWAKE after sleep");
+
                     // Set to Pending before re-enqueue
-                    if let Err(e) = work_item_state_store
-                        .set_status(&run_id, &work_item, WorkItemStatus::Pending)
+                    tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, "Retry task attempting to set item status to Pending");
+                    match work_item_state_store
+                        .set_status(&task_run_id, &task_work_item, WorkItemStatus::Pending)
                         .await
                     {
-                        tracing::error!(
-                            run_id = %run_id,
-                            ?work_item,
-                            error = %e,
-                            "Re-enqueue task failed to set status to Pending"
-                        );
-                        // Optionally, decide if we should still attempt enqueue or just return
-                        return;
+                        Ok(_) => {
+                             tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, "Retry task successfully set item status to Pending");
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                run_id = %task_run_id,
+                                work_item = ?task_work_item,
+                                error = %e,
+                                "Retry task FAILED to set status to Pending"
+                            );
+                            // Optionally, decide if we should still attempt enqueue or just return
+                            return;
+                        }
                     }
 
-                    tracing::info!(run_id = %run_id, ?work_item, "Re-enqueue task attempting enqueue");
-                    if let Err(e) = queue.enqueue(&run_id, work_item.clone()).await {
-                         tracing::error!(
-                            run_id = %run_id,
-                            ?work_item,
-                            error = %e,
-                            "Re-enqueue task FAILED to enqueue work item!"
-                        );
-                        // CRITICAL: The item failed to re-enqueue. It's now potentially lost.
-                        // Consider adding logic here to signal this failure more robustly,
-                        // maybe update the WorkItemStatus to a specific 'EnqueueFailed' state,
-                        // or alert an external monitoring system.
-                    } else {
-                        tracing::info!(run_id = %run_id, ?work_item, "Re-enqueue task successfully enqueued work item");
+                    tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, "Retry task attempting enqueue");
+                    match queue.enqueue(&task_run_id, task_work_item.clone()).await {
+                        Ok(_) => {
+                            tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, "Retry task successfully enqueued work item");
+                        }
+                        Err(e) => {
+                             tracing::error!(
+                                run_id = %task_run_id,
+                                work_item = ?task_work_item,
+                                error = %e,
+                                "Retry task FAILED to enqueue work item!"
+                            );
+                            // CRITICAL: The item failed to re-enqueue. It's now potentially lost.
+                            // Consider adding logic here to signal this failure more robustly,
+                            // maybe update the WorkItemStatus to a specific 'EnqueueFailed' state,
+                            // or alert an external monitoring system.
+                        }
                     }
                 });
             }
@@ -575,7 +581,7 @@ where
         match self
             .workflow
             .step_distributed(
-                &self.checkpoint_store,
+                &self.context_store,
                 &self.queue,
                 worker_id,
                 self.build_callbacks(worker_id),
@@ -652,21 +658,21 @@ where
     }
 }
 
-pub struct WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS, WISS>
+pub struct WorkerBuilder<W, C, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
 {
     workflow: Option<W>,
     queue: Option<Q>,
-    checkpoint_store: Option<S>,
+    context_store: Option<CS>,
     run_info_store: Option<RIS>,
     metrics_store: Option<MS>,
     error_store: Option<ES>,
@@ -676,23 +682,23 @@ where
     _phantom: std::marker::PhantomData<C>,
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS, WISS> WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS, WISS>
+impl<W, C, Q, RIS, MS, ES, LS, WISS, CS> WorkerBuilder<W, C, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
 {
     pub fn new() -> Self {
         Self {
             workflow: None,
             queue: None,
-            checkpoint_store: None,
+            context_store: None,
             run_info_store: None,
             metrics_store: None,
             error_store: None,
@@ -710,8 +716,8 @@ where
         self.queue = Some(queue);
         self
     }
-    pub fn checkpoint_store(mut self, checkpoint_store: S) -> Self {
-        self.checkpoint_store = Some(checkpoint_store);
+    pub fn context_store(mut self, context_store: CS) -> Self {
+        self.context_store = Some(context_store);
         self
     }
     pub fn run_info_store(mut self, ris: RIS) -> Self {
@@ -739,31 +745,27 @@ where
         self
     }
     #[allow(clippy::type_complexity)]
-    pub fn build(self) -> Result<DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>, String>
+    pub fn build(self) -> Result<DistributedWorker<W, C, Q, RIS, MS, ES, LS, WISS, CS>, String>
     where
         W: Workflow<C, WorkItem: 'static>,
         C: std::fmt::Debug + Clone + Send + Sync,
         Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-        S: CheckpointStore<C, W::WorkItem> + Send + Sync,
         RIS: RunInfoStore + Send + Sync,
         MS: MetricsStore + Send + Sync,
         ES: ErrorStore + Send + Sync,
         LS: LivenessStore + Send + Sync,
         WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+        CS: ContextStore<C> + Send + Sync + Clone + 'static,
     {
         Ok(DistributedWorker {
             workflow: self.workflow.ok_or("workflow is required")?,
             queue: self.queue.ok_or("queue is required")?,
-            checkpoint_store: self
-                .checkpoint_store
-                .ok_or("checkpoint_store is required")?,
+            context_store: self.context_store.ok_or("context_store is required")?,
             run_info_store: self.run_info_store.ok_or("run_info_store is required")?,
             metrics_store: self.metrics_store.ok_or("metrics_store is required")?,
             error_store: self.error_store.ok_or("error_store is required")?,
             liveness_store: self.liveness_store.ok_or("liveness_store is required")?,
-            work_item_state_store: self
-                .work_item_state_store
-                .ok_or("work_item_state_store is required")?,
+            work_item_state_store: self.work_item_state_store.ok_or("work_item_state_store is required")?,
             retry_policy: Some(self.retry_policy.unwrap_or_else(|| {
                 RetryPolicy::new(
                     5,
@@ -778,17 +780,17 @@ where
     }
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS, WISS> Default for WorkerBuilder<W, C, Q, S, RIS, MS, ES, LS, WISS>
+impl<W, C, Q, RIS, MS, ES, LS, WISS, CS> Default for WorkerBuilder<W, C, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
 {
     fn default() -> Self {
         Self::new()
@@ -799,39 +801,39 @@ where
 ///
 /// The pool manages worker lifecycles, graceful shutdown, and health reporting.
 #[allow(clippy::type_complexity)]
-pub struct WorkerPool<W, C, Q, S, RIS, MS, ES, LS, WISS>
+pub struct WorkerPool<W, C, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
 {
-    worker: DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>,
+    worker: DistributedWorker<W, C, Q, RIS, MS, ES, LS, WISS, CS>,
     num_workers: usize,
     handles: Vec<JoinHandle<()>>,
     cancel_tokens: Vec<CancellationToken>,
 }
 
-impl<W, C, Q, S, RIS, MS, ES, LS, WISS> WorkerPool<W, C, Q, S, RIS, MS, ES, LS, WISS>
+impl<W, C, Q, RIS, MS, ES, LS, WISS, CS> WorkerPool<W, C, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static> + 'static,
-    C: Context + 'static,
+    C: Context + crate::merge::Merge + Default + 'static,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync + Clone + 'static,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync + Clone + 'static,
     RIS: RunInfoStore + Send + Sync + Clone + 'static,
     MS: MetricsStore + Send + Sync + Clone + 'static,
     ES: ErrorStore + Send + Sync + Clone + 'static,
     LS: LivenessStore + Send + Sync + Clone + 'static,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync + Clone + 'static,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
 {
     /// Create a new worker pool with the given worker and number of workers.
     pub fn new(
-        worker: DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>,
+        worker: DistributedWorker<W, C, Q, RIS, MS, ES, LS, WISS, CS>,
         num_workers: usize,
     ) -> Self {
         Self {
@@ -888,35 +890,35 @@ where
 }
 
 #[allow(clippy::type_complexity)]
-struct StepCallbacksImpl<C: Context, W: Workflow<C>, Q, S, RIS, MS, ES, LS, WISS>
+struct StepCallbacksImpl<C: Context + crate::merge::Merge + Default, W: Workflow<C>, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static>,
-    C: Context,
+    C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync,
     RIS: RunInfoStore + Send + Sync,
     MS: MetricsStore + Send + Sync,
     ES: ErrorStore + Send + Sync,
     LS: LivenessStore + Send + Sync,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
 {
-    worker: Arc<DistributedWorker<W, C, Q, S, RIS, MS, ES, LS, WISS>>,
+    worker: Arc<DistributedWorker<W, C, Q, RIS, MS, ES, LS, WISS, CS>>,
     worker_id: usize,
 }
 
 #[async_trait]
-impl<C: Context, W: Workflow<C>, Q, S, RIS, MS, ES, LS, WISS> StepCallbacks<C, W>
-    for StepCallbacksImpl<C, W, Q, S, RIS, MS, ES, LS, WISS>
+impl<C, W, Q, RIS, MS, ES, LS, WISS, CS> StepCallbacks<C, W>
+    for StepCallbacksImpl<C, W, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static> + 'static,
-    C: Context + 'static,
+    C: Context + crate::merge::Merge + Default + 'static,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync + Clone,
-    S: CheckpointStore<C, W::WorkItem> + Send + Sync + Clone + 'static,
     RIS: RunInfoStore + Send + Sync + Clone + 'static,
     MS: MetricsStore + Send + Sync + Clone + 'static,
     ES: ErrorStore + Send + Sync + Clone + 'static,
     LS: LivenessStore + Send + Sync + Clone + 'static,
     WISS: WorkItemStateStore<W::WorkItem> + Send + Sync + Clone + 'static,
+    CS: ContextStore<C> + Send + Sync + Clone + 'static,
 {
     async fn on_started(&self, run_id: String, item: W::WorkItem) -> Result<(), FloxideError> {
         if let Err(e) = self

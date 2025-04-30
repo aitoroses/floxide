@@ -35,13 +35,14 @@ use std::sync::Arc;
 
 // crates/floxide-core/src/workflow.rs
 use crate::context::Context;
-use crate::distributed::{StepCallbacks, StepError, WorkQueue};
+use crate::distributed::{ItemProcessedOutcome, StepCallbacks, StepError, WorkQueue};
 use crate::error::FloxideError;
 use crate::{Checkpoint, CheckpointStore};
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use tracing::{debug, info, span, Level};
+use crate::distributed::context_store::ContextStore;
 
 /// Trait for a workflow work item.
 ///
@@ -137,7 +138,6 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
         store: &CS,
         id: &str,
     ) -> Result<Self::Output, FloxideError> {
-        use std::collections::VecDeque;
         let span = span!(
             Level::INFO,
             "workflow_run_with_checkpoint",
@@ -198,7 +198,6 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
         store: &CS,
         id: &str,
     ) -> Result<Self::Output, FloxideError> {
-        use std::collections::VecDeque;
         let span = span!(
             Level::INFO,
             "workflow_resume",
@@ -242,53 +241,42 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
         unreachable!("Workflow did not reach terminal branch");
     }
 
-    /// Orchestrator primitive: seed the distributed workflow (checkpoint + queue) but do not execute steps.
+    /// Orchestrator primitive: seed the distributed workflow (context + queue) but do not execute steps.
     ///
-    /// This method is used to initialize a distributed workflow run, creating the initial checkpoint and enqueuing the first work item(s).
+    /// This method is used to initialize a distributed workflow run, creating the initial context and enqueuing the first work item(s).
     /// No workflow steps are executed by this method; workers will process the steps via `step_distributed`.
     ///
     /// # Arguments
     /// * `ctx` - The workflow context.
     /// * `input` - The input to the workflow's start node.
-    /// * `store` - The checkpoint store to persist state.
+    /// * `context_store` - The distributed context store.
     /// * `queue` - The distributed work queue.
     /// * `id` - The unique run ID for this workflow execution.
     ///
     /// # Returns
     /// * `Ok(())` - If the workflow was successfully seeded.
-    /// * `Err(FloxideError)` - If checkpointing or queueing failed.
+    /// * `Err(FloxideError)` - If context or queueing failed.
     async fn start_distributed<CS, Q>(
         &self,
         ctx: &crate::WorkflowCtx<C>,
         input: Self::Input,
-        store: &CS,
+        context_store: &CS,
         queue: &Q,
         id: &str,
     ) -> Result<(), FloxideError>
     where
-        CS: CheckpointStore<C, Self::WorkItem> + Send + Sync,
+        CS: ContextStore<C> + Send + Sync,
         Q: WorkQueue<C, Self::WorkItem> + Send + Sync,
+        C: crate::merge::Merge + Default,
     {
-        use std::collections::VecDeque;
         let seed_span =
             span!(Level::DEBUG, "start_distributed", workflow = self.name(), run_id = %id);
         let _enter = seed_span.enter();
         debug!(run_id = %id, "start_distributed seeding");
-        // seed initial checkpoint and queue if not present
-        if store
-            .load(id)
-            .await
-            .map_err(|e| FloxideError::Generic(e.to_string()))?
-            .is_none()
-        {
+        // Only seed if not present
+        if context_store.get(id).await.map_err(|e| FloxideError::Generic(e.to_string()))?.is_none() {
             let item = self.start_work_item(input);
-            let mut init_q = VecDeque::new();
-            init_q.push_back(item.clone());
-            let cp0 = Checkpoint::new(ctx.store.clone(), init_q);
-            store
-                .save(id, &cp0)
-                .await
-                .map_err(|e| FloxideError::Generic(e.to_string()))?;
+            context_store.set(id, ctx.store.clone()).await;
             queue
                 .enqueue(id, item)
                 .await
@@ -297,35 +285,33 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
         Ok(())
     }
 
-    /// Worker primitive: perform one distributed step (dequeue, process, enqueue successors, persist).
+    /// Worker primitive: perform one distributed step (dequeue, process, enqueue successors, persist context).
     ///
     /// This method is called by distributed workers to process a single work item for any workflow run.
-    /// It loads the latest checkpoint, processes the node, enqueues successors, and persists state.
+    /// It loads the latest context, processes the node, enqueues successors, and persists/merges context.
     /// If a terminal node is reached, returns the output.
     ///
     /// # Arguments
-    /// * `store` - The checkpoint store containing saved state.
+    /// * `context_store` - The distributed context store.
     /// * `queue` - The distributed work queue.
     /// * `worker_id` - The unique ID of the worker processing this step.
     ///
     /// # Returns
     /// * `Ok(Some((run_id, output)))` - If a terminal node was processed and output produced.
     /// * `Ok(None)` - If more work remains for this run.
-    /// * `Err(StepError)` - If processing failed or checkpointing/queueing failed.
+    /// * `Err(StepError)` - If processing failed or context/queueing failed.
     async fn step_distributed<CS, Q>(
         &self,
-        store: &CS,
+        context_store: &CS,
         queue: &Q,
         worker_id: usize,
         callbacks: Arc<dyn StepCallbacks<C, Self>>,
     ) -> Result<Option<(String, Self::Output)>, StepError<Self::WorkItem>>
     where
-        C: 'static,
-        CS: crate::checkpoint::CheckpointStore<C, Self::WorkItem> + Send + Sync,
+        C: 'static + crate::merge::Merge + Default,
+        CS: ContextStore<C> + Send + Sync,
         Q: crate::distributed::WorkQueue<C, Self::WorkItem> + Send + Sync,
     {
-        use crate::distributed::ItemProcessedOutcome;
-        use tracing::{debug, span, Level};
         // dequeue one item
         let work = queue.dequeue().await.map_err(|e| StepError {
             error: FloxideError::Generic(e.to_string()),
@@ -349,39 +335,30 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
                 work_item: Some(item.clone()),
             });
         }
-        // load checkpoint
-        let mut cp = store
-            .load(&run_id)
-            .await
-            .map_err(|e| StepError {
-                error: FloxideError::Generic(e.to_string()),
-                run_id: Some(run_id.clone()),
-                work_item: Some(item.clone()),
-            })?
-            .ok_or_else(|| StepError {
-                error: FloxideError::NotStarted,
-                run_id: Some(run_id.clone()),
-                work_item: Some(item.clone()),
-            })?;
-        debug!(worker = worker_id, run_id = %run_id, queue_len = cp.queue.len(), "Loaded checkpoint");
-        let wf_ctx = crate::WorkflowCtx::new(cp.context.clone());
+        // load context
+        let ctx_val = context_store.get(&run_id).await.map_err(|e| StepError {
+            error: FloxideError::Generic(e.to_string()),
+            run_id: Some(run_id.clone()),
+            work_item: Some(item.clone()),
+        })?;
+
+        let ctx_val = ctx_val.ok_or_else(|| StepError {
+            error: FloxideError::NotStarted,
+            run_id: Some(run_id.clone()),
+            work_item: Some(item.clone()),
+        })?;
+
+        let wf_ctx = crate::WorkflowCtx::new(ctx_val.clone());
         let ctx_ref = &wf_ctx;
-        let mut local_q = cp.queue.clone();
-        let _ = local_q.pop_front();
-        let old_tail = local_q.clone();
+        let mut local_q = VecDeque::new();
         let process_result = self
             .process_work_item(ctx_ref, item.clone(), &mut local_q)
             .await;
+
         match process_result {
-            Ok(Some(out)) => {
-                cp.context = wf_ctx.store.clone();
-                cp.queue = local_q.clone();
-                store.save(&run_id, &cp).await.map_err(|e| StepError {
-                    error: FloxideError::Generic(e.to_string()),
-                    run_id: Some(run_id.clone()),
-                    work_item: Some(item.clone()),
-                })?;
-                debug!(worker = worker_id, run_id = %run_id, queue_len = cp.queue.len(), "Checkpoint saved (terminal)");
+            Ok(Some(out)) => { 
+                context_store.merge(&run_id, wf_ctx.store.clone()).await;
+                debug!(worker = worker_id, run_id = %run_id, "Context merged (terminal)");
                 let on_item_processed_result = callbacks
                     .on_item_processed(
                         run_id.clone(),
@@ -399,11 +376,7 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
                 return Ok(Some((run_id.clone(), out)));
             }
             Ok(None) => {
-                let mut appended = local_q.clone();
-                for _ in 0..old_tail.len() {
-                    let _ = appended.pop_front();
-                }
-                for succ in appended.iter() {
+                for succ in local_q.iter() {
                     queue
                         .enqueue(&run_id, succ.clone())
                         .await
@@ -413,14 +386,8 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
                             work_item: Some(item.clone()),
                         })?;
                 }
-                cp.context = wf_ctx.store.clone();
-                cp.queue = local_q.clone();
-                store.save(&run_id, &cp).await.map_err(|e| StepError {
-                    error: FloxideError::Generic(e.to_string()),
-                    run_id: Some(run_id.clone()),
-                    work_item: Some(item.clone()),
-                })?;
-                debug!(worker = worker_id, run_id = %run_id, queue_len = cp.queue.len(), "Checkpoint saved");
+                context_store.merge(&run_id, wf_ctx.store.clone()).await;
+                debug!(worker = worker_id, run_id = %run_id, "Context merged");
                 let on_item_processed_result = callbacks
                     .on_item_processed(
                         run_id.clone(),

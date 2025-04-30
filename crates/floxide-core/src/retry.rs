@@ -213,7 +213,7 @@ where
                     tracing::debug!(attempt, error=%e, "RetryNode: caught error, evaluating retry policy");
                     if self.policy.should_retry(&e, attempt) {
                         let backoff = self.policy.backoff_duration(attempt);
-                        tracing::info!(attempt, backoff=?backoff, "RetryNode: retrying after backoff");
+                        tracing::debug!(attempt, backoff=?backoff, "RetryNode: retrying after backoff");
                         ctx.wait(backoff).await?;
                         attempt += 1;
                         continue;
