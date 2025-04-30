@@ -129,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     run_distributed_orchestrated_merge_with_url(&redis_url).await?;
 
     // Stop the Redis container
-    // container.rm().await.unwrap();
+    container.rm().await.unwrap();
     Ok(())
 }
 
@@ -175,8 +175,6 @@ async fn run_distributed_orchestrated_merge_with_url(
         .build()
         .unwrap();
 
-    // Start the run
-    let run_id = orchestrator.start_run(&wf_ctx, 10).await?;
 
     // Worker with Redis stores
     let worker = WorkerBuilder::new()
@@ -192,8 +190,11 @@ async fn run_distributed_orchestrated_merge_with_url(
         .unwrap();
 
     // Worker pool
-    let mut pool = WorkerPool::new(worker, 3);
+    let mut pool = WorkerPool::new(worker, 20);
     pool.start();
+
+    // Start the run
+    let run_id: String = orchestrator.start_run(&wf_ctx, 10).await?;
 
     // Wait for completion
     let status = tokio::time::timeout(
