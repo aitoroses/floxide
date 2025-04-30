@@ -276,7 +276,7 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
         // Only seed if not present
         if context_store.get(id).await.map_err(|e| FloxideError::Generic(e.to_string()))?.is_none() {
             let item = self.start_work_item(input);
-            context_store.set(id, ctx.store.clone()).await;
+            context_store.set(id, ctx.store.clone()).await.map_err(|e| FloxideError::Generic(e.to_string()))?;
             queue
                 .enqueue(id, item)
                 .await
@@ -357,7 +357,11 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
 
         match process_result {
             Ok(Some(out)) => { 
-                context_store.merge(&run_id, wf_ctx.store.clone()).await;
+                context_store.merge(&run_id, wf_ctx.store.clone()).await.map_err(|e| StepError {
+                    error: FloxideError::Generic(e.to_string()),
+                    run_id: Some(run_id.clone()),
+                    work_item: Some(item.clone()),
+                })?;
                 debug!(worker = worker_id, run_id = %run_id, "Context merged (terminal)");
                 let on_item_processed_result = callbacks
                     .on_item_processed(
@@ -386,7 +390,11 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
                             work_item: Some(item.clone()),
                         })?;
                 }
-                context_store.merge(&run_id, wf_ctx.store.clone()).await;
+                context_store.merge(&run_id, wf_ctx.store.clone()).await.map_err(|e| StepError {
+                    error: FloxideError::Generic(e.to_string()),
+                    run_id: Some(run_id.clone()),
+                    work_item: Some(item.clone()),
+                })?;
                 debug!(worker = worker_id, run_id = %run_id, "Context merged");
                 let on_item_processed_result = callbacks
                     .on_item_processed(

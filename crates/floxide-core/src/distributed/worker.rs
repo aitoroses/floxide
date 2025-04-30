@@ -13,6 +13,7 @@ use tokio::task::JoinHandle;
 use tokio::time::{sleep, Duration};
 use tokio_util::sync::CancellationToken;
 use tracing::error;
+use rand::Rng;
 
 use super::{ItemProcessedOutcome, StepCallbacks};
 
@@ -41,6 +42,8 @@ where
     liveness_store: LS,
     work_item_state_store: WISS,
     retry_policy: Option<RetryPolicy>,
+    idle_sleep_duration: Duration,
+    idle_sleep_jitter: Duration,
     phantom: PhantomData<C>,
 }
 
@@ -81,6 +84,8 @@ where
             liveness_store,
             work_item_state_store,
             retry_policy: None,
+            idle_sleep_duration: Duration::from_millis(100),
+            idle_sleep_jitter: Duration::from_millis(50),
             phantom: PhantomData,
         }
     }
@@ -616,19 +621,28 @@ where
     where
         C: std::fmt::Debug + Clone + Send + Sync,
     {
+        let base_sleep_ms = self.idle_sleep_duration.as_millis() as u64;
+        // Jitter range is +/- half the jitter duration
+        let jitter_range_ms = (self.idle_sleep_jitter.as_millis() / 2) as i64;
+
         loop {
             match self.run_once(worker_id).await {
                 Ok(Some((_run_id, _output))) => {
                     // Work was done, continue immediately
-                    // Optionally: log or metrics
                 }
                 Ok(None) => {
                     // No work available, sleep before polling again
-                    sleep(Duration::from_millis(100)).await;
+                    let jitter_ms = rand::thread_rng().gen_range(-jitter_range_ms..=jitter_range_ms);
+                    let sleep_ms = ((base_sleep_ms as i64) + jitter_ms).max(0) as u64;
+                    let sleep_duration = Duration::from_millis(sleep_ms);
+                    sleep(sleep_duration).await;
                 }
                 Err(e) => {
                     error!(worker_id, error = ?e, "Worker encountered error in run_once");
-                    sleep(Duration::from_millis(100)).await;
+                    let jitter_ms = rand::thread_rng().gen_range(-jitter_range_ms..=jitter_range_ms);
+                    let sleep_ms = ((base_sleep_ms as i64) + jitter_ms).max(0) as u64;
+                    let sleep_duration = Duration::from_millis(sleep_ms);
+                    sleep(sleep_duration).await;
                 }
             }
         }
@@ -679,6 +693,8 @@ where
     liveness_store: Option<LS>,
     work_item_state_store: Option<WISS>,
     retry_policy: Option<RetryPolicy>,
+    idle_sleep_duration: Option<Duration>,
+    idle_sleep_jitter: Option<Duration>,
     _phantom: std::marker::PhantomData<C>,
 }
 
@@ -705,6 +721,8 @@ where
             liveness_store: None,
             work_item_state_store: None,
             retry_policy: None,
+            idle_sleep_duration: None,
+            idle_sleep_jitter: None,
             _phantom: std::marker::PhantomData,
         }
     }
@@ -744,6 +762,14 @@ where
         self.retry_policy = Some(policy);
         self
     }
+    pub fn idle_sleep_duration(mut self, duration: Duration) -> Self {
+        self.idle_sleep_duration = Some(duration);
+        self
+    }
+    pub fn idle_sleep_jitter(mut self, jitter: Duration) -> Self {
+        self.idle_sleep_jitter = Some(jitter);
+        self
+    }
     #[allow(clippy::type_complexity)]
     pub fn build(self) -> Result<DistributedWorker<W, C, Q, RIS, MS, ES, LS, WISS, CS>, String>
     where
@@ -775,6 +801,8 @@ where
                     RetryError::All,
                 )
             })),
+            idle_sleep_duration: self.idle_sleep_duration.unwrap_or(Duration::from_millis(100)),
+            idle_sleep_jitter: self.idle_sleep_jitter.unwrap_or(Duration::from_millis(50)),
             phantom: std::marker::PhantomData,
         })
     }

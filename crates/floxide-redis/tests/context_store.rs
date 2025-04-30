@@ -27,13 +27,13 @@ async fn test_context_store_set_get_merge() {
     let ctx2 = DummyContext { value: 5 };
 
     // Set context
-    store.set("run1", ctx1.clone()).await;
+    store.set("run1", ctx1.clone()).await.expect("set context");
     // Get context
     let loaded = store.get("run1").await.expect("get context").expect("context exists");
     assert_eq!(loaded, ctx1);
 
     // Merge context
-    store.merge("run1", ctx2.clone()).await;
+    store.merge("run1", ctx2.clone()).await.expect("merge context");
     let merged = store.get("run1").await.expect("get context").expect("context exists");
     assert_eq!(merged.value, ctx1.value + ctx2.value);
 

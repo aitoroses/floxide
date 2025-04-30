@@ -7,7 +7,7 @@ use floxide_core::{
     distributed::context_store::{ContextStore, ContextStoreError},
     merge::Merge,
 };
-use redis::{AsyncCommands, SetOptions, Value};
+use redis::{AsyncCommands, Value};
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::time::{sleep, Duration};
 use tracing::{error, instrument, trace, warn};
@@ -79,7 +79,7 @@ where
     }
 
     #[instrument(skip(self, ctx), level = "trace")]
-    async fn set(&self, run_id: &str, ctx: C) {
+    async fn set(&self, run_id: &str, ctx: C) -> Result<(), ContextStoreError> {
         let key = self.context_key(run_id);
         let mut conn = self.client.conn.clone();
 
@@ -88,20 +88,22 @@ where
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to serialize context: {}", e);
-                return;
+                return Err(ContextStoreError::Other(format!("Serialization error: {}", e)));
             }
         };
 
         // Store the serialized context in Redis
         if let Err(e) = conn.set(&key, serialized).await as Result<(), _> {
             error!("Redis error while setting context: {}", e);
+            return Err(ContextStoreError::Other(format!("Redis error while setting context: {}", e)));
         } else {
             trace!("Set context for run {}", run_id);
+            Ok(())
         }
     }
 
     #[instrument(skip(self, ctx), level = "trace")]
-    async fn merge(&self, run_id: &str, ctx: C) {
+    async fn merge(&self, run_id: &str, ctx: C) -> Result<(), ContextStoreError> {
         let key = self.context_key(run_id);
         let lock_key = self.lock_key(run_id);
         let lock_value = format!("worker_{}", rand::thread_rng().gen::<u32>()); // Unique value for this attempt
@@ -147,7 +149,7 @@ where
 
         if !acquired_lock {
             error!(run_id, "Failed to acquire context lock after {} retries, aborting merge", MAX_LOCK_RETRIES);
-            return; // Failed to get lock
+            return Err(ContextStoreError::Other(format!("Failed to acquire context lock after {} retries, aborting merge", MAX_LOCK_RETRIES)));
         }
 
         // --- Lock Acquired: Perform Read-Modify-Write ---
@@ -215,5 +217,6 @@ where
             error!(run_id, "Merge operation failed during read-modify-write phase");
             // Potentially signal error further up? For now, just log.
         }
+        Ok(())
     }
 }

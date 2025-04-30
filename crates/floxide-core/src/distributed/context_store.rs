@@ -16,8 +16,8 @@ pub enum ContextStoreError {
 #[async_trait]
 pub trait ContextStore<C: Context + Merge + Default>: Send + Sync {
     async fn get(&self, run_id: &str) -> Result<Option<C>, ContextStoreError>;
-    async fn set(&self, run_id: &str, ctx: C);
-    async fn merge(&self, run_id: &str, ctx: C);
+    async fn set(&self, run_id: &str, ctx: C) -> Result<(), ContextStoreError>;
+    async fn merge(&self, run_id: &str, ctx: C) -> Result<(), ContextStoreError>;
 }
 
 /// In-memory implementation for testing and local runs.
@@ -43,14 +43,16 @@ impl<C: Context + Merge + Default> ContextStore<C> for InMemoryContextStore<C> {
         let map = self.inner.lock().await;
         Ok(map.get(run_id).cloned())
     }
-    async fn set(&self, run_id: &str, ctx: C) {
+    async fn set(&self, run_id: &str, ctx: C) -> Result<(), ContextStoreError> {
         let mut map = self.inner.lock().await;
         map.insert(run_id.to_string(), ctx);
+        Ok(())
     }
-    async fn merge(&self, run_id: &str, ctx: C) {
+    async fn merge(&self, run_id: &str, ctx: C) -> Result<(), ContextStoreError> {
         let mut map = self.inner.lock().await;
         map.entry(run_id.to_string())
             .and_modify(|existing| existing.merge(ctx.clone()))
             .or_insert(ctx);
+        Ok(())
     }
 } 
