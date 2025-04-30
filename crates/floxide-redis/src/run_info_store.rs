@@ -83,12 +83,10 @@ impl RunInfoStore for RedisRunInfoStore {
         })?;
 
         let mut info = match result {
-            Some(serialized) => {
-                serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
-                    error!("Failed to deserialize run info: {}", e);
-                    RunInfoError::Other(format!("Deserialization error: {}", e))
-                })?
-            }
+            Some(serialized) => serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+                error!("Failed to deserialize run info: {}", e);
+                RunInfoError::Other(format!("Deserialization error: {}", e))
+            })?,
             None => return Err(RunInfoError::NotFound),
         };
 
@@ -142,12 +140,10 @@ impl RunInfoStore for RedisRunInfoStore {
         })?;
 
         let mut info = match result {
-            Some(serialized) => {
-                serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
-                    error!("Failed to deserialize run info: {}", e);
-                    RunInfoError::Other(format!("Deserialization error: {}", e))
-                })?
-            }
+            Some(serialized) => serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+                error!("Failed to deserialize run info: {}", e);
+                RunInfoError::Other(format!("Deserialization error: {}", e))
+            })?,
             None => return Err(RunInfoError::NotFound),
         };
 
@@ -255,12 +251,10 @@ impl RunInfoStore for RedisRunInfoStore {
         })?;
 
         let mut info = match result {
-            Some(serialized) => {
-                serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
-                    error!("Failed to deserialize run info: {}", e);
-                    RunInfoError::Other(format!("Deserialization error: {}", e))
-                })?
-            }
+            Some(serialized) => serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
+                error!("Failed to deserialize run info: {}", e);
+                RunInfoError::Other(format!("Deserialization error: {}", e))
+            })?,
             None => return Err(RunInfoError::NotFound),
         };
 
