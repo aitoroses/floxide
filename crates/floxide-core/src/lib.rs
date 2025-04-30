@@ -1,6 +1,7 @@
 pub mod batch;
 pub mod composite;
 pub mod context;
+pub mod merge;
 pub mod error;
 pub mod node;
 pub mod retry;
@@ -23,3 +24,4 @@ pub use source::{source, Source};
 pub use split::SplitNode;
 pub use transition::Transition;
 pub use workflow::Workflow;
+pub use merge::Merge;

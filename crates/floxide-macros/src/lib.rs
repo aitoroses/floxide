@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 
 mod node;
 mod workflow;
+mod merge;
 
 /// Define a Workflow with fields and edges in one macro invocation.
 ///
@@ -33,4 +34,11 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn node(item: TokenStream) -> TokenStream {
     node::node(item)
+}
+/// Derive implementation for the `Merge` trait.
+///
+/// Automatically implements `Merge` by merging each field of a struct using its own `merge` method.
+#[proc_macro_derive(Merge)]
+pub fn derive_merge(item: TokenStream) -> TokenStream {
+    merge::derive(item)
 }
