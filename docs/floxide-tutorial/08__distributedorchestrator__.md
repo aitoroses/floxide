@@ -8,8 +8,8 @@ But wait... if workers just grab tasks from a queue, who puts the *first* task o
 
 Imagine our video processing factory again. We have workers (`DistributedWorker`) ready at their stations, a job board (`WorkQueue`) to list tasks, and a way to save progress (`CheckpointStore`). But we need someone in charge, a **Project Manager**, to:
 
-1.  **Start New Projects:** Say "Okay, let's start processing this new video, 'intro.mp4'. Here's the initial plan." This involves setting up the initial state and putting the very first task (like "Download Video") on the job board.
-2.  **Monitor Progress:** Walk around the factory floor (figuratively!) and ask "How's the processing for 'intro.mp4' going? Is it done yet? Did any problems occur?"
+1.  **Start New Projects:** Say "Okay, let's start processing this new video, 'intro.mp4'. Here's the initial configuration." This involves setting up the initial shared [`Context`](03__workflowctx_____context__trait_.md) in the `ContextStore` and putting the very first task (like "Download Video") on the job board (`WorkQueue`).
+2.  **Monitor Progress:** Walk around the factory floor (figuratively!) and ask "How's the processing for 'intro.mp4' going? Is it done yet? Did any problems occur?" using the `RunInfoStore`, `MetricsStore`, `ErrorStore`, etc.
 3.  **Control Execution:** Maybe decide "Hold on, stop working on 'outro.mp4' for now," or "Cancel the 'test_video.avi' project entirely."
 4.  **Gather Reports:** Collect information about how many projects are running, which workers are active, and any errors that have happened.
 
@@ -23,14 +23,15 @@ The `DistributedOrchestrator` is the central control panel for managing your dis
 
 Think of it as the dashboard and control levers for your workflow factory. Its main responsibilities include:
 
-*   **Starting new workflow runs:** This involves giving the initial input data, creating the initial [`Checkpoint`](06__checkpoint_____checkpointstore__trait_.md), and putting the very first [`WorkItem`](04__workflow__trait____workflow___macro_.md) onto the [`WorkQueue`](05__workqueue__trait_.md). This "seeds" the workflow run, making it available for workers to pick up.
-*   **Querying the status of runs:** Asking "Is run 'video_abc' still running, completed, failed, or paused?"
-*   **Cancelling or pausing runs:** Sending signals to stop or temporarily halt processing for a specific run.
-*   **Retrieving run history and metrics:** Getting information about past and present runs, how long they took, etc.
-*   **Checking for errors:** Listing any errors that occurred during a run.
+*   **Starting new workflow runs:** This involves providing the initial [`Context`](03__workflowctx_____context__trait_.md), saving it to the `ContextStore`, and putting the very first [`WorkItem`](04__workflow__trait____workflow___macro_.md) onto the [`WorkQueue`](05__workqueue__trait_.md). This "seeds" the workflow run, making it available for workers to pick up.
+*   **Querying the status of runs:** Asking "Is run 'video_abc' still running, completed, failed, or paused?" (using `RunInfoStore`).
+*   **Cancelling or pausing runs:** Sending signals to stop or temporarily halt processing for a specific run (updating `RunInfoStore` and purging `WorkQueue`).
+*   **Retrieving run context:** Fetching the latest shared context data for a run from the `ContextStore`.
+*   **Retrieving run history and metrics:** Getting information about past and present runs from `RunInfoStore` and `MetricsStore`.
+*   **Checking for errors:** Listing any errors that occurred during a run via `ErrorStore`.
 *   **Monitoring worker liveness:** Checking which workers are active and responsive.
 
-**Distributed Emphasis:** The `DistributedOrchestrator` achieves this by interacting with all the shared, distributed stores we've been learning about (and will learn more about in the [next chapter](09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md)). It talks to the `WorkQueue`, `CheckpointStore`, `RunInfoStore`, `MetricsStore`, `ErrorStore`, `LivenessStore`, etc., to get a unified view of the system and exert control.
+**Distributed Emphasis:** The `DistributedOrchestrator` achieves this by interacting with all the shared, distributed stores we've been learning about (and will learn more about in the [next chapter](09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___.md)). It talks to the `WorkQueue`, `ContextStore`, `RunInfoStore`, `MetricsStore`, `ErrorStore`, `LivenessStore`, `WorkItemStateStore`, etc., to get a unified view of the system and exert control.
 
 ```mermaid
 graph TD
@@ -39,7 +40,7 @@ graph TD
 
     subgraph Shared Infrastructure
         WQ[(Work Queue)]
-        CS[(Checkpoint Store)]
+        CtxS[(Context Store)]
         RIS[(RunInfo Store)]
         MS[(Metrics Store)]
         ES[(Error Store)]
@@ -47,12 +48,13 @@ graph TD
         WIS[(WorkItemState Store)]
     end
 
-    Orchestrator -- "start_run()" --> WQ & CS & RIS
+    Orchestrator -- "start_run()" --> WQ & CtxS & RIS
     Orchestrator -- "status()" --> RIS
     Orchestrator -- "cancel()" --> RIS & WQ
     Orchestrator -- "errors()" --> ES
     Orchestrator -- "liveness()" --> LS
     Orchestrator -- "metrics()" --> MS
+    Orchestrator -- "context()" --> CtxS
 ```
 
 ## How to Use the `DistributedOrchestrator`
@@ -66,11 +68,12 @@ First, you need to create an instance of `DistributedOrchestrator`. This require
 ```rust
 use floxide::{
     DistributedOrchestrator, WorkflowCtx,
+    distributed::{ OrchestratorBuilder, ContextStore /* other stores */ },
     // --- Assume these are your types/implementations ---
     workflow::TextProcessor, // Your workflow struct from workflow! macro
     context::SimpleContext,  // Your context struct
     // Concrete store implementations (using Redis as an example)
-    RedisWorkQueue, RedisCheckpointStore, RedisRunInfoStore,
+    RedisWorkQueue, RedisContextStore, RedisRunInfoStore,
     RedisMetricsStore, RedisErrorStore, RedisLivenessStore,
     RedisWorkItemStateStore,
 };
@@ -79,29 +82,29 @@ use std::sync::Arc;
 // Assume these are fully configured clients connected to your backend services
 let my_workflow = TextProcessor { /* ... node instances ... */ };
 let redis_queue = RedisWorkQueue::new(/* redis config */).await?;
-let redis_checkpoint = RedisCheckpointStore::new(/* redis config */).await?;
+let redis_context = RedisContextStore::new(/* redis config */).await?;
 let redis_run_info = RedisRunInfoStore::new(/* redis config */).await?;
 let redis_metrics = RedisMetricsStore::new(/* redis config */).await?;
 let redis_errors = RedisErrorStore::new(/* redis config */).await?;
 let redis_liveness = RedisLivenessStore::new(/* redis config */).await?;
 let redis_work_item = RedisWorkItemStateStore::new(/* redis config */).await?;
 
-// Create the orchestrator instance
-let orchestrator = DistributedOrchestrator::new(
-    my_workflow,
-    redis_queue,
-    redis_checkpoint,
-    redis_run_info,
-    redis_metrics,
-    redis_errors,
-    redis_liveness,
-    redis_work_item,
-);
+// Create the orchestrator instance using the builder
+let orchestrator = OrchestratorBuilder::new()
+    .workflow(my_workflow)
+    .queue(redis_queue)
+    .context_store(redis_context)
+    .run_info_store(redis_run_info)
+    .metrics_store(redis_metrics)
+    .error_store(redis_errors)
+    .liveness_store(redis_liveness)
+    .work_item_state_store(redis_work_item)
+    .build();
 
 println!("Orchestrator created successfully!");
 ```
 
-This code gathers all the necessary components (the workflow logic and connections to all the shared backend stores) and bundles them into an `orchestrator` object.
+This code gathers all the necessary components (the workflow logic and connections to all the shared backend stores) and bundles them into an `orchestrator` object using a convenient builder pattern.
 
 ### 2. Starting a Workflow Run
 
@@ -126,8 +129,8 @@ println!("Successfully started workflow run with ID: {}", run_id);
 **What `start_run` Does:**
 *   Generates a unique ID (like `1e7a...`) for this specific run.
 *   Calls the underlying `workflow.start_distributed(...)` method. This method:
-    *   Creates the initial [`Checkpoint`](06__checkpoint_____checkpointstore__trait_.md) containing the `initial_context_data` and the first `WorkItem`(s) based on the `start` node and the `initial_input`.
-    *   Saves this checkpoint to the `CheckpointStore`.
+    *   Initializes the context state in the `ContextStore` using `context_store.set(run_id, initial_context_data)`.
+    *   Determines the first `WorkItem`(s) based on the `start` node and the `initial_input`.
     *   Pushes the first `WorkItem`(s) onto the `WorkQueue`.
 *   Records the new run's information (ID, status=`Running`, start time) in the `RunInfoStore`.
 *   Returns the unique `run_id`.
@@ -180,7 +183,7 @@ The `DistributedOrchestrator` provides other useful methods:
 *   `metrics(run_id)`: Get performance metrics (like step timings) from the `MetricsStore`.
 *   `liveness()` / `list_worker_health()`: Check the status of connected workers via the `LivenessStore`.
 *   `pending_work(run_id)`: See what tasks are currently waiting in the queue for a specific run.
-*   `checkpoint(run_id)`: Retrieve the last saved checkpoint data.
+*   `context(run_id)`: Retrieve the latest saved context data for the run from the `ContextStore`.
 *   `wait_for_completion(run_id, poll_interval)`: Wait until a run finishes (Completed, Failed, or Cancelled).
 
 These methods allow comprehensive monitoring and control over your distributed workflows.
@@ -190,11 +193,10 @@ These methods allow comprehensive monitoring and control over your distributed w
 Let's trace the main steps when you call `orchestrator.start_run(ctx, input)`:
 
 1.  **Generate ID:** The `start_run` method creates a unique `run_id` (e.g., using UUIDs).
-2.  **Delegate to Workflow:** It calls `self.workflow.start_distributed(ctx, input, &self.store, &self.queue, &run_id)`.
+2.  **Delegate to Workflow:** It calls `self.workflow.start_distributed(ctx, input, &self.context_store, &self.queue, &run_id)`.
 3.  **`start_distributed` (Inside `workflow!` Macro Code):**
+    *   Calls `context_store.set(run_id, ctx.store)` to save the initial context state.
     *   Determines the first `WorkItem` based on the workflow's `start` node and the provided `input`.
-    *   Creates an initial `Checkpoint` struct containing `ctx.store` (your context data) and a queue holding just that first `WorkItem`.
-    *   Calls `self.store.save(run_id, &initial_checkpoint)` to save the starting state.
     *   Calls `self.queue.enqueue(run_id, first_work_item)` to put the first task on the main queue.
 4.  **Record Run Info:** Back in `start_run`, it creates a `RunInfo` struct (status=Running, started_at=now) and calls `self.run_info_store.insert_run(run_info)`.
 5.  **Return ID:** `start_run` returns the generated `run_id`.
@@ -206,16 +208,16 @@ sequenceDiagram
     participant UserApp as Your Application
     participant Orch as DistributedOrchestrator
     participant WF as Workflow (start_distributed)
-    participant CS as CheckpointStore
+    participant CtxS as ContextStore
     participant WQ as WorkQueue
     participant RIS as RunInfoStore
 
     UserApp->>Orch: start_run(ctx, input)
     Orch->>Orch: Generate run_id
-    Orch->>WF: start_distributed(ctx, input, store, queue, run_id)
-    WF->>WF: Create initial_checkpoint { ctx.store, [first_item] }
-    WF->>CS: save(run_id, initial_checkpoint)
-    CS-->>WF: Ok
+    Orch->>WF: start_distributed(ctx, input, context_store, queue, run_id)
+    WF->>CtxS: set(run_id, ctx.store)
+    CtxS-->>WF: Ok
+    WF->>WF: Determine first_item
     WF->>WQ: enqueue(run_id, first_item)
     WQ-->>WF: Ok
     WF-->>Orch: Ok
@@ -228,14 +230,15 @@ The `DistributedOrchestrator` struct itself (defined in `floxide-core/src/distri
 
 ```rust
 // Simplified from crates/floxide-core/src/distributed/orchestrator.rs
+use crate::distributed::{ ContextStore, ErrorStore, LivenessStore, MetricsStore, RunInfoStore, WorkItemStateStore, WorkQueue };
 
 // Generic struct holding all components
-pub struct DistributedOrchestrator<W, C, Q, S, RIS, MS, ES, LS, WIS>
+pub struct DistributedOrchestrator<W, C, Q, CS, RIS, MS, ES, LS, WIS>
 where /* type bounds for Workflow, Context, and all Stores */
 {
     workflow: W,
     queue: Q,
-    store: S, // CheckpointStore
+    context_store: CS,
     run_info_store: RIS,
     metrics_store: MS,
     error_store: ES,
@@ -248,7 +251,7 @@ where /* type bounds for Workflow, Context, and all Stores */
 impl<...> DistributedOrchestrator<...> /* type bounds */ {
     // Constructor takes all components
     pub fn new(
-        workflow: W, queue: Q, store: S, run_info_store: RIS, /* etc */
+        workflow: W, queue: Q, context_store: CS, run_info_store: RIS, /* etc */
     ) -> Self { /* ... store components ... */ }
 
     // start_run implementation
@@ -262,8 +265,8 @@ impl<...> DistributedOrchestrator<...> /* type bounds */ {
 
         // 2. Delegate to workflow's seeding primitive
         self.workflow
-            .start_distributed(ctx, input, &self.store, &self.queue, &run_id)
-            .await?; // Handles checkpoint save + queue enqueue
+            .start_distributed(ctx, input, &self.context_store, &self.queue, &run_id)
+            .await?; // Handles context save + queue enqueue
 
         // 3. Record initial run info
         let run_info = RunInfo { /* run_id, status=Running, started_at */ };
