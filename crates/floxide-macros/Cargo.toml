@@ -16,6 +16,12 @@ syn = { version = "2", features = ["full", "extra-traits"] }
 quote = "1"
 proc-macro2 = "1"
 heck = "0.4"
+async-trait.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
 floxide-core = { path = "../floxide-core" }

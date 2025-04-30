@@ -41,7 +41,8 @@ node! {
         if vals.len() < ctx.expected {
             Ok(Transition::Hold)
         } else {
-            let merged = vals.clone();
+            let mut merged = vals.clone();
+            merged.sort();
             Ok(Transition::Next(merged))
         }
     }
@@ -54,10 +55,7 @@ node! {
     context = MergeContext;
     input = Vec<i32>;
     output = Vec<i32>;
-    |ctx, input| {
-        if rand::random::<f64>() < ctx.random_fail_chance {
-            return Ok(Transition::Abort(FloxideError::Generic("random failure".to_string())));
-        }
+    |_ctx, input| {
         println!("Merged values: {:?}", input);
         Ok(Transition::Next(input))
     }
@@ -115,7 +113,7 @@ async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<
     let ctx = MergeContext {
         values: SharedState::new(Vec::new()),
         expected: 10,
-        random_fail_chance: 0.7,
+        random_fail_chance: 0.0,
     };
     let wf_ctx = WorkflowCtx::new(ctx);
 
@@ -184,8 +182,8 @@ async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<
         let metrics = orchestrator.metrics(&run_id).await?;
         println!("Metrics: {:#?}", metrics);
 
-        let errors = orchestrator.errors(&run_id).await?;
-        println!("Errors: {:#?}", errors);
+        // let errors = orchestrator.errors(&run_id).await?;
+        // println!("Errors: {:#?}", errors);
 
         let liveness = orchestrator.liveness().await?;
         println!("Liveness: {:#?}", liveness);
@@ -202,7 +200,13 @@ async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<
     println!("Status: {:#?}", status);
 
     let mut final_status = status;
+    let mut retries = 0;
+    let max_retries = 5;
     let final_status = loop {
+        retries += 1;
+        if retries > max_retries {
+            break Err(FloxideError::Generic("max retries reached".to_string()).into());
+        }
         match final_status {
             Ok(Ok(RunStatus::Completed)) => {
                 print_stats().await?;
