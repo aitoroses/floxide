@@ -1,9 +1,9 @@
-use std::fmt::Debug;
-use std::vec::Vec;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::vec::Vec;
+use uuid::Uuid;
 
 use crate::merge::Merge;
 
@@ -22,13 +22,24 @@ pub struct EventLog<E> {
 
 impl<E> Default for EventLog<E> {
     fn default() -> Self {
-        Self { events: Arc::new(Mutex::new(Vec::new())) }
+        Self {
+            events: Arc::new(Mutex::new(Vec::new())),
+        }
     }
 }
 
 impl<E: Debug + Clone> Debug for EventLog<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EventLog {{ {:?} }}", self.events.lock().unwrap().iter().map(|e| e.event.clone()).collect::<Vec<_>>())
+        write!(
+            f,
+            "EventLog {{ {:?} }}",
+            self.events
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|e| e.event.clone())
+                .collect::<Vec<_>>()
+        )
     }
 }
 
@@ -94,13 +105,18 @@ impl<'de, E: Deserialize<'de>> Deserialize<'de> for EventLog<E> {
 
 impl<E> EventLog<E> {
     pub fn new() -> Self {
-        Self { events: Arc::new(Mutex::new(Vec::new())) }
+        Self {
+            events: Arc::new(Mutex::new(Vec::new())),
+        }
     }
 
     pub fn append(&self, event: E) {
         let logged = LoggedEvent {
             uuid: Uuid::new_v4(),
-            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis(),
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
             event,
         };
         self.events.lock().unwrap().push(logged);
@@ -166,7 +182,10 @@ mod tests {
         let events: Vec<_> = log.iter();
         assert_eq!(events.len(), 2);
         assert_eq!(events[0].event, WorkflowEvent::WorkStarted { id: 1 });
-        assert_eq!(events[1].event, WorkflowEvent::WorkCompleted { id: 1, result: 42 });
+        assert_eq!(
+            events[1].event,
+            WorkflowEvent::WorkCompleted { id: 1, result: 42 }
+        );
     }
 
     #[test]
@@ -175,22 +194,23 @@ mod tests {
         log.append(WorkflowEvent::WorkStarted { id: 1 });
         log.append(WorkflowEvent::WorkStarted { id: 2 });
         log.append(WorkflowEvent::WorkCompleted { id: 1, result: 10 });
-        log.append(WorkflowEvent::WorkFailed { id: 2, reason: "error".to_string() });
+        log.append(WorkflowEvent::WorkFailed {
+            id: 2,
+            reason: "error".to_string(),
+        });
 
         let mut state = WorkflowState::default();
-        log.apply_all(&mut state, |event, state| {
-            match event {
-                WorkflowEvent::WorkStarted { id } => {
-                    state.running.insert(*id);
-                }
-                WorkflowEvent::WorkCompleted { id, result } => {
-                    state.running.remove(id);
-                    state.completed.insert(*id, *result);
-                }
-                WorkflowEvent::WorkFailed { id, reason } => {
-                    state.running.remove(id);
-                    state.failed.insert(*id, reason.clone());
-                }
+        log.apply_all(&mut state, |event, state| match event {
+            WorkflowEvent::WorkStarted { id } => {
+                state.running.insert(*id);
+            }
+            WorkflowEvent::WorkCompleted { id, result } => {
+                state.running.remove(id);
+                state.completed.insert(*id, *result);
+            }
+            WorkflowEvent::WorkFailed { id, reason } => {
+                state.running.remove(id);
+                state.failed.insert(*id, reason.clone());
             }
         });
 
@@ -206,21 +226,22 @@ mod tests {
         log.append(WorkflowEvent::WorkStarted { id: 1 });
         log.append(WorkflowEvent::WorkStarted { id: 2 });
         log.append(WorkflowEvent::WorkCompleted { id: 1, result: 10 });
-        log.append(WorkflowEvent::WorkFailed { id: 2, reason: "error".to_string() });
+        log.append(WorkflowEvent::WorkFailed {
+            id: 2,
+            reason: "error".to_string(),
+        });
 
-        let state = log.apply_all_default(|event, state: &mut WorkflowState| {
-            match event {
-                WorkflowEvent::WorkStarted { id } => {
-                    state.running.insert(*id);
-                }
-                WorkflowEvent::WorkCompleted { id, result } => {
-                    state.running.remove(id);
-                    state.completed.insert(*id, *result);
-                }
-                WorkflowEvent::WorkFailed { id, reason } => {
-                    state.running.remove(id);
-                    state.failed.insert(*id, reason.clone());
-                }
+        let state = log.apply_all_default(|event, state: &mut WorkflowState| match event {
+            WorkflowEvent::WorkStarted { id } => {
+                state.running.insert(*id);
+            }
+            WorkflowEvent::WorkCompleted { id, result } => {
+                state.running.remove(id);
+                state.completed.insert(*id, *result);
+            }
+            WorkflowEvent::WorkFailed { id, reason } => {
+                state.running.remove(id);
+                state.failed.insert(*id, reason.clone());
             }
         });
 

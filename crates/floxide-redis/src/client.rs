@@ -30,11 +30,8 @@ impl RedisClient {
         let url = config.build_connection_url();
         let client = Client::open(url)?;
         let conn = ConnectionManager::new(client).await?;
-        
-        Ok(Self {
-            conn,
-            config,
-        })
+
+        Ok(Self { conn, config })
     }
 
     /// Get the key prefix for Redis keys.

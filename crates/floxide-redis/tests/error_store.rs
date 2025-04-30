@@ -1,8 +1,8 @@
 mod helpers;
 
-use floxide_redis::{RedisErrorStore, RedisClient, RedisConfig};
-use floxide_core::distributed::{ErrorStore, WorkflowError};
 use chrono::Utc;
+use floxide_core::distributed::{ErrorStore, WorkflowError};
+use floxide_redis::{RedisClient, RedisConfig, RedisErrorStore};
 
 #[tokio::test]
 async fn test_error_store_roundtrip() {
@@ -21,7 +21,10 @@ async fn test_error_store_roundtrip() {
     };
 
     // Record
-    store.record_error(run_id, error.clone()).await.expect("record");
+    store
+        .record_error(run_id, error.clone())
+        .await
+        .expect("record");
     // Get
     let got = store.get_errors(run_id).await.expect("get");
     assert_eq!(got.len(), 1);
@@ -29,4 +32,4 @@ async fn test_error_store_roundtrip() {
     assert_eq!(got[0].error, "something went wrong");
     tracing::info!(?got, "Error store roundtrip successful");
     redis.cleanup().await;
-} 
+}

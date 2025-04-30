@@ -1,8 +1,8 @@
 mod helpers;
 
-use floxide_redis::{RedisWorkQueue, RedisClient, RedisConfig};
-use floxide_core::distributed::WorkQueue;
 use async_trait::async_trait;
+use floxide_core::distributed::WorkQueue;
+use floxide_redis::{RedisClient, RedisConfig, RedisWorkQueue};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 struct DummyContext;
@@ -37,26 +37,43 @@ async fn test_work_queue_roundtrip() {
     let queue = RedisWorkQueue::<DummyWorkItem>::new(client);
 
     let run_id = "run1";
-    let item1 = DummyWorkItem { id: "item1".to_string() };
-    let item2 = DummyWorkItem { id: "item2".to_string() };
+    let item1 = DummyWorkItem {
+        id: "item1".to_string(),
+    };
+    let item2 = DummyWorkItem {
+        id: "item2".to_string(),
+    };
 
     // Enqueue
-    WorkQueue::<DummyContext, DummyWorkItem>::enqueue(&queue, run_id, item1.clone()).await.expect("enqueue");
-    WorkQueue::<DummyContext, DummyWorkItem>::enqueue(&queue, run_id, item2.clone()).await.expect("enqueue");
+    WorkQueue::<DummyContext, DummyWorkItem>::enqueue(&queue, run_id, item1.clone())
+        .await
+        .expect("enqueue");
+    WorkQueue::<DummyContext, DummyWorkItem>::enqueue(&queue, run_id, item2.clone())
+        .await
+        .expect("enqueue");
 
     // Pending work
-    let pending = WorkQueue::<DummyContext, DummyWorkItem>::pending_work(&queue, run_id).await.expect("pending");
+    let pending = WorkQueue::<DummyContext, DummyWorkItem>::pending_work(&queue, run_id)
+        .await
+        .expect("pending");
     assert_eq!(pending.len(), 2);
 
     // Dequeue
-    let (deq_run_id, deq_item) = WorkQueue::<DummyContext, DummyWorkItem>::dequeue(&queue).await.expect("dequeue").expect("item");
+    let (deq_run_id, deq_item) = WorkQueue::<DummyContext, DummyWorkItem>::dequeue(&queue)
+        .await
+        .expect("dequeue")
+        .expect("item");
     assert_eq!(deq_run_id, run_id);
     assert!(deq_item == item1 || deq_item == item2);
 
     // Purge
-    WorkQueue::<DummyContext, DummyWorkItem>::purge_run(&queue, run_id).await.expect("purge");
-    let pending = WorkQueue::<DummyContext, DummyWorkItem>::pending_work(&queue, run_id).await.expect("pending");
+    WorkQueue::<DummyContext, DummyWorkItem>::purge_run(&queue, run_id)
+        .await
+        .expect("purge");
+    let pending = WorkQueue::<DummyContext, DummyWorkItem>::pending_work(&queue, run_id)
+        .await
+        .expect("pending");
     assert!(pending.is_empty());
     tracing::info!(?pending, "Work queue roundtrip successful");
     redis.cleanup().await;
-} 
+}

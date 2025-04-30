@@ -1,7 +1,7 @@
 mod helpers;
 
-use floxide_redis::{RedisMetricsStore, RedisClient, RedisConfig};
 use floxide_core::distributed::{MetricsStore, RunMetrics};
+use floxide_redis::{RedisClient, RedisConfig, RedisMetricsStore};
 
 #[tokio::test]
 async fn test_metrics_store_roundtrip() {
@@ -20,13 +20,20 @@ async fn test_metrics_store_roundtrip() {
     };
 
     // Update
-    store.update_metrics(run_id, metrics.clone()).await.expect("update");
+    store
+        .update_metrics(run_id, metrics.clone())
+        .await
+        .expect("update");
     // Get
-    let got = store.get_metrics(run_id).await.expect("get").expect("exists");
+    let got = store
+        .get_metrics(run_id)
+        .await
+        .expect("get")
+        .expect("exists");
     assert_eq!(got.total_work_items, 10);
     assert_eq!(got.completed, 5);
     assert_eq!(got.failed, 2);
     assert_eq!(got.retries, 1);
     tracing::info!(?got, "Metrics store roundtrip successful");
     redis.cleanup().await;
-} 
+}

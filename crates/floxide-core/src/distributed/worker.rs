@@ -1,20 +1,20 @@
 use crate::context::Context;
 use crate::distributed::{
-    ErrorStore, LivenessStore, MetricsStore, RunInfoStore, RunStatus, WorkItemStateStore,
-    WorkItemStatus, WorkQueue, WorkerHealth, WorkerStatus, WorkflowError, ContextStore,
+    ContextStore, ErrorStore, LivenessStore, MetricsStore, RunInfoStore, RunStatus,
+    WorkItemStateStore, WorkItemStatus, WorkQueue, WorkerHealth, WorkerStatus, WorkflowError,
 };
 use crate::error::FloxideError;
 use crate::retry::{BackoffStrategy, RetryError, RetryPolicy};
 use crate::workflow::Workflow;
 use async_trait::async_trait;
+use rand::Rng;
+use serde_json;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
 use tokio::time::{sleep, Duration};
 use tokio_util::sync::CancellationToken;
 use tracing::error;
-use rand::Rng;
-use serde_json;
 
 use super::{ItemProcessedOutcome, StepCallbacks};
 
@@ -278,11 +278,12 @@ where
             .ok();
         let now = chrono::Utc::now();
         tracing::debug!(worker_id, run_id=%run_id, "Attempting to set run status to Completed");
-        self
-            .run_info_store
+        self.run_info_store
             .update_status(run_id, RunStatus::Completed)
             .await
-            .map_err(|e| FloxideError::Generic(format!("Failed to set run status to Completed: {}", e)))?;
+            .map_err(|e| {
+                FloxideError::Generic(format!("Failed to set run status to Completed: {}", e))
+            })?;
         // Set the output field
         self.run_info_store
             .update_output(run_id, output.clone())
@@ -506,7 +507,7 @@ where
                         .await
                     {
                         Ok(_) => {
-                             tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, "Retry task successfully set item status to Pending");
+                            tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, "Retry task successfully set item status to Pending");
                         }
                         Err(e) => {
                             tracing::error!(
@@ -526,7 +527,7 @@ where
                             tracing::debug!(run_id = %task_run_id, work_item = ?task_work_item, "Retry task successfully enqueued work item");
                         }
                         Err(e) => {
-                             tracing::error!(
+                            tracing::error!(
                                 run_id = %task_run_id,
                                 work_item = ?task_work_item,
                                 error = %e,
@@ -643,14 +644,16 @@ where
                 }
                 Ok(None) => {
                     // No work available, sleep before polling again
-                    let jitter_ms = rand::thread_rng().gen_range(-jitter_range_ms..=jitter_range_ms);
+                    let jitter_ms =
+                        rand::thread_rng().gen_range(-jitter_range_ms..=jitter_range_ms);
                     let sleep_ms = ((base_sleep_ms as i64) + jitter_ms).max(0) as u64;
                     let sleep_duration = Duration::from_millis(sleep_ms);
                     sleep(sleep_duration).await;
                 }
                 Err(e) => {
                     error!(worker_id, error = ?e, "Worker encountered error in run_once");
-                    let jitter_ms = rand::thread_rng().gen_range(-jitter_range_ms..=jitter_range_ms);
+                    let jitter_ms =
+                        rand::thread_rng().gen_range(-jitter_range_ms..=jitter_range_ms);
                     let sleep_ms = ((base_sleep_ms as i64) + jitter_ms).max(0) as u64;
                     let sleep_duration = Duration::from_millis(sleep_ms);
                     sleep(sleep_duration).await;
@@ -802,7 +805,9 @@ where
             metrics_store: self.metrics_store.ok_or("metrics_store is required")?,
             error_store: self.error_store.ok_or("error_store is required")?,
             liveness_store: self.liveness_store.ok_or("liveness_store is required")?,
-            work_item_state_store: self.work_item_state_store.ok_or("work_item_state_store is required")?,
+            work_item_state_store: self
+                .work_item_state_store
+                .ok_or("work_item_state_store is required")?,
             retry_policy: Some(self.retry_policy.unwrap_or_else(|| {
                 RetryPolicy::new(
                     5,
@@ -812,14 +817,17 @@ where
                     RetryError::All,
                 )
             })),
-            idle_sleep_duration: self.idle_sleep_duration.unwrap_or(Duration::from_millis(100)),
+            idle_sleep_duration: self
+                .idle_sleep_duration
+                .unwrap_or(Duration::from_millis(100)),
             idle_sleep_jitter: self.idle_sleep_jitter.unwrap_or(Duration::from_millis(50)),
             phantom: std::marker::PhantomData,
         })
     }
 }
 
-impl<W, C, Q, RIS, MS, ES, LS, WISS, CS> Default for WorkerBuilder<W, C, Q, RIS, MS, ES, LS, WISS, CS>
+impl<W, C, Q, RIS, MS, ES, LS, WISS, CS> Default
+    for WorkerBuilder<W, C, Q, RIS, MS, ES, LS, WISS, CS>
 where
     W: Workflow<C, WorkItem: 'static>,
     C: Context + crate::merge::Merge + Default,
@@ -929,8 +937,17 @@ where
 }
 
 #[allow(clippy::type_complexity)]
-struct StepCallbacksImpl<C: Context + crate::merge::Merge + Default, W: Workflow<C>, Q, RIS, MS, ES, LS, WISS, CS>
-where
+struct StepCallbacksImpl<
+    C: Context + crate::merge::Merge + Default,
+    W: Workflow<C>,
+    Q,
+    RIS,
+    MS,
+    ES,
+    LS,
+    WISS,
+    CS,
+> where
     W: Workflow<C, WorkItem: 'static>,
     C: Context + crate::merge::Merge + Default,
     Q: WorkQueue<C, W::WorkItem> + Send + Sync,

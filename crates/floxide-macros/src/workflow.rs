@@ -298,18 +298,21 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         .map(|(_, ty, _)| ty.clone())
         .expect("Terminal field not found among fields");
     // Find the terminal variant ident(s)
-    let terminal_variant_idents: Vec<_> = edges.iter().filter_map(|(src, kind)| {
-        let is_terminal = match kind {
-            EdgeKind::Direct { succs, on_failure } => succs.is_empty() && on_failure.is_none(),
-            EdgeKind::Composite(arms) => arms.is_empty(),
-        };
-        if is_terminal {
-            let var_name = to_camel_case(&src.to_string());
-            Some(format_ident!("{}", var_name))
-        } else {
-            None
-        }
-    }).collect();
+    let terminal_variant_idents: Vec<_> = edges
+        .iter()
+        .filter_map(|(src, kind)| {
+            let is_terminal = match kind {
+                EdgeKind::Direct { succs, on_failure } => succs.is_empty() && on_failure.is_none(),
+                EdgeKind::Composite(arms) => arms.is_empty(),
+            };
+            if is_terminal {
+                let var_name = to_camel_case(&src.to_string());
+                Some(format_ident!("{}", var_name))
+            } else {
+                None
+            }
+        })
+        .collect();
     // Identify policy fields (names used in #[retry = policy])
     let policy_idents: Vec<Ident> = fields
         .iter()
@@ -338,7 +341,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         .collect();
 
     // Struct definition
-    
+
     // Define the workflow struct with optional retry-policy fields
     let struct_def = {
         // Each entry: (field_name, field_type, retry_policy)

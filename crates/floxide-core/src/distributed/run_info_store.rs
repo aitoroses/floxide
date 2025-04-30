@@ -6,10 +6,10 @@
 use crate::distributed::{RunInfo, RunStatus};
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use serde_json;
 
 /// Errors that can occur in a RunInfoStore implementation.
 #[derive(Debug, thiserror::Error)]

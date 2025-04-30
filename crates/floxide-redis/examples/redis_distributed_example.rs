@@ -1,18 +1,23 @@
 // examples/redis_distributed_example.rs
 // Redis-backed version of distributed_orchestrated_merge_example.rs
 
-use floxide_core::{
-    distributed::{
-        OrchestratorBuilder, RunStatus, WorkerBuilder, WorkerPool, RunInfo,
-    },
-    merge::Fixed,
-};
 use floxide_core::distributed::event_log::EventLog;
 use floxide_core::*;
+use floxide_core::{
+    distributed::{OrchestratorBuilder, RunInfo, RunStatus, WorkerBuilder, WorkerPool},
+    merge::Fixed,
+};
 use floxide_macros::{node, workflow, Merge};
-use floxide_redis::{RedisClient, RedisConfig, RedisContextStore, RedisErrorStore, RedisLivenessStore, RedisMetricsStore, RedisRunInfoStore, RedisWorkItemStateStore, RedisWorkQueue};
+use floxide_redis::{
+    RedisClient, RedisConfig, RedisContextStore, RedisErrorStore, RedisLivenessStore,
+    RedisMetricsStore, RedisRunInfoStore, RedisWorkItemStateStore, RedisWorkQueue,
+};
 use serde::{Deserialize, Serialize};
-use testcontainers::{core::{WaitFor, IntoContainerPort}, runners::AsyncRunner, GenericImage, ImageExt};
+use testcontainers::{
+    core::{IntoContainerPort, WaitFor},
+    runners::AsyncRunner,
+    GenericImage, ImageExt,
+};
 use tokio::time::error::Elapsed;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -128,10 +133,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<RunInfo, Box<dyn std::error::Error>> {
+async fn run_distributed_orchestrated_merge_with_url(
+    redis_url: &str,
+) -> Result<RunInfo, Box<dyn std::error::Error>> {
     // --- Redis setup ---
-    let redis_config = RedisConfig::new(redis_url)
-        .with_key_prefix("floxide_example:");
+    let redis_config = RedisConfig::new(redis_url).with_key_prefix("floxide_example:");
     let redis_client = RedisClient::new(redis_config).await?;
 
     let ctx = MergeContext {
@@ -236,7 +242,10 @@ async fn run_distributed_orchestrated_merge_with_url(redis_url: &str) -> Result<
                 print_stats().await?;
                 break Ok(info.clone());
             }
-            Ok(Ok(ref info)) if info.status == RunStatus::Failed || matches!(final_status, Err(Elapsed { .. })) => {
+            Ok(Ok(ref info))
+                if info.status == RunStatus::Failed
+                    || matches!(final_status, Err(Elapsed { .. })) =>
+            {
                 // timeout or other error
                 print_stats().await?;
                 println!("Resuming run");

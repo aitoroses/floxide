@@ -165,8 +165,12 @@ pub async fn run_checkpoint_example() -> Result<(), Box<dyn std::error::Error>> 
 
     // Resume again to detect already completed
     let resumed = wf.resume(&fresh_store, "job1").await;
-    
-    assert!(matches!(resumed, Err(FloxideError::AlreadyCompleted)), "Expected AlreadyCompleted error, got: {:?}", resumed);
+
+    assert!(
+        matches!(resumed, Err(FloxideError::AlreadyCompleted)),
+        "Expected AlreadyCompleted error, got: {:?}",
+        resumed
+    );
     println!("Resumed run result = {:?}", resumed);
 
     Ok(())

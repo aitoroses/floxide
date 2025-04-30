@@ -77,13 +77,10 @@ impl RunInfoStore for RedisRunInfoStore {
         let mut conn = self.client.conn.clone();
 
         // Get the current run info
-        let result: Option<String> = conn
-            .get(&run_key)
-            .await
-            .map_err(|e| {
-                error!("Redis error while getting run info: {}", e);
-                RunInfoError::Io(e.to_string())
-            })?;
+        let result: Option<String> = conn.get(&run_key).await.map_err(|e| {
+            error!("Redis error while getting run info: {}", e);
+            RunInfoError::Io(e.to_string())
+        })?;
 
         let mut info = match result {
             Some(serialized) => {
@@ -92,7 +89,7 @@ impl RunInfoStore for RedisRunInfoStore {
                     RunInfoError::Other(format!("Deserialization error: {}", e))
                 })?;
                 RunInfo::from(serializable)
-            },
+            }
             None => return Err(RunInfoError::NotFound),
         };
 
@@ -140,13 +137,10 @@ impl RunInfoStore for RedisRunInfoStore {
         let mut conn = self.client.conn.clone();
 
         // Get the current run info
-        let result: Option<String> = conn
-            .get(&run_key)
-            .await
-            .map_err(|e| {
-                error!("Redis error while getting run info: {}", e);
-                RunInfoError::Io(e.to_string())
-            })?;
+        let result: Option<String> = conn.get(&run_key).await.map_err(|e| {
+            error!("Redis error while getting run info: {}", e);
+            RunInfoError::Io(e.to_string())
+        })?;
 
         let mut info = match result {
             Some(serialized) => {
@@ -155,7 +149,7 @@ impl RunInfoStore for RedisRunInfoStore {
                     RunInfoError::Other(format!("Deserialization error: {}", e))
                 })?;
                 RunInfo::from(serializable)
-            },
+            }
             None => return Err(RunInfoError::NotFound),
         };
 
@@ -169,12 +163,10 @@ impl RunInfoStore for RedisRunInfoStore {
         })?;
 
         // Store the updated run info
-        let _result: () = conn.set(&run_key, serialized)
-            .await
-            .map_err(|e| {
-                error!("Redis error while updating finished_at: {}", e);
-                RunInfoError::Io(e.to_string())
-            })?;
+        let _result: () = conn.set(&run_key, serialized).await.map_err(|e| {
+            error!("Redis error while updating finished_at: {}", e);
+            RunInfoError::Io(e.to_string())
+        })?;
 
         trace!("Updated finished_at for run {} to {}", run_id, finished_at);
         Ok(())
@@ -186,13 +178,10 @@ impl RunInfoStore for RedisRunInfoStore {
         let mut conn = self.client.conn.clone();
 
         // Get the run info
-        let result: Option<String> = conn
-            .get(&run_key)
-            .await
-            .map_err(|e| {
-                error!("Redis error while getting run info: {}", e);
-                RunInfoError::Io(e.to_string())
-            })?;
+        let result: Option<String> = conn.get(&run_key).await.map_err(|e| {
+            error!("Redis error while getting run info: {}", e);
+            RunInfoError::Io(e.to_string())
+        })?;
 
         // If the run info exists, deserialize it
         if let Some(serialized) = result {
@@ -218,21 +207,17 @@ impl RunInfoStore for RedisRunInfoStore {
         let run_ids: Vec<String> = match filter {
             Some(status) => {
                 let status_key = self.status_runs_key(&status);
-                conn.smembers(&status_key)
-                    .await
-                    .map_err(|e| {
-                        error!("Redis error while getting run IDs by status: {}", e);
-                        RunInfoError::Io(e.to_string())
-                    })?
+                conn.smembers(&status_key).await.map_err(|e| {
+                    error!("Redis error while getting run IDs by status: {}", e);
+                    RunInfoError::Io(e.to_string())
+                })?
             }
             None => {
                 let all_runs_key = self.all_runs_key();
-                conn.smembers(&all_runs_key)
-                    .await
-                    .map_err(|e| {
-                        error!("Redis error while getting all run IDs: {}", e);
-                        RunInfoError::Io(e.to_string())
-                    })?
+                conn.smembers(&all_runs_key).await.map_err(|e| {
+                    error!("Redis error while getting all run IDs: {}", e);
+                    RunInfoError::Io(e.to_string())
+                })?
             }
         };
 
@@ -240,13 +225,10 @@ impl RunInfoStore for RedisRunInfoStore {
         let mut runs = Vec::with_capacity(run_ids.len());
         for run_id in run_ids {
             let run_key = self.run_info_key(&run_id);
-            let result: Option<String> = conn
-                .get(&run_key)
-                .await
-                .map_err(|e| {
-                    error!("Redis error while getting run info: {}", e);
-                    RunInfoError::Io(e.to_string())
-                })?;
+            let result: Option<String> = conn.get(&run_key).await.map_err(|e| {
+                error!("Redis error while getting run info: {}", e);
+                RunInfoError::Io(e.to_string())
+            })?;
 
             if let Some(serialized) = result {
                 let serializable = serde_json::from_str::<RunInfo>(&serialized).map_err(|e| {
@@ -271,13 +253,10 @@ impl RunInfoStore for RedisRunInfoStore {
         let mut conn = self.client.conn.clone();
 
         // Get the current run info
-        let result: Option<String> = conn
-            .get(&run_key)
-            .await
-            .map_err(|e| {
-                error!("Redis error while getting run info: {}", e);
-                RunInfoError::Io(e.to_string())
-            })?;
+        let result: Option<String> = conn.get(&run_key).await.map_err(|e| {
+            error!("Redis error while getting run info: {}", e);
+            RunInfoError::Io(e.to_string())
+        })?;
 
         let mut info = match result {
             Some(serialized) => {
@@ -286,7 +265,7 @@ impl RunInfoStore for RedisRunInfoStore {
                     RunInfoError::Other(format!("Deserialization error: {}", e))
                 })?;
                 RunInfo::from(serializable)
-            },
+            }
             None => return Err(RunInfoError::NotFound),
         };
 
@@ -300,12 +279,10 @@ impl RunInfoStore for RedisRunInfoStore {
         })?;
 
         // Store the updated run info
-        let _result: () = conn.set(&run_key, serialized)
-            .await
-            .map_err(|e| {
-                error!("Redis error while updating output: {}", e);
-                RunInfoError::Io(e.to_string())
-            })?;
+        let _result: () = conn.set(&run_key, serialized).await.map_err(|e| {
+            error!("Redis error while updating output: {}", e);
+            RunInfoError::Io(e.to_string())
+        })?;
 
         trace!("Updated output for run {}", run_id);
         Ok(())

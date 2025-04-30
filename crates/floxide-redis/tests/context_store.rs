@@ -1,7 +1,7 @@
 mod helpers;
 
-use floxide_redis::{RedisContextStore, RedisClient, RedisConfig};
 use floxide_core::distributed::context_store::ContextStore;
+use floxide_redis::{RedisClient, RedisConfig, RedisContextStore};
 use std::fmt::Debug;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
@@ -29,13 +29,24 @@ async fn test_context_store_set_get_merge() {
     // Set context
     store.set("run1", ctx1.clone()).await.expect("set context");
     // Get context
-    let loaded = store.get("run1").await.expect("get context").expect("context exists");
+    let loaded = store
+        .get("run1")
+        .await
+        .expect("get context")
+        .expect("context exists");
     assert_eq!(loaded, ctx1);
 
     // Merge context
-    store.merge("run1", ctx2.clone()).await.expect("merge context");
-    let merged = store.get("run1").await.expect("get context").expect("context exists");
+    store
+        .merge("run1", ctx2.clone())
+        .await
+        .expect("merge context");
+    let merged = store
+        .get("run1")
+        .await
+        .expect("get context")
+        .expect("context exists");
     assert_eq!(merged.value, ctx1.value + ctx2.value);
 
     redis.cleanup().await;
-} 
+}

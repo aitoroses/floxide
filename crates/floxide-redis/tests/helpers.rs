@@ -1,6 +1,8 @@
 use std::sync::Once;
 use testcontainers::{
-    core::{IntoContainerPort, WaitFor}, runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt
+    core::{IntoContainerPort, WaitFor},
+    runners::AsyncRunner,
+    ContainerAsync, GenericImage, ImageExt,
 };
 use tracing_subscriber::{fmt, EnvFilter};
 
@@ -32,7 +34,7 @@ impl TestRedis {
             .expect("Failed to start Redis");
         let host_port = container.get_host_port_ipv4(6379).await.unwrap();
         let host = "127.0.0.1".to_string();
-        let instance =Self {
+        let instance = Self {
             container: Some(container),
             host,
             port: host_port,
@@ -47,8 +49,10 @@ impl TestRedis {
 
     pub async fn cleanup(&mut self) {
         if let Some(container) = self.container.take() {
-            container.rm().await.expect("Failed to remove Redis container");
+            container
+                .rm()
+                .await
+                .expect("Failed to remove Redis container");
         }
     }
 }
-

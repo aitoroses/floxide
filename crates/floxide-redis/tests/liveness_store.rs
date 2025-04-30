@@ -1,8 +1,8 @@
 mod helpers;
 
-use floxide_redis::{RedisLivenessStore, RedisClient, RedisConfig};
-use floxide_core::distributed::{LivenessStore, WorkerHealth, WorkerStatus};
 use chrono::Utc;
+use floxide_core::distributed::{LivenessStore, WorkerHealth, WorkerStatus};
+use floxide_redis::{RedisClient, RedisConfig, RedisLivenessStore};
 
 #[tokio::test]
 async fn test_liveness_store_roundtrip() {
@@ -15,16 +15,30 @@ async fn test_liveness_store_roundtrip() {
     let worker_id = 42;
     let now = Utc::now();
     // Update heartbeat
-    store.update_heartbeat(worker_id, now).await.expect("update heartbeat");
-    let hb = store.get_heartbeat(worker_id).await.expect("get heartbeat").expect("exists");
+    store
+        .update_heartbeat(worker_id, now)
+        .await
+        .expect("update heartbeat");
+    let hb = store
+        .get_heartbeat(worker_id)
+        .await
+        .expect("get heartbeat")
+        .expect("exists");
     assert_eq!(hb.timestamp(), now.timestamp());
 
     // Update health
     let mut health = WorkerHealth::default();
     health.worker_id = worker_id;
     health.status = WorkerStatus::InProgress;
-    store.update_health(worker_id, health.clone()).await.expect("update health");
-    let got = store.get_health(worker_id).await.expect("get health").expect("exists");
+    store
+        .update_health(worker_id, health.clone())
+        .await
+        .expect("update health");
+    let got = store
+        .get_health(worker_id)
+        .await
+        .expect("get health")
+        .expect("exists");
     assert_eq!(got.worker_id, worker_id);
     assert!(matches!(got.status, WorkerStatus::InProgress));
 
@@ -36,4 +50,4 @@ async fn test_liveness_store_roundtrip() {
     assert!(healths.iter().any(|h| h.worker_id == worker_id));
     tracing::info!(?healths, "Liveness store roundtrip successful");
     redis.cleanup().await;
-} 
+}

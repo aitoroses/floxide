@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Data, Fields};
+use syn::{parse_macro_input, Data, DeriveInput, Fields};
 
 /// Entry point for the `#[derive(Merge)]` macro.
 pub fn derive(input: TokenStream) -> TokenStream {
@@ -15,7 +15,10 @@ pub fn derive(input: TokenStream) -> TokenStream {
         Data::Struct(data_struct) => match &data_struct.fields {
             Fields::Named(fields_named) => {
                 let stmts = fields_named.named.iter().map(|f| {
-                    let ident = f.ident.as_ref().expect("Named field always has an identifier");
+                    let ident = f
+                        .ident
+                        .as_ref()
+                        .expect("Named field always has an identifier");
                     quote! { self.#ident.merge(other.#ident); }
                 });
                 quote! { #(#stmts)* }

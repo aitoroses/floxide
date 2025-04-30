@@ -29,22 +29,20 @@ impl MetricsStore for RedisMetricsStore {
     #[instrument(skip(self, metrics), level = "trace")]
     async fn update_metrics(&self, run_id: &str, metrics: RunMetrics) -> Result<(), MetricsError> {
         let key = self.metrics_key(run_id);
-        
+
         // Serialize the metrics
         let serialized = serde_json::to_string(&metrics).map_err(|e| {
             error!("Failed to serialize metrics: {}", e);
             MetricsError::Other(format!("Serialization error: {}", e))
         })?;
-        
+
         // Store the serialized metrics in Redis
         let mut conn = self.client.conn.clone();
-        let _result: () = conn.set(&key, serialized)
-            .await
-            .map_err(|e| {
-                error!("Redis error while updating metrics: {}", e);
-                MetricsError::Other(format!("Redis error: {}", e))
-            })?;
-        
+        let _result: () = conn.set(&key, serialized).await.map_err(|e| {
+            error!("Redis error while updating metrics: {}", e);
+            MetricsError::Other(format!("Redis error: {}", e))
+        })?;
+
         trace!("Updated metrics for run {}", run_id);
         Ok(())
     }
@@ -53,23 +51,20 @@ impl MetricsStore for RedisMetricsStore {
     async fn get_metrics(&self, run_id: &str) -> Result<Option<RunMetrics>, MetricsError> {
         let key = self.metrics_key(run_id);
         let mut conn = self.client.conn.clone();
-        
+
         // Get the serialized metrics from Redis
-        let result: Option<String> = conn
-            .get(&key)
-            .await
-            .map_err(|e| {
-                error!("Redis error while getting metrics: {}", e);
-                MetricsError::Other(format!("Redis error: {}", e))
-            })?;
-        
+        let result: Option<String> = conn.get(&key).await.map_err(|e| {
+            error!("Redis error while getting metrics: {}", e);
+            MetricsError::Other(format!("Redis error: {}", e))
+        })?;
+
         // If the metrics exist, deserialize them
         if let Some(serialized) = result {
             let metrics = serde_json::from_str(&serialized).map_err(|e| {
                 error!("Failed to deserialize metrics: {}", e);
                 MetricsError::Other(format!("Deserialization error: {}", e))
             })?;
-            
+
             trace!("Got metrics for run {}", run_id);
             Ok(Some(metrics))
         } else {

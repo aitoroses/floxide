@@ -10,7 +10,7 @@ use floxide_core::{
 use redis::AsyncCommands;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use tracing::{trace, error, instrument};
+use tracing::{error, instrument, trace};
 
 /// Redis implementation of the WorkQueue trait.
 #[derive(Clone)]
@@ -48,13 +48,13 @@ where
     async fn enqueue(&self, workflow_id: &str, work: WI) -> Result<(), WorkQueueError> {
         let queue_key = self.queue_key(workflow_id);
         let global_queue_key = self.global_queue_key();
-        
+
         // Serialize the work item
         let serialized = serde_json::to_string(&work).map_err(|e| {
             error!("Failed to serialize work item: {}", e);
             WorkQueueError::Other(format!("Serialization error: {}", e))
         })?;
-        
+
         // Use a Redis pipeline to atomically:
         // 1. Push the work item to the workflow-specific queue
         // 2. Add the workflow ID to the global queue if not already present
@@ -68,7 +68,7 @@ where
                 error!("Redis error while enqueueing work: {}", e);
                 WorkQueueError::Io(e.to_string())
             })?;
-        
+
         trace!("Enqueued work item for workflow {}", workflow_id);
         Ok(())
     }
@@ -77,59 +77,54 @@ where
     async fn dequeue(&self) -> Result<Option<(String, WI)>, WorkQueueError> {
         let global_queue_key = self.global_queue_key();
         let mut conn = self.client.conn.clone();
-        
+
         // Get all workflow IDs from the global queue
-        let workflow_ids: Vec<String> = conn
-            .smembers(&global_queue_key)
-            .await
-            .map_err(|e| {
-                error!("Redis error while getting workflow IDs: {}", e);
-                WorkQueueError::Io(e.to_string())
-            })?;
-        
+        let workflow_ids: Vec<String> = conn.smembers(&global_queue_key).await.map_err(|e| {
+            error!("Redis error while getting workflow IDs: {}", e);
+            WorkQueueError::Io(e.to_string())
+        })?;
+
         // Try to dequeue from each workflow queue in turn
         for workflow_id in workflow_ids {
             let queue_key = self.queue_key(&workflow_id);
-            
+
             // Use LPOP to get the next item from the queue
-            let result: Option<String> = conn
-                .lpop(&queue_key, None)
-                .await
-                .map_err(|e| {
-                    error!("Redis error while dequeueing work: {}", e);
-                    WorkQueueError::Io(e.to_string())
-                })?;
-            
+            let result: Option<String> = conn.lpop(&queue_key, None).await.map_err(|e| {
+                error!("Redis error while dequeueing work: {}", e);
+                WorkQueueError::Io(e.to_string())
+            })?;
+
             if let Some(serialized) = result {
                 // Deserialize the work item
                 let work_item = serde_json::from_str(&serialized).map_err(|e| {
                     error!("Failed to deserialize work item: {}", e);
                     WorkQueueError::Other(format!("Deserialization error: {}", e))
                 })?;
-                
+
                 // Check if the queue is now empty, and if so, remove it from the global queue
-                let queue_len: usize = conn
-                    .llen(&queue_key)
-                    .await
-                    .map_err(|e| {
-                        error!("Redis error while checking queue length: {}", e);
-                        WorkQueueError::Io(e.to_string())
-                    })?;
-                
+                let queue_len: usize = conn.llen(&queue_key).await.map_err(|e| {
+                    error!("Redis error while checking queue length: {}", e);
+                    WorkQueueError::Io(e.to_string())
+                })?;
+
                 if queue_len == 0 {
-                    let _result: () = conn.srem(&global_queue_key, &workflow_id)
-                        .await
-                        .map_err(|e| {
-                            error!("Redis error while removing workflow from global queue: {}", e);
-                            WorkQueueError::Io(e.to_string())
-                        })?;
+                    let _result: () =
+                        conn.srem(&global_queue_key, &workflow_id)
+                            .await
+                            .map_err(|e| {
+                                error!(
+                                    "Redis error while removing workflow from global queue: {}",
+                                    e
+                                );
+                                WorkQueueError::Io(e.to_string())
+                            })?;
                 }
-                
+
                 trace!("Dequeued work item for workflow {}", workflow_id);
                 return Ok(Some((workflow_id, work_item)));
             }
         }
-        
+
         // No work items found
         trace!("No work items available");
         Ok(None)
@@ -140,7 +135,7 @@ where
         let queue_key = self.queue_key(run_id);
         let global_queue_key = self.global_queue_key();
         let mut conn = self.client.conn.clone();
-        
+
         // Use a Redis pipeline to atomically:
         // 1. Delete the workflow-specific queue
         // 2. Remove the workflow ID from the global queue
@@ -153,7 +148,7 @@ where
                 error!("Redis error while purging run: {}", e);
                 WorkQueueError::Io(e.to_string())
             })?;
-        
+
         trace!("Purged work items for workflow {}", run_id);
         Ok(())
     }
@@ -162,16 +157,13 @@ where
     async fn pending_work(&self, run_id: &str) -> Result<Vec<WI>, WorkQueueError> {
         let queue_key = self.queue_key(run_id);
         let mut conn = self.client.conn.clone();
-        
+
         // Get all items from the queue
-        let items: Vec<String> = conn
-            .lrange(&queue_key, 0, -1)
-            .await
-            .map_err(|e| {
-                error!("Redis error while getting pending work: {}", e);
-                WorkQueueError::Io(e.to_string())
-            })?;
-        
+        let items: Vec<String> = conn.lrange(&queue_key, 0, -1).await.map_err(|e| {
+            error!("Redis error while getting pending work: {}", e);
+            WorkQueueError::Io(e.to_string())
+        })?;
+
         // Deserialize each item
         let mut result = Vec::with_capacity(items.len());
         for item in items {
@@ -181,8 +173,12 @@ where
             })?;
             result.push(work_item);
         }
-        
-        trace!("Found {} pending work items for workflow {}", result.len(), run_id);
+
+        trace!(
+            "Found {} pending work items for workflow {}",
+            result.len(),
+            run_id
+        );
         Ok(result)
     }
 }

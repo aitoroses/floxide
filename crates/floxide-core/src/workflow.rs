@@ -35,15 +35,15 @@ use std::sync::Arc;
 
 // crates/floxide-core/src/workflow.rs
 use crate::context::Context;
+use crate::distributed::context_store::ContextStore;
 use crate::distributed::{ItemProcessedOutcome, StepCallbacks, StepError, WorkQueue};
 use crate::error::FloxideError;
 use crate::{Checkpoint, CheckpointStore};
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use tracing::{debug, info, span, Level};
-use crate::distributed::context_store::ContextStore;
 use serde_json;
+use tracing::{debug, info, span, Level};
 
 /// Trait for a workflow work item.
 ///
@@ -221,7 +221,12 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
             return Err(FloxideError::AlreadyCompleted);
         }
         // If the queue contains exactly one item and it is terminal, treat as already completed
-        if queue.len() == 1 && queue.front().map(|item| item.is_terminal()).unwrap_or(false) {
+        if queue.len() == 1
+            && queue
+                .front()
+                .map(|item| item.is_terminal())
+                .unwrap_or(false)
+        {
             info!("Workflow already completed (terminal node in queue)");
             return Err(FloxideError::AlreadyCompleted);
         }
@@ -275,9 +280,17 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
         let _enter = seed_span.enter();
         debug!(run_id = %id, "start_distributed seeding");
         // Only seed if not present
-        if context_store.get(id).await.map_err(|e| FloxideError::Generic(e.to_string()))?.is_none() {
+        if context_store
+            .get(id)
+            .await
+            .map_err(|e| FloxideError::Generic(e.to_string()))?
+            .is_none()
+        {
             let item = self.start_work_item(input);
-            context_store.set(id, ctx.store.clone()).await.map_err(|e| FloxideError::Generic(e.to_string()))?;
+            context_store
+                .set(id, ctx.store.clone())
+                .await
+                .map_err(|e| FloxideError::Generic(e.to_string()))?;
             queue
                 .enqueue(id, item)
                 .await
@@ -357,12 +370,15 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
             .await;
 
         match process_result {
-            Ok(Some(out)) => { 
-                context_store.merge(&run_id, wf_ctx.store.clone()).await.map_err(|e| StepError {
-                    error: FloxideError::Generic(e.to_string()),
-                    run_id: Some(run_id.clone()),
-                    work_item: Some(item.clone()),
-                })?;
+            Ok(Some(out)) => {
+                context_store
+                    .merge(&run_id, wf_ctx.store.clone())
+                    .await
+                    .map_err(|e| StepError {
+                        error: FloxideError::Generic(e.to_string()),
+                        run_id: Some(run_id.clone()),
+                        work_item: Some(item.clone()),
+                    })?;
                 debug!(worker = worker_id, run_id = %run_id, "Context merged (terminal)");
                 let output_json = serde_json::to_value(&out).map_err(|e| StepError {
                     error: FloxideError::Generic(format!("Failed to serialize output: {}", e)),
@@ -396,11 +412,14 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
                             work_item: Some(item.clone()),
                         })?;
                 }
-                context_store.merge(&run_id, wf_ctx.store.clone()).await.map_err(|e| StepError {
-                    error: FloxideError::Generic(e.to_string()),
-                    run_id: Some(run_id.clone()),
-                    work_item: Some(item.clone()),
-                })?;
+                context_store
+                    .merge(&run_id, wf_ctx.store.clone())
+                    .await
+                    .map_err(|e| StepError {
+                        error: FloxideError::Generic(e.to_string()),
+                        run_id: Some(run_id.clone()),
+                        work_item: Some(item.clone()),
+                    })?;
                 debug!(worker = worker_id, run_id = %run_id, "Context merged");
                 let on_item_processed_result = callbacks
                     .on_item_processed(

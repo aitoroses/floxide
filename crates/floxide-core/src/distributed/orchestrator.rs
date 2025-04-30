@@ -1,4 +1,5 @@
 use crate::context::{Context, WorkflowCtx};
+use crate::distributed::context_store::ContextStore;
 use crate::distributed::{
     ErrorStore, LivenessStatus, LivenessStore, LivenessStoreError, MetricsStore, RunInfo,
     RunInfoError, RunInfoStore, RunMetrics, RunStatus, WorkItemStateStore, WorkQueue,
@@ -10,7 +11,6 @@ use chrono::Utc;
 use std::marker::PhantomData;
 use std::time::Duration;
 use uuid;
-use crate::distributed::context_store::ContextStore;
 
 use super::{WorkItemState, WorkItemStateStoreError, WorkItemStatus, WorkerHealth};
 
@@ -168,7 +168,7 @@ where
     pub async fn resume(&self, run_id: &str) -> Result<(), FloxideError>
     where
         C: std::fmt::Debug + Clone + Send + Sync,
-    {        
+    {
         let run_info = self
             .run_info_store
             .get_run(run_id)
@@ -186,17 +186,19 @@ where
             // If already running, do nothing
             RunStatus::Running => Ok(()),
             RunStatus::Failed => {
-                // Fetch pending work too                
-                let pending_work = self.pending_work(run_id).await.map_err(|e| {
-                    FloxideError::Generic(format!("work_queue error: {e}"))
-                })?;
-
+                // Fetch pending work too
+                let pending_work = self
+                    .pending_work(run_id)
+                    .await
+                    .map_err(|e| FloxideError::Generic(format!("work_queue error: {e}")))?;
 
                 // Re-establish the work queue from the work item state store
                 for item in self.list_work_items(run_id).await.map_err(|e| {
                     FloxideError::Generic(format!("work_item_state_store error: {e}"))
                 })? {
-                    if item.status != WorkItemStatus::Completed && !pending_work.contains(&item.work_item) {
+                    if item.status != WorkItemStatus::Completed
+                        && !pending_work.contains(&item.work_item)
+                    {
                         self.work_item_state_store
                             .set_status(run_id, &item.work_item, WorkItemStatus::Pending)
                             .await
@@ -224,7 +226,7 @@ where
                         RunInfoError::NotFound => FloxideError::NotStarted,
                         e => FloxideError::Generic(format!("run_info_store error: {e}")),
                     })
-            },
+            }
             RunStatus::Completed => Err(FloxideError::Generic("run already completed".to_string())),
             RunStatus::Cancelled => Err(FloxideError::AlreadyCompleted),
             RunStatus::Paused => {
@@ -281,9 +283,7 @@ where
         match self.context_store.get(run_id).await {
             Ok(Some(context)) => Ok(context),
             Ok(None) => Err(FloxideError::NotStarted),
-            Err(e) => Err(FloxideError::Generic(format!(
-                "context_store error: {e}"
-            ))),
+            Err(e) => Err(FloxideError::Generic(format!("context_store error: {e}"))),
         }
     }
 
@@ -382,7 +382,11 @@ where
         poll_interval: std::time::Duration,
     ) -> Result<RunInfo, FloxideError> {
         loop {
-            let status = self.run_info_store.get_run(run_id).await.map_err(|e| FloxideError::Generic(format!("run_info_store error: {e}")))?;
+            let status = self
+                .run_info_store
+                .get_run(run_id)
+                .await
+                .map_err(|e| FloxideError::Generic(format!("run_info_store error: {e}")))?;
             if let Some(info) = status {
                 match info.status {
                     RunStatus::Completed | RunStatus::Failed | RunStatus::Cancelled => {
@@ -497,7 +501,9 @@ where
             metrics_store: self.metrics_store.ok_or("metrics_store is required")?,
             error_store: self.error_store.ok_or("error_store is required")?,
             liveness_store: self.liveness_store.ok_or("liveness_store is required")?,
-            work_item_state_store: self.work_item_state_store.ok_or("work_item_state_store is required")?,
+            work_item_state_store: self
+                .work_item_state_store
+                .ok_or("work_item_state_store is required")?,
             context_store: self.context_store.ok_or("context_store is required")?,
             phantom: std::marker::PhantomData,
         })

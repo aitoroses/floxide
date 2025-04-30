@@ -19,7 +19,7 @@ pub trait Merge: Default {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fixed<T> {
-    value: T
+    value: T,
 }
 
 impl<T> Fixed<T> {
@@ -42,7 +42,9 @@ impl<T: Default> Merge for Fixed<T> {
 
 impl<T: Default> Default for Fixed<T> {
     fn default() -> Self {
-        Self { value: Default::default() }
+        Self {
+            value: Default::default(),
+        }
     }
 }
 
@@ -54,4 +56,3 @@ impl<T> Deref for Fixed<T> {
         &self.value
     }
 }
-

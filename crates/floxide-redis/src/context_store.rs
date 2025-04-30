@@ -7,11 +7,11 @@ use floxide_core::{
     distributed::context_store::{ContextStore, ContextStoreError},
     merge::Merge,
 };
+use rand::Rng;
 use redis::{AsyncCommands, Value};
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::time::{sleep, Duration};
 use tracing::{error, instrument, trace, warn};
-use rand::Rng;
 
 const LOCK_TIMEOUT_MS: usize = 5000; // 5 seconds lock validity
 const MAX_LOCK_RETRIES: usize = 10; // Max attempts to acquire lock
@@ -41,7 +41,8 @@ impl<C: Context + Merge + Default> RedisContextStore<C> {
 
     /// Get the Redis key for the context lock for a specific run.
     fn lock_key(&self, run_id: &str) -> String {
-        self.client.prefixed_key(&format!("lock:context:{}", run_id))
+        self.client
+            .prefixed_key(&format!("lock:context:{}", run_id))
     }
 }
 
@@ -56,13 +57,10 @@ where
         let mut conn = self.client.conn.clone();
 
         // Get the serialized context from Redis
-        let result: Option<String> = conn
-            .get(&key)
-            .await
-            .map_err(|e| {
-                error!("Redis error while getting context: {}", e);
-                ContextStoreError::Io(e.to_string())
-            })?;
+        let result: Option<String> = conn.get(&key).await.map_err(|e| {
+            error!("Redis error while getting context: {}", e);
+            ContextStoreError::Io(e.to_string())
+        })?;
 
         // If the context exists, deserialize it
         if let Some(serialized) = result {
@@ -88,14 +86,20 @@ where
             Ok(s) => s,
             Err(e) => {
                 error!("Failed to serialize context: {}", e);
-                return Err(ContextStoreError::Other(format!("Serialization error: {}", e)));
+                return Err(ContextStoreError::Other(format!(
+                    "Serialization error: {}",
+                    e
+                )));
             }
         };
 
         // Store the serialized context in Redis
         if let Err(e) = conn.set(&key, serialized).await as Result<(), _> {
             error!("Redis error while setting context: {}", e);
-            return Err(ContextStoreError::Other(format!("Redis error while setting context: {}", e)));
+            return Err(ContextStoreError::Other(format!(
+                "Redis error while setting context: {}",
+                e
+            )));
         } else {
             trace!("Set context for run {}", run_id);
             Ok(())
@@ -133,7 +137,11 @@ where
                     trace!(run_id, "Context lock already held, retrying...");
                 }
                 Ok(other) => {
-                    warn!(run_id, ?other, "Unexpected response from Redis SET NX PX while acquiring lock");
+                    warn!(
+                        run_id,
+                        ?other,
+                        "Unexpected response from Redis SET NX PX while acquiring lock"
+                    );
                 }
                 Err(e) => {
                     error!(run_id, error = %e, "Redis error while acquiring context lock");
@@ -143,13 +151,24 @@ where
 
             // Wait with random backoff before next attempt
             let delay = rand::thread_rng().gen_range(BASE_RETRY_DELAY_MS..=MAX_RETRY_DELAY_MS);
-            trace!(run_id, attempt, delay_ms = delay, "Waiting before lock retry");
+            trace!(
+                run_id,
+                attempt,
+                delay_ms = delay,
+                "Waiting before lock retry"
+            );
             sleep(Duration::from_millis(delay)).await;
         }
 
         if !acquired_lock {
-            error!(run_id, "Failed to acquire context lock after {} retries, aborting merge", MAX_LOCK_RETRIES);
-            return Err(ContextStoreError::Other(format!("Failed to acquire context lock after {} retries, aborting merge", MAX_LOCK_RETRIES)));
+            error!(
+                run_id,
+                "Failed to acquire context lock after {} retries, aborting merge", MAX_LOCK_RETRIES
+            );
+            return Err(ContextStoreError::Other(format!(
+                "Failed to acquire context lock after {} retries, aborting merge",
+                MAX_LOCK_RETRIES
+            )));
         }
 
         // --- Lock Acquired: Perform Read-Modify-Write ---
@@ -164,44 +183,49 @@ where
                 }
             };
 
-        let merged = if let Some(serialized) = current {
-            match serde_json::from_str::<C>(&serialized) {
-                Ok(mut existing) => {
-                    trace!(run_id, ?existing, ?ctx, "Context before merge");
-                    existing.merge(ctx);
-                    trace!(run_id, ?existing, "Context after merge");
-                    existing
+            let merged = if let Some(serialized) = current {
+                match serde_json::from_str::<C>(&serialized) {
+                    Ok(mut existing) => {
+                        trace!(run_id, ?existing, ?ctx, "Context before merge");
+                        existing.merge(ctx);
+                        trace!(run_id, ?existing, "Context after merge");
+                        existing
+                    }
+                    Err(e) => {
+                        error!(run_id, error = %e, "Failed to deserialize context for merge");
+                        // Return error instead of using potentially incomplete new context
+                        return Err(()); // Indicate error within RMW block
+                    }
                 }
+            } else {
+                trace!(run_id, ?ctx, "No existing context found, using new context");
+                ctx
+            };
+
+            // Serialize the merged context
+            let serialized = match serde_json::to_string(&merged) {
+                Ok(s) => s,
                 Err(e) => {
-                    error!(run_id, error = %e, "Failed to deserialize context for merge");
-                    // Return error instead of using potentially incomplete new context
+                    error!(run_id, error = %e, "Failed to serialize merged context");
                     return Err(()); // Indicate error within RMW block
                 }
-            }
-        } else {
-            trace!(run_id, ?ctx, "No existing context found, using new context");
-            ctx
-        };
+            };
 
-        // Serialize the merged context
-        let serialized = match serde_json::to_string(&merged) {
-            Ok(s) => s,
-            Err(e) => {
-                error!(run_id, error = %e, "Failed to serialize merged context");
-                return Err(()); // Indicate error within RMW block
+            // Store the merged context in Redis
+            trace!(run_id, context_to_write=?merged, "Attempting to write merged context to Redis");
+            if let Err(e) = conn.set(&key, serialized).await as Result<(), _> {
+                error!(run_id, error = %e, "Redis error while setting merged context");
+                Err(()) // Indicate error within RMW block
+            } else {
+                trace!(
+                    run_id,
+                    "Successfully wrote merged context for run {}",
+                    run_id
+                );
+                Ok(()) // Indicate success within RMW block
             }
-        };
-
-        // Store the merged context in Redis
-        trace!(run_id, context_to_write=?merged, "Attempting to write merged context to Redis");
-        if let Err(e) = conn.set(&key, serialized).await as Result<(), _> {
-            error!(run_id, error = %e, "Redis error while setting merged context");
-            Err(()) // Indicate error within RMW block
-        } else {
-            trace!(run_id, "Successfully wrote merged context for run {}", run_id);
-            Ok(()) // Indicate success within RMW block
         }
-        }.await; // End of RMW async block
+        .await; // End of RMW async block
 
         // --- Release Lock ---
         // Release the lock regardless of RMW outcome.
@@ -214,7 +238,10 @@ where
         }
 
         if rmw_result.is_err() {
-            error!(run_id, "Merge operation failed during read-modify-write phase");
+            error!(
+                run_id,
+                "Merge operation failed during read-modify-write phase"
+            );
             // Potentially signal error further up? For now, just log.
         }
         Ok(())

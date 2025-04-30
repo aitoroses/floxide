@@ -56,17 +56,17 @@ impl RedisConfig {
     /// Build the Redis connection URL with authentication if provided.
     pub(crate) fn build_connection_url(&self) -> String {
         let mut url = self.url.clone();
-        
+
         // If URL doesn't have redis:// or rediss:// prefix, add it
         if !url.starts_with("redis://") && !url.starts_with("rediss://") {
             url = format!("redis://{}", url);
         }
-        
+
         // If URL doesn't end with /, add it
         if !url.ends_with('/') {
             url.push('/');
         }
-        
+
         url
     }
 }

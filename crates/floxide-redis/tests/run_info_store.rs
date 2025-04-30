@@ -1,8 +1,8 @@
 mod helpers;
 
-use floxide_redis::{RedisRunInfoStore, RedisClient, RedisConfig};
-use floxide_core::distributed::{RunInfo, RunInfoStore, RunStatus};
 use chrono::Utc;
+use floxide_core::distributed::{RunInfo, RunInfoStore, RunStatus};
+use floxide_redis::{RedisClient, RedisConfig, RedisRunInfoStore};
 
 #[tokio::test]
 async fn test_run_info_store_crud() {
@@ -29,13 +29,19 @@ async fn test_run_info_store_crud() {
     assert_eq!(got.status, RunStatus::Running);
 
     // Update status
-    store.update_status(&run_id, RunStatus::Completed).await.expect("update status");
+    store
+        .update_status(&run_id, RunStatus::Completed)
+        .await
+        .expect("update status");
     let got = store.get_run(&run_id).await.expect("get").expect("exists");
     assert_eq!(got.status, RunStatus::Completed);
 
     // Update finished_at
     let now = Utc::now();
-    store.update_finished_at(&run_id, now).await.expect("update finished_at");
+    store
+        .update_finished_at(&run_id, now)
+        .await
+        .expect("update finished_at");
     let got = store.get_run(&run_id).await.expect("get").expect("exists");
     assert_eq!(got.finished_at.unwrap().timestamp(), now.timestamp());
 
@@ -44,4 +50,4 @@ async fn test_run_info_store_crud() {
     assert!(all.iter().any(|r| r.run_id == run_id));
     tracing::info!(?all, "Run info store roundtrip successful");
     redis.cleanup().await;
-} 
+}

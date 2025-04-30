@@ -138,9 +138,13 @@ Let us know if you want a diagram, code comments, or further breakdown of any pa
 
 use async_trait::async_trait;
 use floxide::distributed::{ItemProcessedOutcome, StepCallbacks};
+use floxide_core::distributed::context_store::{ContextStore, InMemoryContextStore};
+use floxide_core::distributed::event_log::EventLog;
 use floxide_core::distributed::InMemoryWorkQueue;
+use floxide_core::merge::Merge;
 use floxide_core::*;
 use floxide_macros::workflow;
+use floxide_macros::Merge;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Debug,
@@ -148,10 +152,6 @@ use std::{
 };
 use tokio::time::Duration;
 use tracing::Instrument;
-use floxide_core::distributed::context_store::{InMemoryContextStore, ContextStore};
-use floxide_core::merge::Merge;
-use floxide_macros::Merge;
-use floxide_core::distributed::event_log::EventLog;
 
 // Global flag to simulate failure in BranchB for demonstration purposes
 static SHOULD_FAIL: LazyLock<Arc<tokio::sync::Mutex<bool>>> =
@@ -176,12 +176,11 @@ pub struct State {
 
 impl Ctx {
     pub fn replay(&self) -> State {
-        self.event_log.apply_all_default(|event, state: &mut State| {
-            match event {
+        self.event_log
+            .apply_all_default(|event, state: &mut State| match event {
                 WorkflowEvent::CounterIncremented(delta) => state.counter += delta,
                 WorkflowEvent::LogMessage(msg) => state.logs.push(msg.clone()),
-            }
-        })
+            })
     }
 }
 
@@ -202,7 +201,9 @@ impl Node<Ctx> for InitialNode {
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("InitialNode: starting workflow");
         ctx.event_log.append(WorkflowEvent::CounterIncremented(1));
-        ctx.event_log.append(WorkflowEvent::LogMessage("InitialNode: starting workflow".to_string()));
+        ctx.event_log.append(WorkflowEvent::LogMessage(
+            "InitialNode: starting workflow".to_string(),
+        ));
         Ok(Transition::Next(()))
     }
 }
@@ -221,7 +222,9 @@ impl Node<Ctx> for SplitNode {
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("SplitNode: spawning two branches");
         ctx.event_log.append(WorkflowEvent::CounterIncremented(1));
-        ctx.event_log.append(WorkflowEvent::LogMessage("SplitNode: spawning two branches".to_string()));
+        ctx.event_log.append(WorkflowEvent::LogMessage(
+            "SplitNode: spawning two branches".to_string(),
+        ));
         Ok(Transition::Next(()))
     }
 }
@@ -240,7 +243,8 @@ impl Node<Ctx> for BranchA {
     ) -> Result<Transition<Self::Output>, FloxideError> {
         tracing::info!("BranchA executed");
         ctx.event_log.append(WorkflowEvent::CounterIncremented(10));
-        ctx.event_log.append(WorkflowEvent::LogMessage("BranchA executed".to_string()));
+        ctx.event_log
+            .append(WorkflowEvent::LogMessage("BranchA executed".to_string()));
         Ok(Transition::Next("branch_a_success".to_string()))
     }
 }
@@ -260,13 +264,15 @@ impl Node<Ctx> for BranchB {
         tracing::info!("BranchB executed");
         let should_fail = *SHOULD_FAIL.lock().await;
         if should_fail {
-            ctx.event_log.append(WorkflowEvent::LogMessage("BranchB failed".to_string()));
+            ctx.event_log
+                .append(WorkflowEvent::LogMessage("BranchB failed".to_string()));
             return Ok(Transition::Abort(FloxideError::Generic(
                 "branch_b_failed".to_string(),
             )));
         }
         ctx.event_log.append(WorkflowEvent::CounterIncremented(15));
-        ctx.event_log.append(WorkflowEvent::LogMessage("BranchB executed".to_string()));
+        ctx.event_log
+            .append(WorkflowEvent::LogMessage("BranchB executed".to_string()));
         Ok(Transition::Next("branch_b_success".to_string()))
     }
 }
@@ -412,7 +418,11 @@ async fn run_distributed_example() -> Result<Ctx, Box<dyn std::error::Error>> {
     }
 
     // All work is done; print final context
-    if let Some(ctx) = store.get(run_id).await.map_err(|e| FloxideError::Generic(e.to_string()))? {
+    if let Some(ctx) = store
+        .get(run_id)
+        .await
+        .map_err(|e| FloxideError::Generic(e.to_string()))?
+    {
         let final_state = ctx.replay();
         println!("Run {} completed; final context: {:?}", run_id, final_state);
         Ok(ctx)

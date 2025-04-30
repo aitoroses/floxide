@@ -1,10 +1,10 @@
-use async_trait::async_trait;
 use crate::context::Context;
 use crate::merge::Merge;
+use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use thiserror::Error;
+use tokio::sync::Mutex;
 #[derive(Debug, Error)]
 pub enum ContextStoreError {
     #[error("I/O error: {0}")]
@@ -27,13 +27,17 @@ pub struct InMemoryContextStore<C: Context + Merge + Default> {
 
 impl<C: Context + Merge + Default> Default for InMemoryContextStore<C> {
     fn default() -> Self {
-        Self { inner: Arc::new(Mutex::new(HashMap::new())) }
+        Self {
+            inner: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 }
 
 impl<C: Context + Merge + Default> Clone for InMemoryContextStore<C> {
     fn clone(&self) -> Self {
-        Self { inner: self.inner.clone() }
+        Self {
+            inner: self.inner.clone(),
+        }
     }
 }
 
@@ -55,4 +59,4 @@ impl<C: Context + Merge + Default> ContextStore<C> for InMemoryContextStore<C> {
             .or_insert(ctx);
         Ok(())
     }
-} 
+}

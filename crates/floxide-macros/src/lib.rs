@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
 
+mod merge;
 mod node;
 mod workflow;
-mod merge;
 
 /// Define a Workflow with fields and edges in one macro invocation.
 ///
