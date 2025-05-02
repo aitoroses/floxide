@@ -23,6 +23,3 @@ rand = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "test-util"] }
-
-[features]
-checkpoint = []
