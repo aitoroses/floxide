@@ -706,7 +706,7 @@ dependencies = [
 
 [[package]]
 name = "floxide"
-version = "3.0.2"
+version = "3.0.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -728,7 +728,7 @@ dependencies = [
 
 [[package]]
 name = "floxide-benches"
-version = "3.0.2"
+version = "3.0.4"
 dependencies = [
  "criterion",
  "floxide-core",
@@ -737,7 +737,7 @@ dependencies = [
 
 [[package]]
 name = "floxide-core"
-version = "3.0.2"
+version = "3.0.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -754,9 +754,10 @@ dependencies = [
 
 [[package]]
 name = "floxide-macros"
-version = "3.0.2"
+version = "3.0.4"
 dependencies = [
  "async-trait",
+ "floxide-core",
  "heck 0.4.1",
  "proc-macro2",
  "quote",
@@ -770,7 +771,7 @@ dependencies = [
 
 [[package]]
 name = "floxide-redis"
-version = "3.0.2"
+version = "3.0.4"
 dependencies = [
  "async-trait",
  "chrono",
