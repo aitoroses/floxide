@@ -9,7 +9,7 @@ description = "Redis implementation for Floxide distributed workflow system"
 publish = true
 
 [dependencies]
-floxide-core = { path = "../floxide-core", version = "=3.0.6" }
+floxide-core = { path = "../floxide-core", version = "=3.0.7" }
 async-trait = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
