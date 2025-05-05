@@ -23,6 +23,7 @@ uuid.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+floxide-macros-support = { path = "../floxide-macros-support" }
 
 [dev-dependencies]
 floxide = { path = "../.." }

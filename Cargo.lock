@@ -759,6 +759,7 @@ dependencies = [
  "async-trait",
  "floxide",
  "floxide-core",
+ "floxide-macros-support",
  "heck 0.4.1",
  "proc-macro2",
  "quote",
@@ -768,6 +769,13 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "floxide-macros-support"
+version = "3.1.0"
+dependencies = [
+ "syn 2.0.98",
 ]
 
 [[package]]
