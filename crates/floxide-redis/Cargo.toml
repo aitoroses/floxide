@@ -27,3 +27,4 @@ tokio = { workspace = true, features = ["full", "test-util"] }
 testcontainers = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 floxide-macros = { path = "../floxide-macros" }
+floxide = { path = "../.." }

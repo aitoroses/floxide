@@ -1,6 +1,8 @@
 // examples/distributed_orchestrated_merge_example.rs
 // Demonstrates distributed orchestration and worker pool with split/merge/hold using Floxide
 
+use floxide::distributed::event_log::EventLog;
+use floxide::*;
 use floxide::{
     distributed::{
         InMemoryContextStore, InMemoryErrorStore, InMemoryLivenessStore, InMemoryMetricsStore,
@@ -9,8 +11,6 @@ use floxide::{
     },
     merge::Fixed,
 };
-use floxide_core::distributed::event_log::EventLog;
-use floxide_core::*;
 use floxide_macros::{node, workflow, Merge};
 use serde::{Deserialize, Serialize};
 use tokio::time::error::Elapsed;

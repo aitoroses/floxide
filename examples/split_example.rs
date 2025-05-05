@@ -2,8 +2,8 @@
 // Demonstrates using a custom SplitNode to fan out inputs to multiple parallel nodes.
 
 use async_trait::async_trait;
-use floxide_core::{FloxideError, Node, SplitNode, Transition, Workflow, WorkflowCtx};
-use floxide_macros::workflow;
+use floxide::workflow;
+use floxide::{FloxideError, Node, SplitNode, Transition, Workflow, WorkflowCtx};
 
 /// A simple node that prints its input.
 #[derive(Clone, Debug)]

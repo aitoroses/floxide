@@ -1,7 +1,5 @@
 //! Example demonstrating in-memory checkpointing and resume
-use floxide::checkpoint::InMemoryCheckpointStore;
-use floxide_core::{FloxideError, Node, Transition, Workflow, WorkflowCtx};
-use floxide_macros::{node, workflow};
+use floxide::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 use std::sync::{Arc, LazyLock, Mutex};

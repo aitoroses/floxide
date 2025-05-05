@@ -99,7 +99,7 @@ pub fn node(item: TokenStream) -> TokenStream {
     let expanded = quote! {
         #struct_def
         #[::async_trait::async_trait]
-        impl ::floxide_core::node::Node<#ctx_ty> for #name
+        impl ::floxide::Node<#ctx_ty> for #name
         where
             #ctx_ty: Clone + Send + Sync
         {
@@ -110,7 +110,7 @@ pub fn node(item: TokenStream) -> TokenStream {
                 &self,
                 #ctx_arg: &#ctx_ty,
                 #input_arg: #input_ty
-            ) -> Result<::floxide_core::transition::Transition<#output_ty>, ::floxide_core::error::FloxideError>
+            ) -> Result<::floxide::Transition<#output_ty>, ::floxide::FloxideError>
             {
                 let #ctx_arg = #ctx_arg;
                 let #input_arg = #input_arg;

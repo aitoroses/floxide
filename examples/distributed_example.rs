@@ -137,12 +137,12 @@ Let us know if you want a diagram, code comments, or further breakdown of any pa
 //   - Log and checkpoint state after each node
 
 use async_trait::async_trait;
+use floxide::distributed::context_store::{ContextStore, InMemoryContextStore};
+use floxide::distributed::event_log::EventLog;
+use floxide::distributed::InMemoryWorkQueue;
 use floxide::distributed::{ItemProcessedOutcome, StepCallbacks};
-use floxide_core::distributed::context_store::{ContextStore, InMemoryContextStore};
-use floxide_core::distributed::event_log::EventLog;
-use floxide_core::distributed::InMemoryWorkQueue;
-use floxide_core::merge::Merge;
-use floxide_core::*;
+use floxide::merge::Merge;
+use floxide::*;
 use floxide_macros::workflow;
 use floxide_macros::Merge;
 use serde::{Deserialize, Serialize};

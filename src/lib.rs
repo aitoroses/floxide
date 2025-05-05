@@ -75,12 +75,6 @@
 //!
 //! For full examples and advanced usage, see the `examples/` directory and the project documentation.
 //!
-//! ---
-//!
-//! ## Professional Support & Community
-//!
-//! Floxide is production-ready and actively maintained. For support, feature requests, or contributions, visit the repository or contact the maintainers.
-//!
 
 // Re-export the core module (always included)
 pub use ::floxide_macros::*;

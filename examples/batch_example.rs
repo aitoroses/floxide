@@ -2,8 +2,7 @@
 // Demonstrates batch processing with routing and the workflow macro
 
 use async_trait::async_trait;
-use floxide_core::*;
-use floxide_macros::workflow;
+use floxide::*;
 
 /// A simple node that multiplies its input by 2
 #[derive(Clone, Debug)]

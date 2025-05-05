@@ -4,8 +4,8 @@
 
 use floxide::{workflow, WorkflowCtx};
 // use async_trait::async_trait;
-use floxide_core::{error::FloxideError, source, transition::Transition, Node};
-use floxide_macros::node;
+use floxide::node;
+use floxide::{error::FloxideError, source, transition::Transition, Node};
 use tokio::time::{sleep, Duration};
 
 // A node that doubles its input.

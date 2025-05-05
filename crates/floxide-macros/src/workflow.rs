@@ -329,7 +329,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         let var_name = to_camel_case(&fld.to_string());
         let var_ident = format_ident!("{}", var_name);
         // Each variant carries a unique UUID string and the node input payload
-        quote! { #var_ident(String, <#ty as floxide_core::node::Node<#context>>::Input) }
+        quote! { #var_ident(String, <#ty as ::floxide::Node<#context>>::Input) }
     });
     // Collect variant idents for Display and WorkItem impl
     let work_variant_idents: Vec<_> = node_fields
@@ -363,7 +363,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         let wrapper = if let Some(pol) = retry {
             quote! {
                 // wrap the inner node with retry policy
-                let __node = floxide_core::with_retry(self.#fld.clone(), self.#pol.clone());
+                let __node = ::floxide::with_retry(self.#fld.clone(), self.#pol.clone());
             }
         } else {
             quote! {
@@ -653,7 +653,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
             }
         }
         // WorkItem impl uses the embedded UUID as the unique instance ID
-        impl floxide_core::workflow::WorkItem for #work_item_ident {
+        impl ::floxide::WorkItem for #work_item_ident {
             fn instance_id(&self) -> String {
                 match self {
                     #(
@@ -672,9 +672,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         }
 
         #[async_trait::async_trait]
-        impl #impl_generics floxide_core::workflow::Workflow<#context> for #name #ty_generics #where_clause {
-            type Input = <#start_ty as floxide_core::node::Node<#context>>::Input;
-            type Output = <#terminal_ty as floxide_core::node::Node<#context>>::Output;
+        impl #impl_generics ::floxide::Workflow<#context> for #name #ty_generics #where_clause {
+            type Input = <#start_ty as ::floxide::Node<#context>>::Input;
+            type Output = <#terminal_ty as ::floxide::Node<#context>>::Output;
             type WorkItem = #work_item_ident;
 
             fn name(&self) -> &'static str {
@@ -690,10 +690,10 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
             async fn process_work_item<'a>(
                 &'a self,
-                ctx: &'a floxide_core::WorkflowCtx<#context>,
+                ctx: &'a ::floxide::WorkflowCtx<#context>,
                 item: Self::WorkItem,
                 __q: &mut std::collections::VecDeque<Self::WorkItem>
-            ) -> Result<Option<Self::Output>, floxide_core::error::FloxideError>
+            ) -> Result<Option<Self::Output>, ::floxide::FloxideError>
             {
                 match item {
                     #(

@@ -2,8 +2,7 @@
 // Demonstrates workflow-level error fallback using the `on_failure` clause in edges.
 
 use async_trait::async_trait;
-use floxide_core::*;
-use floxide_macros::workflow;
+use floxide::*;
 
 /// A node that always returns an error
 #[derive(Clone, Debug)]

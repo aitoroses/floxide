@@ -2,11 +2,11 @@ use std::fmt::{Debug, Display};
 
 use async_trait::async_trait;
 // Demonstrates workflow! macro with generic node types
+use floxide::error::FloxideError;
+use floxide::transition::Transition;
+use floxide::Node;
+use floxide::WorkflowCtx;
 use floxide::{workflow, Workflow};
-use floxide_core::error::FloxideError;
-use floxide_core::node::Node;
-use floxide_core::transition::Transition;
-use floxide_core::WorkflowCtx;
 
 // A generic FooNode<T>
 #[derive(Debug, Clone)]

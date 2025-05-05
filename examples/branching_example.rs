@@ -1,7 +1,6 @@
 // examples/minimal_example_macro.rs
 use async_trait::async_trait;
-use floxide_core::*;
-use floxide_macros::workflow;
+use floxide::*;
 use serde::{Deserialize, Serialize};
 /// Context type for the workflow
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]

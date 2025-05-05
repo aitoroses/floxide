@@ -1,8 +1,7 @@
 // examples/node_macro_example.rs
 // Demonstrates the `node!` macro: struct fields, custom context, input/output, and workflow usage.
 
-use floxide_core::{transition::Transition, Node, Workflow, WorkflowCtx};
-use floxide_macros::{node, workflow};
+use floxide::{node, transition::Transition, workflow, Node, Workflow, WorkflowCtx};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

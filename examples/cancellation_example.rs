@@ -2,8 +2,7 @@
 // Demonstrates workflow cancellation: a long-running node will be aborted when its cancellation token is triggered.
 
 use async_trait::async_trait;
-use floxide_core::*;
-use floxide_macros::workflow;
+use floxide::*;
 use std::time::Duration;
 use tokio::time::sleep;
 

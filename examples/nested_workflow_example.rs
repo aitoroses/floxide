@@ -2,8 +2,7 @@
 // Demonstrates nesting a workflow as a Node via a local CompositeNode in an example
 
 use async_trait::async_trait;
-use floxide_core::{CompositeNode, FloxideError, Node, Transition, Workflow, WorkflowCtx};
-use floxide_macros::workflow;
+use floxide::{workflow, CompositeNode, FloxideError, Node, Transition, Workflow, WorkflowCtx};
 
 /// A simple node that doubles its input
 #[derive(Clone, Debug)]

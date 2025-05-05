@@ -2,9 +2,9 @@
 // Demonstrates using a custom MergeNode to collect split outputs
 
 use async_trait::async_trait;
-use floxide::context::SharedState;
-use floxide_core::{FloxideError, Node, SplitNode, Transition, Workflow, WorkflowCtx};
-use floxide_macros::workflow;
+use floxide::{
+    workflow, FloxideError, Node, SharedState, SplitNode, Transition, Workflow, WorkflowCtx,
+};
 use serde::{Deserialize, Serialize};
 
 /// Context for MergeWorkflow: stores collected values and threshold

@@ -1,5 +1,6 @@
-use floxide_core::{node::Node, transition::Transition, Workflow};
-use floxide_macros::{node, workflow};
+use floxide::node;
+use floxide::workflow;
+use floxide::{node::Node, transition::Transition, Workflow};
 
 // A simple stub node that just passes through a value or fails once for retry demo
 // Define a printing node that finishes the workflow
