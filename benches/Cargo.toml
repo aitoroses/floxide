@@ -9,7 +9,7 @@ description = "Benchmarks for the floxide framework"
 publish = false
 
 [dependencies]
-floxide-core = { path = "../crates/floxide-core", version = "=3.0.8" }
+floxide-core = { path = "../crates/floxide-core", version = "=3.1.0" }
 tokio = { workspace = true }
 criterion = { version = "0.5.1", features = ["async_tokio"] }
 
