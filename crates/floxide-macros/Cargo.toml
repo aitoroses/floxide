@@ -27,3 +27,4 @@ floxide-macros-support = { path = "../floxide-macros-support" }
 
 [dev-dependencies]
 floxide = { path = "../.." }
+trybuild = "1.0.85"

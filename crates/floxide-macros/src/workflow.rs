@@ -2,9 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote};
 use syn::{
-    braced, bracketed,
-    parse::{Parse, ParseStream},
-    parse_macro_input, Generics, Ident, LitStr, Result, Token, Type, Visibility,
+    parse_macro_input, Ident, LitStr,
 };
 use floxide_macros_support::{WorkflowDef, EdgeKind, CompositeArm};
 
@@ -99,6 +97,35 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         let field_defs = fields.iter().map(|(fld, ty, _)| quote! { pub #fld: #ty });
         quote! { #vis struct #name #generics { #(#field_defs),* } }
     };
+
+    // Map node field name to the field type (not inner node type)
+    let mut node_field_types = std::collections::HashMap::new();
+    for (fld, ty, _) in &fields {
+        node_field_types.insert(fld.to_string(), ty.clone());
+    }
+    // For each direct edge, emit a type assertion comparing associated types
+    let mut type_asserts = Vec::new();
+    for (src, kind) in &edges {
+        match kind {
+            EdgeKind::Direct { succs, .. } => {
+                for succ in succs {
+                    let src_ty = node_field_types.get(&src.to_string());
+                    let dst_ty = node_field_types.get(&succ.to_string());
+                    if let (Some(src_ty), Some(dst_ty)) = (src_ty, dst_ty) {
+                        // Generate a type assertion: <Src as Node<Ctx>>::Output == <Dst as Node<Ctx>>::Input
+                        type_asserts.push(quote! {
+                            const _: fn() = || {
+                                // If this fails, the output type of the source node does not match the input type of the destination node.
+                                let _type_check: fn(<#src_ty as ::floxide::Node<#context>>::Output) -> <#dst_ty as ::floxide::Node<#context>>::Input = |x| x;
+                            };
+                        });
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    let type_errors = quote! { #(#type_asserts)* };
 
     // Generate run method arms for each field
     // We collect into a Vec so we can reuse in multiple generated methods
@@ -471,7 +498,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
     // Assemble the expanded code
     let expanded = quote! {
-
+        #type_errors
         #[derive(Debug, Clone)]
         #struct_def
 

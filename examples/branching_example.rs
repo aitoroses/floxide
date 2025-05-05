@@ -96,7 +96,7 @@ workflow! {
     edges {
         foo => {
             FooAction::Above(_) => [ big ];
-            FooAction::Below => [ small ];
+            FooAction::Below(_) => [ small ];
         };
         big => {};
         small => {};

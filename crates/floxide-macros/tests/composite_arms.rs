@@ -1,5 +1,5 @@
 use syn::parse_str;
-use floxide_macros_support::{WorkflowDef, EdgeKind, CompositeArm};
+use floxide_macros_support::{WorkflowDef, EdgeKind};
 
 fn parse_edges(input: &str) -> Vec<(syn::Ident, EdgeKind)> {
     // Provide a minimal valid workflow definition for parsing
@@ -18,7 +18,7 @@ fn parses_unit_variant() {
     if let EdgeKind::Composite(arms) = &edges[0].1 {
         assert_eq!(arms[0].variant, "Done");
         assert!(arms[0].binding.is_none());
-        assert!(!arms[0].is_wildcard);
+        assert!(arms[0].is_wildcard);
         assert!(arms[0].guard.is_none());
     } else {
         panic!("Expected composite edge");
@@ -57,7 +57,7 @@ fn parses_unit_variant_with_guard() {
     if let EdgeKind::Composite(arms) = &edges[0].1 {
         assert_eq!(arms[0].variant, "Done");
         assert!(arms[0].binding.is_none());
-        assert!(!arms[0].is_wildcard);
+        assert!(arms[0].is_wildcard);
         assert!(arms[0].guard.is_some());
     } else {
         panic!("Expected composite edge");

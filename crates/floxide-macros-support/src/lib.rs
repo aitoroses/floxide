@@ -210,8 +210,9 @@ impl Parse for WorkflowDef {
                                                 return Err(inner.error("Expected identifier or _ in variant binding"));
                                             }
                                         } else {
-                                            // No parens: treat as wildcard for tuple variant
+                                            // No parens: always treat as wildcard for macro ergonomics
                                             is_wildcard = true;
+                                            binding = None;
                                         }
                                         // Optional guard
                                         let guard = if nested.peek(Token![if]) {
