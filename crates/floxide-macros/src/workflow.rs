@@ -104,41 +104,38 @@ pub fn workflow(item: TokenStream) -> TokenStream {
     // For each direct edge, emit a type assertion comparing associated types
     let mut type_asserts = Vec::new();
     for (src, kind) in &edges {
-        match kind {
-            EdgeKind::Direct { succs, .. } => {
-                for succ in succs {
-                    let src_ty = node_field_types.get(&src.to_string());
-                    let dst_ty = node_field_types.get(&succ.to_string());
-                    if let (Some(src_ty), Some(dst_ty)) = (src_ty, dst_ty) {
-                        // Generate a compile-time trait-based assertion so errors mention the node names
-                        // Generate CamelCase identifiers for trait to satisfy Rust naming conventions
-                        let src_camel = to_camel_case(&src.to_string());
-                        let dst_camel = to_camel_case(&succ.to_string());
-                        let trait_ident =
-                            format_ident!("AssertOutputOf{}MatchesInputOf{}", src_camel, dst_camel);
-                        let fn_ident = format_ident!("assert_equal_{}_to_{}", src, succ);
-                        type_asserts.push(quote! {
-                            #[doc(hidden)]
-                            pub trait #trait_ident<L, R> {}
-                            #[doc(hidden)]
-                            impl<T> #trait_ident<T, T> for () {}
-                            const _: () = {
-                            #[allow(dead_code)]
-                            #[doc(hidden)]
-                            const fn #fn_ident<__Left, __Right>()
-                                where
-                                    (): #trait_ident<__Left, __Right>,
-                                {}
-                                #fn_ident::<
-                                    <#src_ty as ::floxide::Node<#context>>::Output,
-                                    <#dst_ty as ::floxide::Node<#context>>::Input
-                                >();
-                            };
-                        });
-                    }
+        if let EdgeKind::Direct { succs, .. } = kind {
+            for succ in succs {
+                let src_ty = node_field_types.get(&src.to_string());
+                let dst_ty = node_field_types.get(&succ.to_string());
+                if let (Some(src_ty), Some(dst_ty)) = (src_ty, dst_ty) {
+                    // Generate a compile-time trait-based assertion so errors mention the node names
+                    // Generate CamelCase identifiers for trait to satisfy Rust naming conventions
+                    let src_camel = to_camel_case(&src.to_string());
+                    let dst_camel = to_camel_case(&succ.to_string());
+                    let trait_ident =
+                        format_ident!("AssertOutputOf{}MatchesInputOf{}", src_camel, dst_camel);
+                    let fn_ident = format_ident!("assert_equal_{}_to_{}", src, succ);
+                    type_asserts.push(quote! {
+                        #[doc(hidden)]
+                        pub trait #trait_ident<L, R> {}
+                        #[doc(hidden)]
+                        impl<T> #trait_ident<T, T> for () {}
+                        const _: () = {
+                        #[allow(dead_code)]
+                        #[doc(hidden)]
+                        const fn #fn_ident<__Left, __Right>()
+                            where
+                                (): #trait_ident<__Left, __Right>,
+                            {}
+                            #fn_ident::<
+                                <#src_ty as ::floxide::Node<#context>>::Output,
+                                <#dst_ty as ::floxide::Node<#context>>::Input
+                            >();
+                        };
+                    });
                 }
             }
-            _ => {}
         }
     }
     let type_errors = quote! { #(#type_asserts)* };
@@ -263,12 +260,10 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         } else {
                             quote! { #action_path :: #variant ( #binding ) }
                         }
+                    } else if let Some(guard) = &guard {
+                        quote! { #action_path :: #variant if #guard }
                     } else {
-                        if let Some(guard) = &guard {
-                            quote! { #action_path :: #variant if #guard }
-                        } else {
-                            quote! { #action_path :: #variant }
-                        }
+                        quote! { #action_path :: #variant }
                     };
                     // Debug log removed: generated match pattern
                     let body = if succs.is_empty() {
