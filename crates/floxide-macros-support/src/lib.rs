@@ -176,10 +176,14 @@ impl Parse for WorkflowDef {
                                 edges_content.parse::<Token![;]>()?;
                                 direct_success.insert(src.clone(), succs);
                             } else if edges_content.peek(syn::token::Brace) {
-                                // composite or legacy direct edge: foo => { ... };
+                                // direct or composite edge: foo => { ... };
                                 let nested;
                                 braced!(nested in edges_content);
-                                if nested.peek(syn::token::Bracket) {
+                                // Empty braces => direct edge with no successors
+                                if nested.is_empty() {
+                                    edges_content.parse::<Token![;]>()?;
+                                    direct_success.insert(src.clone(), Vec::new());
+                                } else if nested.peek(syn::token::Bracket) {
                                     // legacy: foo => {[bar]};
                                     let succs_content;
                                     bracketed!(succs_content in nested);
@@ -229,16 +233,20 @@ impl Parse for WorkflowDef {
                                             .into_iter()
                                             .collect();
                                         nested.parse::<Token![;]>()?;
-                                        arms.push(CompositeArm {
-                                            action_path,
-                                            variant,
-                                            binding,
+                                        let arm = CompositeArm {
+                                            action_path: action_path.clone(),
+                                            variant: variant.clone(),
+                                            binding: binding.clone(),
                                             is_wildcard,
-                                            guard,
-                                            succs,
-                                        });
+                                            guard: guard.clone(),
+                                            succs: succs.clone(),
+                                        };
+                                        // Debug log removed: parsed arm
+                                        arms.push(arm);
                                     }
                                     edges_content.parse::<Token![;]>()?;
+                                    // After parsing all arms for a composite edge, print them for debugging
+                                    // Debug log removed: parsed composite arms for source
                                     composite_map.insert(src.clone(), arms);
                                 }
                             } else {

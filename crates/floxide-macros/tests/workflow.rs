@@ -110,7 +110,7 @@ workflow! {
         multiply => { [ branch ] };
         branch => {
             BatchAction::Large(_) => [ large ];
-            BatchAction::Small => [ small ];
+            BatchAction::Small(_) => [ small ];
         };
         large => {};
         small => {};

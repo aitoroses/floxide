@@ -232,184 +232,112 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 }
             }
             EdgeKind::Composite(composite) => {
-                if composite.is_empty() {
-                    // terminal composite branch: return the output value as Ok(Some(action))
-                        quote! {
-                        #wrapper
-                        let __store = &ctx.store;
-                        let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
-                        let _node_enter = node_span.enter();
-                        tracing::debug!(store = ?ctx.store, ?input, "Node input and store");
-                        match ctx.run_future(__node.process(__store, input.clone())).await? {
-                            // Hold: pause without emitting successors
-                            Transition::Hold => {
-                                tracing::debug!("Node produced Transition::Hold");
+                let arm_tokens: Vec<proc_macro2::TokenStream> = composite.iter().map(|arm| {
+                    let CompositeArm { action_path, variant, binding, is_wildcard, guard, succs } = arm;
+                    let pat = if *is_wildcard {
+                        let wildcard_ident = format_ident!("__wildcard_binding");
+                        if let Some(guard) = &guard {
+                            quote! { #action_path :: #variant ( #wildcard_ident ) if #guard }
+                        } else {
+                            quote! { #action_path :: #variant ( #wildcard_ident ) }
+                        }
+                    } else if let Some(binding) = &binding {
+                        if let Some(guard) = &guard {
+                            quote! { #action_path :: #variant ( #binding ) if #guard }
+                        } else {
+                            quote! { #action_path :: #variant ( #binding ) }
+                        }
+                    } else {
+                        if let Some(guard) = &guard {
+                            quote! { #action_path :: #variant if #guard }
+                        } else {
+                            quote! { #action_path :: #variant }
+                        }
+                    };
+                    // Debug log removed: generated match pattern
+                    let body = if succs.is_empty() {
+                        if *is_wildcard {
+                            let wildcard_ident = format_ident!("__wildcard_binding");
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), value = ?#wildcard_ident, "Composite arm: terminal variant (wildcard)");
+                                return Ok(Some(#wildcard_ident));
+                            }
+                        } else if let Some(binding) = &binding {
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: terminal variant");
+                                return Ok(Some(#binding));
+                            }
+                        } else {
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), "Composite arm: terminal variant (unit)");
+                                return Ok(Some(()));
+                            }
+                        }
+                    } else {
+                        let succ_pushes = if *is_wildcard {
+                            let wildcard_ident = format_ident!("__wildcard_binding");
+                            succs.iter().map(|succ| {
+                                let var_name = to_camel_case(&succ.to_string());
+                                let succ_var = format_ident!("{}", var_name);
+                                quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), #wildcard_ident)); }
+                            }).collect::<Vec<_>>()
+                        } else if let Some(binding) = &binding {
+                            succs.iter().map(|succ| {
+                                let var_name = to_camel_case(&succ.to_string());
+                                let succ_var = format_ident!("{}", var_name);
+                                quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), #binding)); }
+                            }).collect::<Vec<_>>()
+                        } else {
+                            succs.iter().map(|succ| {
+                                let var_name = to_camel_case(&succ.to_string());
+                                let succ_var = format_ident!("{}", var_name);
+                                quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), Default::default())); }
+                            }).collect::<Vec<_>>()
+                        };
+                        if *is_wildcard {
+                            let wildcard_ident = format_ident!("__wildcard_binding");
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), value = ?#wildcard_ident, "Composite arm: scheduling successors (wildcard)");
+                                #(#succ_pushes)*
                                 return Ok(None);
                             }
-                            Transition::Next(action) => {
-                                tracing::debug!(?action, "Node produced Transition::Next (terminal composite)");
-                                return Ok(Some(action));
-                            }
-                            Transition::Abort(e) => {
-                                tracing::warn!(error = ?e, "Node produced Transition::Abort (terminal composite)");
-                                return Err(e);
-                            }
-                            Transition::NextAll(_) => unreachable!("Unexpected Transition::NextAll in terminal composite node"),
-                        }
-                    }
-                } else {
-                    // composite edges: pattern-based
-                    let pats_terminal = composite.iter().filter_map(|arm| {
-                        let CompositeArm { action_path, variant, binding, is_wildcard, guard, succs } = arm;
-                        if succs.is_empty() {
-                            let pat = if *is_wildcard {
-                                let wildcard_ident = format_ident!("__wildcard_binding");
-                                if let Some(guard) = &guard {
-                                    quote! { #action_path :: #variant ( #wildcard_ident ) if #guard }
-                                } else {
-                                    quote! { #action_path :: #variant ( #wildcard_ident ) }
-                                }
-                            } else if let Some(binding) = &binding {
-                                if let Some(guard) = &guard {
-                                    quote! { #action_path :: #variant ( #binding ) if #guard }
-                                } else {
-                                    quote! { #action_path :: #variant ( #binding ) }
-                                }
-                            } else {
-                                if let Some(guard) = &guard {
-                                    quote! { #action_path :: #variant if #guard }
-                                } else {
-                                    quote! { #action_path :: #variant }
-                                }
-                            };
-                            Some(if *is_wildcard {
-                                let wildcard_ident = format_ident!("__wildcard_binding");
-                                quote! {
-                                    #pat => {
-                                        tracing::debug!(variant = stringify!(#variant), value = ?#wildcard_ident, "Composite arm: terminal variant (wildcard)");
-                                        return Ok(Some(#wildcard_ident));
-                                    }
-                                }
-                            } else if let Some(binding) = &binding {
-                                quote! {
-                                    #pat => {
-                                        tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: terminal variant");
-                                        return Ok(Some(#binding));
-                                    }
-                                }
-                            } else {
-                                quote! {
-                                    #pat => {
-                                        tracing::debug!(variant = stringify!(#variant), "Composite arm: terminal variant (unit)");
-                                        return Ok(Some(()));
-                                    }
-                                }
-                            })
-                        } else {
-                            None
-                        }
-                    });
-                    let pats_non_terminal = composite.iter().filter_map(|arm| {
-                        let CompositeArm { action_path, variant, binding, is_wildcard, guard, succs } = arm;
-                        if !succs.is_empty() {
-                            let pat = if *is_wildcard {
-                                let wildcard_ident = format_ident!("__wildcard_binding");
-                                if let Some(guard) = &guard {
-                                    quote! { #action_path :: #variant ( #wildcard_ident ) if #guard }
-                                } else {
-                                    quote! { #action_path :: #variant ( #wildcard_ident ) }
-                                }
-                            } else if let Some(binding) = &binding {
-                                if let Some(guard) = &guard {
-                                    quote! { #action_path :: #variant ( #binding ) if #guard }
-                                } else {
-                                    quote! { #action_path :: #variant ( #binding ) }
-                                }
-                            } else {
-                                if let Some(guard) = &guard {
-                                    quote! { #action_path :: #variant if #guard }
-                                } else {
-                                    quote! { #action_path :: #variant }
-                                }
-                            };
-                            let succ_pushes = if *is_wildcard {
-                                let wildcard_ident = format_ident!("__wildcard_binding");
-                                succs.iter().map(|succ| {
-                                    let var_name = to_camel_case(&succ.to_string());
-                                    let succ_var = format_ident!("{}", var_name);
-                                    quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), #wildcard_ident)); }
-                                }).collect::<Vec<_>>()
-                            } else if let Some(binding) = &binding {
-                                succs.iter().map(|succ| {
-                                    let var_name = to_camel_case(&succ.to_string());
-                                    let succ_var = format_ident!("{}", var_name);
-                                    quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), #binding)); }
-                                }).collect::<Vec<_>>()
-                            } else {
-                                succs.iter().map(|succ| {
-                                    let var_name = to_camel_case(&succ.to_string());
-                                    let succ_var = format_ident!("{}", var_name);
-                                    quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), Default::default())); }
-                                }).collect::<Vec<_>>()
-                            };
-                            Some(if *is_wildcard {
-                                let wildcard_ident = format_ident!("__wildcard_binding");
-                                quote! {
-                                    #pat => {
-                                        tracing::debug!(variant = stringify!(#variant), value = ?#wildcard_ident, "Composite arm: scheduling successors (wildcard)");
-                                        #(#succ_pushes)*
-                                        return Ok(None);
-                                    }
-                                }
-                            } else if let Some(binding) = &binding {
-                                quote! {
-                                    #pat => {
-                                        tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: scheduling successors");
-                                        #(#succ_pushes)*
-                                        return Ok(None);
-                                    }
-                                }
-                            } else {
-                                quote! {
-                                    #pat => {
-                                        tracing::debug!(variant = stringify!(#variant), "Composite arm: scheduling successors (unit)");
-                                        #(#succ_pushes)*
-                                        return Ok(None);
-                                    }
-                                }
-                            })
-                        } else {
-                            None
-                        }
-                    });
-                    quote! {
-                        #wrapper
-                        let __store = &ctx.store;
-                        let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
-                        let _node_enter = node_span.enter();
-                        tracing::debug!(store = ?ctx.store, ?input, "Node input and store");
-                        match ctx.run_future(__node.process(__store, input.clone())).await? {
-                            Transition::Hold => {
-                                tracing::debug!("Node produced Transition::Hold");
+                        } else if let Some(binding) = &binding {
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: scheduling successors");
+                                #(#succ_pushes)*
                                 return Ok(None);
                             }
-                            Transition::Next(action) => {
-                                tracing::debug!(?action, "Node produced Transition::Next (composite)");
-                                match action {
-                                    #(#pats_terminal)*
-                                    #(#pats_non_terminal)*
-                                    _ => {
-                                        tracing::warn!("Composite arm: unmatched variant");
-                                        return Ok(None);
-                                    }
-                                }
+                        } else {
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), "Composite arm: scheduling successors (unit)");
+                                #(#succ_pushes)*
+                                return Ok(None);
                             }
-                            Transition::Abort(e) => {
-                                tracing::warn!(error = ?e, "Node produced Transition::Abort (composite)");
-                                return Err(e);
-                            }
-                            Transition::NextAll(_) => unreachable!("Unexpected Transition::NextAll in composite node"),
                         }
+                    };
+                    quote! { #pat => { #body } }
+                }).collect();
+                quote! {
+                    #wrapper
+                    let __store = &ctx.store;
+                    let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
+                    let _node_enter = node_span.enter();
+                    tracing::debug!(store = ?ctx.store, ?input, "Node input and store");
+                    match ctx.run_future(__node.process(__store, input.clone())).await? {
+                        Transition::Hold => {
+                            tracing::debug!("Node produced Transition::Hold");
+                            return Ok(None);
+                        }
+                        Transition::Next(action) => {
+                            match action {
+                                #(#arm_tokens)*
+                            }
+                        }
+                        Transition::Abort(e) => {
+                            tracing::warn!(error = ?e, "Node produced Transition::Abort (composite)");
+                            return Err(e);
+                        }
+                        Transition::NextAll(_) => unreachable!("Unexpected Transition::NextAll in composite node"),
                     }
                 }
             }
