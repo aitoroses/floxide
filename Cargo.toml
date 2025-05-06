@@ -2,8 +2,9 @@
 members = [
     "crates/floxide-core",
     "crates/floxide-macros",
+    "crates/floxide-macros-support",
     "crates/floxide-redis",
-    "benches",
+    "benches", 
 ]
 resolver = "2"
 

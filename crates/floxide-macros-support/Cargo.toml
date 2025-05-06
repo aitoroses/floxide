@@ -1,0 +1,16 @@
+[package]
+name = "floxide-macros-support"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+description.workspace = true
+keywords.workspace = true
+categories.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+
+[dependencies]
+syn = { version = "2", features = ["full", "parsing"] }

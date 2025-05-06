@@ -1,261 +1,8 @@
+use floxide_macros_support::{CompositeArm, EdgeKind, WorkflowDef};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote};
-use syn::{
-    braced, bracketed,
-    parse::{Parse, ParseStream},
-    parse_macro_input, Generics, Ident, LitStr, Result, Token, Type, Visibility,
-};
-
-/// AST for struct-based workflow: struct fields, start field, and per-node edges
-// Internal representation of a composite edge arm: matches Output enum variant
-struct CompositeArm {
-    action_path: Ident,
-    variant: Ident,
-    binding: Ident,
-    succs: Vec<Ident>,
-}
-// AST for struct-based workflow: struct fields, start field, and routing edges
-enum EdgeKind {
-    /// Direct edges: list of successor nodes on success, optional fallback on failure
-    Direct {
-        succs: Vec<Ident>,
-        on_failure: Option<Vec<Ident>>,
-    },
-    /// Composite edges: match on enum variants
-    Composite(Vec<CompositeArm>),
-}
-struct WorkflowDef {
-    vis: Visibility,
-    name: Ident,
-    generics: Generics,
-    /// Workflow fields: (name, type, optional retry-policy variable)
-    fields: Vec<(Ident, Type, Option<Ident>)>,
-    start: Ident,
-    context: Type,
-    // for each source field, direct successors or composite arms
-    edges: Vec<(Ident, EdgeKind)>,
-}
-
-impl Parse for WorkflowDef {
-    fn parse(input: ParseStream) -> Result<Self> {
-        // parse optional visibility
-        let vis: Visibility = if input.peek(Token![pub]) {
-            input.parse()? // pub or pub(...) etc
-        } else {
-            Visibility::Inherited
-        };
-        // parse struct definition
-        input.parse::<Token![struct]>()?;
-        let name: Ident = input.parse()?;
-        let generics: Generics = input.parse()?;
-        // parse struct fields
-        let content;
-        braced!(content in input);
-        let mut fields = Vec::new();
-        while !content.is_empty() {
-            // Optional retry annotation: #[retry = policy]
-            let mut retry_policy: Option<Ident> = None;
-            if content.peek(Token![#]) {
-                content.parse::<Token![#]>()?;
-                let inner;
-                bracketed!(inner in content);
-                let attr_name: Ident = inner.parse()?;
-                if attr_name == "retry" {
-                    inner.parse::<Token![=]>()?;
-                    let pol: Ident = inner.parse()?;
-                    retry_policy = Some(pol);
-                } else {
-                    return Err(inner.error("unknown attribute, expected `retry`"));
-                }
-            }
-            // Field name and type
-            let fld: Ident = content.parse()?;
-            content.parse::<Token![:]>()?;
-            let ty: Type = content.parse()?;
-            if content.peek(Token![,]) {
-                content.parse::<Token![,]>()?;
-            }
-            fields.push((fld, ty, retry_policy));
-        }
-        // Now parse the rest in any order: start, context, edges
-        let mut start: Option<Ident> = None;
-        let mut context: Option<Type> = None;
-        let mut edges: Option<Vec<(Ident, EdgeKind)>> = None;
-        let mut seen = std::collections::HashSet::new();
-        while !input.is_empty() {
-            if input.peek(Ident) {
-                let fork = input.fork();
-                let kw = fork.parse::<Ident>()?;
-                match kw.to_string().as_str() {
-                    "start" => {
-                        if seen.contains("start") {
-                            return Err(
-                                input.error("Duplicate 'start' field in workflow definition.")
-                            );
-                        }
-                        input.parse::<Ident>()?; // start
-                        input.parse::<Token![=]>()?;
-                        let s: Ident = input.parse()?;
-                        input.parse::<Token![;]>()?;
-                        start = Some(s);
-                        seen.insert("start");
-                    }
-                    "context" => {
-                        if seen.contains("context") {
-                            return Err(
-                                input.error("Duplicate 'context' field in workflow definition.")
-                            );
-                        }
-                        input.parse::<Ident>()?; // context
-                        input.parse::<Token![=]>()?;
-                        let ty: Type = input.parse()?;
-                        input.parse::<Token![;]>()?;
-                        context = Some(ty);
-                        seen.insert("context");
-                    }
-                    "edges" => {
-                        if seen.contains("edges") {
-                            return Err(
-                                input.error("Duplicate 'edges' field in workflow definition.")
-                            );
-                        }
-                        input.parse::<Ident>()?; // edges
-                        let edges_content;
-                        braced!(edges_content in input);
-                        // Collect direct-success, direct-failure, and composite arms
-                        let mut direct_success =
-                            std::collections::HashMap::<Ident, Vec<Ident>>::new();
-                        let mut direct_failure =
-                            std::collections::HashMap::<Ident, Vec<Ident>>::new();
-                        let mut composite_map =
-                            std::collections::HashMap::<Ident, Vec<CompositeArm>>::new();
-                        while !edges_content.is_empty() {
-                            let src: Ident = edges_content.parse()?;
-                            if edges_content.peek(Ident) {
-                                // on_failure clause
-                                let kw: Ident = edges_content.parse()?;
-                                if kw == "on_failure" {
-                                    edges_content.parse::<Token![=>]>()?;
-                                    let nested;
-                                    braced!(nested in edges_content);
-                                    // expect bracketed fallback list
-                                    let succs_content;
-                                    bracketed!(succs_content in nested);
-                                    let fails: Vec<Ident> = succs_content
-                                        .parse_terminated(Ident::parse, Token![,])?
-                                        .into_iter()
-                                        .collect();
-                                    edges_content.parse::<Token![;]>()?;
-                                    direct_failure.insert(src.clone(), fails);
-                                    continue;
-                                } else {
-                                    return Err(edges_content.error(
-                                        "Unexpected identifier. Expected `on_failure` or `=>`.",
-                                    ));
-                                }
-                            }
-                            // success or composite entry
-                            edges_content.parse::<Token![=>]>()?;
-                            let nested;
-                            braced!(nested in edges_content);
-                            if nested.peek(syn::token::Bracket) {
-                                // direct successors
-                                let succs_content;
-                                bracketed!(succs_content in nested);
-                                let succs: Vec<Ident> = succs_content
-                                    .parse_terminated(Ident::parse, Token![,])?
-                                    .into_iter()
-                                    .collect();
-                                edges_content.parse::<Token![;]>()?;
-                                direct_success.insert(src.clone(), succs);
-                            } else {
-                                // composite arms
-                                let mut arms = Vec::new();
-                                while !nested.is_empty() {
-                                    let action_path: Ident = nested.parse()?;
-                                    nested.parse::<Token![::]>()?;
-                                    let variant: Ident = nested.parse()?;
-                                    let inner;
-                                    syn::parenthesized!(inner in nested);
-                                    let binding: Ident = inner.parse()?;
-                                    nested.parse::<Token![=>]>()?;
-                                    let succs_content;
-                                    bracketed!(succs_content in nested);
-                                    let succs: Vec<Ident> = succs_content
-                                        .parse_terminated(Ident::parse, Token![,])?
-                                        .into_iter()
-                                        .collect();
-                                    nested.parse::<Token![;]>()?;
-                                    arms.push(CompositeArm {
-                                        action_path,
-                                        variant,
-                                        binding,
-                                        succs,
-                                    });
-                                }
-                                edges_content.parse::<Token![;]>()?;
-                                composite_map.insert(src.clone(), arms);
-                            }
-                        }
-                        // Merge into final edges vector
-                        let mut edges_vec = Vec::new();
-                        // direct-success entries
-                        for (src, succs) in direct_success.into_iter() {
-                            let failure = direct_failure.remove(&src);
-                            edges_vec.push((
-                                src,
-                                EdgeKind::Direct {
-                                    succs,
-                                    on_failure: failure,
-                                },
-                            ));
-                        }
-                        // direct-failure-only entries
-                        for (src, fails) in direct_failure.into_iter() {
-                            edges_vec.push((
-                                src,
-                                EdgeKind::Direct {
-                                    succs: Vec::new(),
-                                    on_failure: Some(fails),
-                                },
-                            ));
-                        }
-                        // composite entries
-                        for (src, arms) in composite_map.into_iter() {
-                            edges_vec.push((src, EdgeKind::Composite(arms)));
-                        }
-                        edges = Some(edges_vec);
-                        seen.insert("edges");
-                    }
-                    other => {
-                        return Err(input.error(format!(
-                            "Unexpected identifier '{}'. Expected one of: start, context, edges.",
-                            other
-                        )));
-                    }
-                }
-            } else {
-                return Err(input.error("Unexpected token in workflow definition. Expected 'start', 'context', or 'edges'."));
-            }
-        }
-        // Check required fields
-        let start = start
-            .ok_or_else(|| input.error("Missing required 'start' field in workflow definition."))?;
-        let context = context.unwrap_or_else(|| syn::parse_quote! { () });
-        let edges = edges
-            .ok_or_else(|| input.error("Missing required 'edges' field in workflow definition."))?;
-        Ok(WorkflowDef {
-            vis,
-            name,
-            generics,
-            fields,
-            start,
-            context,
-            edges,
-        })
-    }
-}
+use syn::{parse_macro_input, Ident, LitStr};
 
 pub fn workflow(item: TokenStream) -> TokenStream {
     // parse the struct-based workflow definition
@@ -348,6 +95,50 @@ pub fn workflow(item: TokenStream) -> TokenStream {
         let field_defs = fields.iter().map(|(fld, ty, _)| quote! { pub #fld: #ty });
         quote! { #vis struct #name #generics { #(#field_defs),* } }
     };
+
+    // Map node field name to the field type (not inner node type)
+    let mut node_field_types = std::collections::HashMap::new();
+    for (fld, ty, _) in &fields {
+        node_field_types.insert(fld.to_string(), ty.clone());
+    }
+    // For each direct edge, emit a type assertion comparing associated types
+    let mut type_asserts = Vec::new();
+    for (src, kind) in &edges {
+        if let EdgeKind::Direct { succs, .. } = kind {
+            for succ in succs {
+                let src_ty = node_field_types.get(&src.to_string());
+                let dst_ty = node_field_types.get(&succ.to_string());
+                if let (Some(src_ty), Some(dst_ty)) = (src_ty, dst_ty) {
+                    // Generate a compile-time trait-based assertion so errors mention the node names
+                    // Generate CamelCase identifiers for trait to satisfy Rust naming conventions
+                    let src_camel = to_camel_case(&src.to_string());
+                    let dst_camel = to_camel_case(&succ.to_string());
+                    let trait_ident =
+                        format_ident!("AssertOutputOf{}MatchesInputOf{}", src_camel, dst_camel);
+                    let fn_ident = format_ident!("assert_equal_{}_to_{}", src, succ);
+                    type_asserts.push(quote! {
+                        #[doc(hidden)]
+                        pub trait #trait_ident<L, R> {}
+                        #[doc(hidden)]
+                        impl<T> #trait_ident<T, T> for () {}
+                        const _: () = {
+                        #[allow(dead_code)]
+                        #[doc(hidden)]
+                        const fn #fn_ident<__Left, __Right>()
+                            where
+                                (): #trait_ident<__Left, __Right>,
+                            {}
+                            #fn_ident::<
+                                <#src_ty as ::floxide::Node<#context>>::Output,
+                                <#dst_ty as ::floxide::Node<#context>>::Input
+                            >();
+                        };
+                    });
+                }
+            }
+        }
+    }
+    let type_errors = quote! { #(#type_asserts)* };
 
     // Generate run method arms for each field
     // We collect into a Vec so we can reuse in multiple generated methods
@@ -454,95 +245,110 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                 }
             }
             EdgeKind::Composite(composite) => {
-                if composite.is_empty() {
-                    // terminal composite branch: return the output value as Ok(Some(action))
-                        quote! {
-                        #wrapper
-                        let __store = &ctx.store;
-                        let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
-                        let _node_enter = node_span.enter();
-                        tracing::debug!(store = ?ctx.store, ?input, "Node input and store");
-                        match ctx.run_future(__node.process(__store, input.clone())).await? {
-                            // Hold: pause without emitting successors
-                            Transition::Hold => {
-                                tracing::debug!("Node produced Transition::Hold");
-                                return Ok(None);
-                            }
-                            Transition::Next(action) => {
-                                tracing::debug!(?action, "Node produced Transition::Next (terminal composite)");
-                                return Ok(Some(action));
-                            }
-                            Transition::Abort(e) => {
-                                tracing::warn!(error = ?e, "Node produced Transition::Abort (terminal composite)");
-                                return Err(e);
-                            }
-                            Transition::NextAll(_) => unreachable!("Unexpected Transition::NextAll in terminal composite node"),
-                        }
-                    }
-                } else {
-                    // composite edges: pattern-based
-                    let pats_terminal = composite.iter().filter_map(|arm| {
-                        let CompositeArm { action_path, variant, binding, succs } = arm;
-                        if succs.is_empty() {
-                            let pat = quote! { #action_path :: #variant (#binding) };
-                            Some(quote! {
-                                #pat => {
-                                    tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: terminal variant");
-                                    return Ok(Some(#binding));
-                                }
-                            })
+                let arm_tokens: Vec<proc_macro2::TokenStream> = composite.iter().map(|arm| {
+                    let CompositeArm { action_path, variant, binding, is_wildcard, guard, succs } = arm;
+                    let pat = if *is_wildcard {
+                        let wildcard_ident = format_ident!("__wildcard_binding");
+                        if let Some(guard) = &guard {
+                            quote! { #action_path :: #variant ( #wildcard_ident ) if #guard }
                         } else {
-                            None
+                            quote! { #action_path :: #variant ( #wildcard_ident ) }
                         }
-                    });
-                    let pats_non_terminal = composite.iter().filter_map(|arm| {
-                        let CompositeArm { action_path, variant, binding, succs } = arm;
-                        if !succs.is_empty() {
-                            let pat = quote! { #action_path :: #variant (#binding) };
-                            let succ_pushes = succs.iter().map(|succ| {
+                    } else if let Some(binding) = &binding {
+                        if let Some(guard) = &guard {
+                            quote! { #action_path :: #variant ( #binding ) if #guard }
+                        } else {
+                            quote! { #action_path :: #variant ( #binding ) }
+                        }
+                    } else if let Some(guard) = &guard {
+                        quote! { #action_path :: #variant if #guard }
+                    } else {
+                        quote! { #action_path :: #variant }
+                    };
+                    // Debug log removed: generated match pattern
+                    let body = if succs.is_empty() {
+                        if *is_wildcard {
+                            let wildcard_ident = format_ident!("__wildcard_binding");
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), value = ?#wildcard_ident, "Composite arm: terminal variant (wildcard)");
+                                return Ok(Some(#wildcard_ident));
+                            }
+                        } else if let Some(binding) = &binding {
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: terminal variant");
+                                return Ok(Some(#binding));
+                            }
+                        } else {
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), "Composite arm: terminal variant (unit)");
+                                return Ok(Some(()));
+                            }
+                        }
+                    } else {
+                        let succ_pushes = if *is_wildcard {
+                            let wildcard_ident = format_ident!("__wildcard_binding");
+                            succs.iter().map(|succ| {
+                                let var_name = to_camel_case(&succ.to_string());
+                                let succ_var = format_ident!("{}", var_name);
+                                quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), #wildcard_ident)); }
+                            }).collect::<Vec<_>>()
+                        } else if let Some(binding) = &binding {
+                            succs.iter().map(|succ| {
                                 let var_name = to_camel_case(&succ.to_string());
                                 let succ_var = format_ident!("{}", var_name);
                                 quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), #binding)); }
-                            });
-                            Some(quote! {
-                                #pat => {
-                                    tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: scheduling successors");
-                                    #(#succ_pushes)*
-                                    return Ok(None);
-                                }
-                            })
+                            }).collect::<Vec<_>>()
                         } else {
-                            None
-                        }
-                    });
-                    quote! {
-                        #wrapper
-                        let __store = &ctx.store;
-                        let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
-                        let _node_enter = node_span.enter();
-                        tracing::debug!(store = ?ctx.store, ?input, "Node input and store");
-                        match ctx.run_future(__node.process(__store, input.clone())).await? {
-                            Transition::Hold => {
-                                tracing::debug!("Node produced Transition::Hold");
+                            succs.iter().map(|succ| {
+                                let var_name = to_camel_case(&succ.to_string());
+                                let succ_var = format_ident!("{}", var_name);
+                                quote! { __q.push_back(#work_item_ident::#succ_var(::uuid::Uuid::new_v4().to_string(), Default::default())); }
+                            }).collect::<Vec<_>>()
+                        };
+                        if *is_wildcard {
+                            let wildcard_ident = format_ident!("__wildcard_binding");
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), value = ?#wildcard_ident, "Composite arm: scheduling successors (wildcard)");
+                                #(#succ_pushes)*
                                 return Ok(None);
                             }
-                            Transition::Next(action) => {
-                                tracing::debug!(?action, "Node produced Transition::Next (composite)");
-                                match action {
-                                    #(#pats_terminal)*
-                                    #(#pats_non_terminal)*
-                                    _ => {
-                                        tracing::warn!("Composite arm: unmatched variant");
-                                        return Ok(None);
-                                    }
-                                }
+                        } else if let Some(binding) = &binding {
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), value = ?#binding, "Composite arm: scheduling successors");
+                                #(#succ_pushes)*
+                                return Ok(None);
                             }
-                            Transition::Abort(e) => {
-                                tracing::warn!(error = ?e, "Node produced Transition::Abort (composite)");
-                                return Err(e);
+                        } else {
+                            quote! {
+                                tracing::debug!(variant = stringify!(#variant), "Composite arm: scheduling successors (unit)");
+                                #(#succ_pushes)*
+                                return Ok(None);
                             }
-                            Transition::NextAll(_) => unreachable!("Unexpected Transition::NextAll in composite node"),
                         }
+                    };
+                    quote! { #pat => { #body } }
+                }).collect();
+                quote! {
+                    #wrapper
+                    let __store = &ctx.store;
+                    let node_span = tracing::span!(tracing::Level::DEBUG, "node_execution", node = stringify!(#var_ident));
+                    let _node_enter = node_span.enter();
+                    tracing::debug!(store = ?ctx.store, ?input, "Node input and store");
+                    match ctx.run_future(__node.process(__store, input.clone())).await? {
+                        Transition::Hold => {
+                            tracing::debug!("Node produced Transition::Hold");
+                            return Ok(None);
+                        }
+                        Transition::Next(action) => {
+                            match action {
+                                #(#arm_tokens)*
+                            }
+                        }
+                        Transition::Abort(e) => {
+                            tracing::warn!(error = ?e, "Node produced Transition::Abort (composite)");
+                            return Err(e);
+                        }
+                        Transition::NextAll(_) => unreachable!("Unexpected Transition::NextAll in composite node"),
                     }
                 }
             }
@@ -631,7 +437,7 @@ pub fn workflow(item: TokenStream) -> TokenStream {
 
     // Assemble the expanded code
     let expanded = quote! {
-
+        #type_errors
         #[derive(Debug, Clone)]
         #struct_def
 

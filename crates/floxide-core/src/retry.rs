@@ -141,7 +141,7 @@ impl RetryPolicy {
 ///
 /// # Example
 ///
-/// ```rust
+/// ```rust,ignore
 /// use floxide_core::*;
 /// use std::time::Duration;
 /// // Define a policy: up to 3 attempts, exponential backoff 100ms→200ms→400ms

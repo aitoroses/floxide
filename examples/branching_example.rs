@@ -53,7 +53,7 @@ pub struct BigNode;
 #[async_trait]
 impl Node<MyCtx> for BigNode {
     type Input = u64;
-    type Output = ();
+    type Output = String;
 
     async fn process(
         &self,
@@ -61,7 +61,7 @@ impl Node<MyCtx> for BigNode {
         input: u64,
     ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("BigNode: handling value {}", input);
-        Ok(Transition::Next(()))
+        Ok(Transition::Next(format!("BigNode: {}", input)))
     }
 }
 
@@ -72,7 +72,7 @@ pub struct SmallNode;
 #[async_trait]
 impl Node<MyCtx> for SmallNode {
     type Input = String;
-    type Output = ();
+    type Output = String;
 
     async fn process(
         &self,
@@ -80,7 +80,7 @@ impl Node<MyCtx> for SmallNode {
         input: String,
     ) -> Result<Transition<Self::Output>, FloxideError> {
         println!("SmallNode: handling message \"{}\"", input);
-        Ok(Transition::Next(()))
+        Ok(Transition::Next(format!("SmallNode: {}", input)))
     }
 }
 
@@ -95,8 +95,8 @@ workflow! {
     context = MyCtx;
     edges {
         foo => {
-            FooAction::Above(v) => [ big ];
-            FooAction::Below(s) => [ small ];
+            FooAction::Above(_) => [ big ];
+            FooAction::Below(_) => [ small ];
         };
         big => {};
         small => {};
@@ -121,9 +121,11 @@ pub async fn run_threshold_workflow_example() -> Result<(), Box<dyn std::error::
     };
     let ctx = WorkflowCtx::new(MyCtx { value: 0 });
     println!("Running with input 5:");
-    wf.run(&ctx, 5).await?;
+    let res = wf.run(&ctx, 5).await?;
+    assert_eq!(res, "SmallNode: 5 <= 10");
     println!("Running with input 42:");
-    wf.run(&ctx, 42).await?;
+    let res = wf.run(&ctx, 42).await?;
+    assert_eq!(res, "BigNode: 84");
     Ok(())
 }
 
