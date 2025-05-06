@@ -14,13 +14,14 @@
 //! ## Example: Distributed Parallel Workflow
 //!
 //! ```rust
-//! use floxide::{workflow, node, Transition, WorkflowCtx, FloxideError};
+//! use floxide::{workflow, node, Transition, WorkflowCtx, FloxideError, SharedState, Node};
 //! use async_trait::async_trait;
 //! use std::sync::Arc;
 //! use tokio::sync::Mutex;
+//! use serde::{Serialize, Deserialize};
 //!
-//! #[derive(Clone, Debug)]
-//! struct Ctx { counter: Arc<Mutex<i32>> }
+//! #[derive(Clone, Debug, Serialize, Deserialize, Default)]
+//! struct Ctx { counter: SharedState<i32> }
 //!
 //! // Define a node that increments the counter
 //! node! {
@@ -29,7 +30,7 @@
 //!     input = ();
 //!     output = ();
 //!     |ctx, _input| {
-//!         let mut c = ctx.counter.lock().await;
+//!         let mut c = ctx.counter.get().await;
 //!         *c += 1;
 //!         Ok(Transition::Next(()))
 //!     }
@@ -40,11 +41,11 @@
 //!     pub struct BranchNode {};
 //!     context = Ctx;
 //!     input = ();
-//!     output = &'static str;
+//!     output = String;
 //!     |ctx, _input| {
-//!         let mut c = ctx.counter.lock().await;
+//!         let mut c = ctx.counter.get().await;
 //!         *c += 10;
-//!         Ok(Transition::Next("done"))
+//!         Ok(Transition::Next(format!("done: {}", c)))
 //!     }
 //! }
 //!
