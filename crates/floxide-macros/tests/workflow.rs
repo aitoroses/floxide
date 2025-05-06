@@ -107,7 +107,7 @@ workflow! {
     context = ();
     edges {
         // direct edge: multiply outputs feed into branch
-        multiply => { [ branch ] };
+        multiply => [ branch ] ;
         branch => {
             BatchAction::Large(_) => [ large ];
             BatchAction::Small(_) => [ small ];

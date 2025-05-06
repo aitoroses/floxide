@@ -112,11 +112,36 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                     let src_ty = node_field_types.get(&src.to_string());
                     let dst_ty = node_field_types.get(&succ.to_string());
                     if let (Some(src_ty), Some(dst_ty)) = (src_ty, dst_ty) {
-                        // Generate a type assertion: <Src as Node<Ctx>>::Output == <Dst as Node<Ctx>>::Input
+                        // Generate a compile-time trait-based assertion so errors mention the node names
+                        // Generate CamelCase identifiers for trait to satisfy Rust naming conventions
+                        let src_camel = to_camel_case(&src.to_string());
+                        let dst_camel = to_camel_case(&succ.to_string());
+                        let trait_ident = format_ident!(
+                            "AssertOutputOf{}MatchesInputOf{}",
+                            src_camel,
+                            dst_camel
+                        );
+                        let fn_ident = format_ident!(
+                            "assert_equal_{}_to_{}",
+                            src,
+                            succ
+                        );
                         type_asserts.push(quote! {
-                            const _: fn() = || {
-                                // If this fails, the output type of the source node does not match the input type of the destination node.
-                                let _type_check: fn(<#src_ty as ::floxide::Node<#context>>::Output) -> <#dst_ty as ::floxide::Node<#context>>::Input = |x| x;
+                            #[doc(hidden)]
+                            pub trait #trait_ident<L, R> {}
+                            #[doc(hidden)]
+                            impl<T> #trait_ident<T, T> for () {}
+                            const _: () = {
+                            #[allow(dead_code)]
+                            #[doc(hidden)]
+                            const fn #fn_ident<__Left, __Right>()
+                                where
+                                    (): #trait_ident<__Left, __Right>,
+                                {}
+                                #fn_ident::<
+                                    <#src_ty as ::floxide::Node<#context>>::Output,
+                                    <#dst_ty as ::floxide::Node<#context>>::Input
+                                >();
                             };
                         });
                     }
