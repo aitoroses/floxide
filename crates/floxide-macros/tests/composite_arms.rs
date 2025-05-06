@@ -1,13 +1,16 @@
+use floxide_macros_support::{EdgeKind, WorkflowDef};
 use syn::parse_str;
-use floxide_macros_support::{WorkflowDef, EdgeKind};
 
 fn parse_edges(input: &str) -> Vec<(syn::Ident, EdgeKind)> {
     // Provide a minimal valid workflow definition for parsing
-    let src = format!(r#"
+    let src = format!(
+        r#"
         pub struct Dummy {{ foo: usize }}
         start = foo;
         edges {{ {} }}
-    "#, input);
+    "#,
+        input
+    );
     let def: WorkflowDef = parse_str(&src).unwrap();
     def.edges
 }
@@ -135,4 +138,4 @@ fn parses_direct_edge() {
     } else {
         panic!("Expected direct edge");
     }
-} 
+}

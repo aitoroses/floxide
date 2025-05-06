@@ -1,10 +1,8 @@
+use floxide_macros_support::{CompositeArm, EdgeKind, WorkflowDef};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote};
-use syn::{
-    parse_macro_input, Ident, LitStr,
-};
-use floxide_macros_support::{WorkflowDef, EdgeKind, CompositeArm};
+use syn::{parse_macro_input, Ident, LitStr};
 
 pub fn workflow(item: TokenStream) -> TokenStream {
     // parse the struct-based workflow definition
@@ -116,16 +114,9 @@ pub fn workflow(item: TokenStream) -> TokenStream {
                         // Generate CamelCase identifiers for trait to satisfy Rust naming conventions
                         let src_camel = to_camel_case(&src.to_string());
                         let dst_camel = to_camel_case(&succ.to_string());
-                        let trait_ident = format_ident!(
-                            "AssertOutputOf{}MatchesInputOf{}",
-                            src_camel,
-                            dst_camel
-                        );
-                        let fn_ident = format_ident!(
-                            "assert_equal_{}_to_{}",
-                            src,
-                            succ
-                        );
+                        let trait_ident =
+                            format_ident!("AssertOutputOf{}MatchesInputOf{}", src_camel, dst_camel);
+                        let fn_ident = format_ident!("assert_equal_{}_to_{}", src, succ);
                         type_asserts.push(quote! {
                             #[doc(hidden)]
                             pub trait #trait_ident<L, R> {}

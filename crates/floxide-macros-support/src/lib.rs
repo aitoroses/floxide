@@ -14,8 +14,11 @@ mod tests {
 }
 
 /// AST and parsing logic for floxide-macros
-
-use syn::{parse::{Parse, ParseStream}, braced, bracketed, Generics, Ident, Result, Token, Type, Visibility};
+use syn::{
+    braced, bracketed,
+    parse::{Parse, ParseStream},
+    Generics, Ident, Result, Token, Type, Visibility,
+};
 
 #[derive(Debug, Clone)]
 pub struct CompositeArm {
@@ -135,9 +138,12 @@ impl Parse for WorkflowDef {
                         let edges_content;
                         braced!(edges_content in input);
                         // Collect direct-success, direct-failure, and composite arms
-                        let mut direct_success = std::collections::HashMap::<Ident, Vec<Ident>>::new();
-                        let mut direct_failure = std::collections::HashMap::<Ident, Vec<Ident>>::new();
-                        let mut composite_map = std::collections::HashMap::<Ident, Vec<CompositeArm>>::new();
+                        let mut direct_success =
+                            std::collections::HashMap::<Ident, Vec<Ident>>::new();
+                        let mut direct_failure =
+                            std::collections::HashMap::<Ident, Vec<Ident>>::new();
+                        let mut composite_map =
+                            std::collections::HashMap::<Ident, Vec<CompositeArm>>::new();
                         while !edges_content.is_empty() {
                             let src: Ident = edges_content.parse()?;
                             if edges_content.peek(Ident) {
@@ -159,7 +165,7 @@ impl Parse for WorkflowDef {
                                     continue;
                                 } else {
                                     return Err(edges_content.error(
-                                        "Unexpected identifier. Expected `on_failure` or `=>`."
+                                        "Unexpected identifier. Expected `on_failure` or `=>`.",
                                     ));
                                 }
                             }
@@ -211,7 +217,9 @@ impl Parse for WorkflowDef {
                                             } else if inner.peek(Ident) {
                                                 binding = Some(inner.parse()?);
                                             } else {
-                                                return Err(inner.error("Expected identifier or _ in variant binding"));
+                                                return Err(inner.error(
+                                                    "Expected identifier or _ in variant binding",
+                                                ));
                                             }
                                         } else {
                                             // No parens: always treat as wildcard for macro ergonomics
@@ -250,7 +258,8 @@ impl Parse for WorkflowDef {
                                     composite_map.insert(src.clone(), arms);
                                 }
                             } else {
-                                return Err(edges_content.error("Expected [ or { after => in edge definition"));
+                                return Err(edges_content
+                                    .error("Expected [ or { after => in edge definition"));
                             }
                         }
                         // Merge into final edges vector
