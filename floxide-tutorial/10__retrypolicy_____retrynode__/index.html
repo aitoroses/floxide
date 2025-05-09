@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Chapter 10: RetryPolicy & RetryNode - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="1">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/">Overview</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Tutorial</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../">Introduction</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../01__transition__enum_/">Chapter 1: Transition Enum</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../02__node__trait____node___macro_/">Chapter 2: Node Trait & node! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../03__workflowctx_____context__trait_/">Chapter 3: WorkflowCtx & Context Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../04__workflow__trait____workflow___macro_/">Chapter 4: Workflow Trait & workflow! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../05__workqueue__trait_/">Chapter 5: WorkQueue Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../06__checkpoint_____checkpointstore__trait_/">Chapter 6: Checkpoint & CheckpointStore Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../07__distributedworker__/">Chapter 7: DistributedWorker</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../08__distributedorchestrator__/">Chapter 8: DistributedOrchestrator</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Chapter 9: Distributed Stores</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Chapter 10: RetryPolicy & RetryNode</span>
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#chapter-10-retrypolicy-retrynode">Chapter 10: RetryPolicy &amp; RetryNode</a></li>
+        <li><a href="#whats-the-problem-dealing-with-temporary-glitches">What's the Problem? Dealing with Temporary Glitches</a></li><li><a href="#the-concepts-rules-and-the-enforcer">The Concepts: Rules and the Enforcer</a></li><li><a href="#how-to-use-retries">How to Use Retries</a></li><li><a href="#how-it-works-under-the-hood">How it Works Under the Hood</a></li><li><a href="#deeper-dive-into-code">Deeper Dive into Code</a></li><li><a href="#conclusion">Conclusion</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="chapter-10-retrypolicy-retrynode">Chapter 10: <code>RetryPolicy</code> &amp; <code>RetryNode</code><a class="headerlink" href="#chapter-10-retrypolicy-retrynode" title="Permanent link">&para;</a></h1>
+<p>Welcome to the final chapter in our introductory tour of Floxide! In the <a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">previous chapter</a>, we explored the various distributed stores that Floxide uses to keep track of run status, errors, metrics, and worker health, enabling monitoring and management across our distributed system. We saw how errors are recorded in the <code>ErrorStore</code>. But what if an error is just temporary?</p>
+<h2 id="whats-the-problem-dealing-with-temporary-glitches">What's the Problem? Dealing with Temporary Glitches<a class="headerlink" href="#whats-the-problem-dealing-with-temporary-glitches" title="Permanent link">&para;</a></h2>
+<p>Imagine one step in your workflow involves calling an external web service (an API) to get some data. What happens if the network connection briefly drops just as your <a href="../02__node__trait____node___macro_/"><code>Node</code></a> makes the call? Or what if the external service is momentarily overloaded and returns a temporary error?</p>
+<p>If the Node simply fails and returns <a href="../01__transition__enum_/"><code>Transition::Abort</code></a>, the whole workflow run might stop unnecessarily. The problem might fix itself if we just waited a moment and tried again!</p>
+<p>This is especially common in <strong>distributed</strong> systems. Tasks running on different machines communicate over networks, which aren't always perfectly reliable. Services might become temporarily unavailable. We need a way to automatically handle these transient failures without stopping the entire workflow.</p>
+<p>Floxide provides built-in support for automatic retries using the <code>RetryPolicy</code> and <code>RetryNode</code> concepts.</p>
+<h2 id="the-concepts-rules-and-the-enforcer">The Concepts: Rules and the Enforcer<a class="headerlink" href="#the-concepts-rules-and-the-enforcer" title="Permanent link">&para;</a></h2>
+<p>Floxide splits the retry logic into two parts:</p>
+<ol>
+<li>
+<p><strong><code>RetryPolicy</code></strong>: This defines the <em>rules</em> for how retries should happen. Think of it as the instruction manual for retrying a failed task:</p>
+<ul>
+<li><strong>How many times should we retry?</strong> (Maximum attempts)</li>
+<li><strong>How long should we wait between tries?</strong> (Initial backoff duration)</li>
+<li><strong>Should the wait time increase after each failure?</strong> (Backoff strategy: Linear or Exponential)</li>
+<li><strong>What's the longest we should ever wait?</strong> (Maximum backoff duration)</li>
+<li><strong>Which kinds of errors should we even bother retrying?</strong> (Maybe only retry network errors, not configuration errors).</li>
+</ul>
+</li>
+<li>
+<p><strong><code>RetryNode</code></strong>: This is the <em>enforcer</em> that applies the rules. It's a special kind of Node that wraps your <em>original</em> Node.</p>
+<ul>
+<li>You give it your potentially fallible Node (like the one calling the API) and a <code>RetryPolicy</code>.</li>
+<li>When the <code>RetryNode</code> is executed, it tries running the inner Node.</li>
+<li>If the inner Node succeeds, the <code>RetryNode</code> passes the result along.</li>
+<li>If the inner Node fails with an error that the <code>RetryPolicy</code> says is retryable:<ul>
+<li>The <code>RetryNode</code> catches the error.</li>
+<li>It waits for the duration specified by the policy's backoff strategy.</li>
+<li>It tries running the inner Node <em>again</em>.</li>
+<li>It repeats this process until the inner Node succeeds, or the maximum number of attempts is reached, or a non-retryable error occurs.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>This wrapper approach makes it easy to add resilience to existing Nodes without modifying their core logic.</p>
+<h2 id="how-to-use-retries">How to Use Retries<a class="headerlink" href="#how-to-use-retries" title="Permanent link">&para;</a></h2>
+<p>Let's add retries to a hypothetical <code>CallApiNode</code>.</p>
+<h3 id="1-define-a-retrypolicy">1. Define a <code>RetryPolicy</code><a class="headerlink" href="#1-define-a-retrypolicy" title="Permanent link">&para;</a></h3>
+<p>First, you create an instance of <code>RetryPolicy</code> specifying your desired rules.</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">retry</span><span class="p">::{</span><span class="n">RetryPolicy</span><span class="p">,</span><span class="w"> </span><span class="n">BackoffStrategy</span><span class="p">,</span><span class="w"> </span><span class="n">RetryError</span><span class="p">};</span>
+</span><span id="__span-0-2"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">time</span><span class="p">::</span><span class="n">Duration</span><span class="p">;</span>
+</span><span id="__span-0-3">
+</span><span id="__span-0-4"><span class="c1">// Example policy:</span>
+</span><span id="__span-0-5"><span class="c1">// - Try up to 5 times in total (1 initial + 4 retries).</span>
+</span><span id="__span-0-6"><span class="c1">// - Start with a 100ms wait.</span>
+</span><span id="__span-0-7"><span class="c1">// - Double the wait time after each failure (exponential backoff).</span>
+</span><span id="__span-0-8"><span class="c1">// - Don&#39;t wait longer than 1 second between tries.</span>
+</span><span id="__span-0-9"><span class="c1">// - Retry only on &quot;Generic&quot; errors (often used for I/O or temporary issues).</span>
+</span><span id="__span-0-10"><span class="kd">let</span><span class="w"> </span><span class="n">my_retry_policy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RetryPolicy</span><span class="p">::</span><span class="n">new</span><span class="p">(</span>
+</span><span id="__span-0-11"><span class="w">    </span><span class="mi">5</span><span class="p">,</span><span class="w">                         </span><span class="c1">// max_attempts</span>
+</span><span id="__span-0-12"><span class="w">    </span><span class="n">Duration</span><span class="p">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span><span class="w"> </span><span class="c1">// initial_backoff</span>
+</span><span id="__span-0-13"><span class="w">    </span><span class="n">Duration</span><span class="p">::</span><span class="n">from_secs</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w">    </span><span class="c1">// max_backoff</span>
+</span><span id="__span-0-14"><span class="w">    </span><span class="n">BackoffStrategy</span><span class="p">::</span><span class="n">Exponential</span><span class="p">,</span><span class="w"> </span><span class="c1">// strategy</span>
+</span><span id="__span-0-15"><span class="w">    </span><span class="n">RetryError</span><span class="p">::</span><span class="n">Generic</span><span class="p">,</span><span class="w">       </span><span class="c1">// which errors to retry</span>
+</span><span id="__span-0-16"><span class="p">);</span>
+</span><span id="__span-0-17">
+</span><span id="__span-0-18"><span class="c1">// You can also add jitter (random variation) to backoff times</span>
+</span><span id="__span-0-19"><span class="c1">// let my_retry_policy = my_retry_policy.with_jitter(Duration::from_millis(50));</span>
+</span><span id="__span-0-20">
+</span><span id="__span-0-21"><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Created retry policy: {:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">my_retry_policy</span><span class="p">);</span>
+</span></code></pre></div>
+<p><strong>Explanation:</strong>
+*   We use <code>RetryPolicy::new(...)</code> to create the policy object.
+*   <code>max_attempts</code>: The total number of tries.
+*   <code>initial_backoff</code>: The wait time before the <em>first</em> retry (after the initial failure).
+*   <code>max_backoff</code>: The ceiling for the wait time, even if the strategy calculates a longer duration.
+*   <code>BackoffStrategy::Exponential</code>: Means the wait time roughly doubles each time (100ms, 200ms, 400ms, 800ms, then capped at 1000ms). <code>Linear</code> would add the initial amount each time (100ms, 200ms, 300ms...).
+*   <code>RetryError::Generic</code>: Specifies that we should <em>only</em> retry if the inner Node fails with <code>FloxideError::Generic</code>. Other errors like <code>FloxideError::Cancelled</code> or <code>FloxideError::Timeout</code> would not be retried with this setting. <code>RetryError::All</code> would retry any error.</p>
+<h3 id="2-wrap-your-node-with-retrynode">2. Wrap Your Node with <code>RetryNode</code><a class="headerlink" href="#2-wrap-your-node-with-retrynode" title="Permanent link">&para;</a></h3>
+<p>Now, take your original Node instance and wrap it using the <code>floxide_core::retry::with_retry</code> helper function (or directly creating <code>RetryNode</code>).</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">retry</span><span class="p">::</span><span class="n">with_retry</span><span class="p">;</span>
+</span><span id="__span-1-2"><span class="c1">// Assume CallApiNode is a Node struct we defined elsewhere using `node!`</span>
+</span><span id="__span-1-3"><span class="c1">// use crate::nodes::CallApiNode;</span>
+</span><span id="__span-1-4">
+</span><span id="__span-1-5"><span class="c1">// Create an instance of the potentially fallible node</span>
+</span><span id="__span-1-6"><span class="kd">let</span><span class="w"> </span><span class="n">original_api_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CallApiNode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... configuration ... */</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-1-7">
+</span><span id="__span-1-8"><span class="c1">// Wrap it with our retry policy</span>
+</span><span id="__span-1-9"><span class="kd">let</span><span class="w"> </span><span class="n">resilient_api_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">with_retry</span><span class="p">(</span><span class="n">original_api_node</span><span class="p">,</span><span class="w"> </span><span class="n">my_retry_policy</span><span class="p">.</span><span class="n">clone</span><span class="p">());</span>
+</span><span id="__span-1-10">
+</span><span id="__span-1-11"><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Created a RetryNode wrapping CallApiNode.&quot;</span><span class="p">);</span>
+</span></code></pre></div>
+<p><strong>Explanation:</strong>
+*   <code>with_retry</code> takes the original <code>Node</code> instance (<code>original_api_node</code>) and the <code>RetryPolicy</code> (<code>my_retry_policy</code>).
+*   It returns a new <code>RetryNode</code> instance (<code>resilient_api_node</code>). This <code>RetryNode</code> now contains both the original node and the policy.
+*   Crucially, <code>RetryNode</code> itself <em>also implements the <a href="../02__node__trait____node___macro_/"><code>Node</code> trait</a></em>! This means you can use <code>resilient_api_node</code> anywhere you would use a regular Node.</p>
+<h3 id="3-use-the-retrynode-in-your-workflow">3. Use the <code>RetryNode</code> in Your Workflow<a class="headerlink" href="#3-use-the-retrynode-in-your-workflow" title="Permanent link">&para;</a></h3>
+<p>You can now use the wrapped node (<code>resilient_api_node</code>) in your <a href="../04__workflow__trait____workflow___macro_/"><code>workflow!</code> macro</a> definition just like any other node.</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::{</span><span class="n">workflow</span><span class="p">,</span><span class="w"> </span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">Workflow</span><span class="p">,</span><span class="w"> </span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Transition</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="p">};</span>
+</span><span id="__span-2-2"><span class="k">use</span><span class="w"> </span><span class="n">serde</span><span class="p">::{</span><span class="n">Serialize</span><span class="p">,</span><span class="w"> </span><span class="n">Deserialize</span><span class="p">};</span>
+</span><span id="__span-2-3"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">Arc</span><span class="p">;</span>
+</span><span id="__span-2-4"><span class="c1">// --- Assume definitions for SimpleContext, StartNode, EndNode, CallApiNode ---</span>
+</span><span id="__span-2-5"><span class="c1">// --- Assume `my_retry_policy` is defined as above ---</span>
+</span><span id="__span-2-6">
+</span><span id="__span-2-7"><span class="c1">// --- Workflow Definition ---</span>
+</span><span id="__span-2-8"><span class="n">workflow</span><span class="o">!</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-9"><span class="w">  </span><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-2-10"><span class="w">  </span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">MyApiWorkflow</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-11"><span class="w">    </span><span class="c1">// Node instances for the workflow</span>
+</span><span id="__span-2-12"><span class="w">    </span><span class="n">step1_start</span><span class="p">:</span><span class="w"> </span><span class="nc">StartNode</span><span class="p">,</span>
+</span><span id="__span-2-13"><span class="w">    </span><span class="c1">// *** Use the wrapped RetryNode here! ***</span>
+</span><span id="__span-2-14"><span class="w">    </span><span class="n">step2_call_api</span><span class="p">:</span><span class="w"> </span><span class="nc">floxide_core</span><span class="p">::</span><span class="n">retry</span><span class="p">::</span><span class="n">RetryNode</span><span class="o">&lt;</span><span class="n">CallApiNode</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-2-15"><span class="w">    </span><span class="n">step3_end</span><span class="p">:</span><span class="w"> </span><span class="nc">EndNode</span><span class="p">,</span>
+</span><span id="__span-2-16"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-17"><span class="w">  </span><span class="n">context</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SimpleContext</span><span class="p">;</span>
+</span><span id="__span-2-18"><span class="w">  </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">step1_start</span><span class="p">;</span>
+</span><span id="__span-2-19"><span class="w">  </span><span class="n">edges</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-20"><span class="w">    </span><span class="n">step1_start</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">[</span><span class="n">step2_call_api</span><span class="p">];</span>
+</span><span id="__span-2-21"><span class="w">    </span><span class="n">step2_call_api</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">[</span><span class="n">step3_end</span><span class="p">];</span>
+</span><span id="__span-2-22"><span class="w">    </span><span class="n">step3_end</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">[];</span>
+</span><span id="__span-2-23"><span class="w">  </span><span class="p">};</span>
+</span><span id="__span-2-24"><span class="p">}</span>
+</span><span id="__span-2-25">
+</span><span id="__span-2-26"><span class="c1">// --- How you might create the workflow instance ---</span>
+</span><span id="__span-2-27"><span class="c1">// let start_node = StartNode {};</span>
+</span><span id="__span-2-28"><span class="c1">// let original_api_node = CallApiNode { /* ... */ };</span>
+</span><span id="__span-2-29"><span class="c1">// let resilient_api_node = with_retry(original_api_node, my_retry_policy); // Wrap it!</span>
+</span><span id="__span-2-30"><span class="c1">// let end_node = EndNode {};</span>
+</span><span id="__span-2-31"><span class="c1">//</span>
+</span><span id="__span-2-32"><span class="c1">// let my_workflow = MyApiWorkflow {</span>
+</span><span id="__span-2-33"><span class="c1">//   step1_start: start_node,</span>
+</span><span id="__span-2-34"><span class="c1">//   step2_call_api: resilient_api_node, // Assign the wrapped node</span>
+</span><span id="__span-2-35"><span class="c1">//   step3_end: end_node,</span>
+</span><span id="__span-2-36"><span class="c1">// };</span>
+</span></code></pre></div>
+<p><strong>Explanation:</strong>
+*   In the <code>MyApiWorkflow</code> struct definition inside <code>workflow!</code>, the type for <code>step2_call_api</code> is <code>floxide_core::retry::RetryNode&lt;CallApiNode&gt;</code>.
+*   When you create an instance of <code>MyApiWorkflow</code>, you provide the <code>resilient_api_node</code> (the wrapped one) for the <code>step2_call_api</code> field.
+*   When the Floxide engine runs this workflow and reaches <code>step2_call_api</code>, it will execute the <code>RetryNode</code>'s logic, which internally handles the retries for the <code>CallApiNode</code> according to <code>my_retry_policy</code>.</p>
+<p><strong>(Alternative) Using <code>#[retry]</code> Attribute:</strong>
+The <a href="../04__workflow__trait____workflow___macro_/"><code>workflow!</code> macro</a> also provides a convenient <code>#[retry = ...]</code> attribute as a shortcut. You can define a <code>RetryPolicy</code> as a field in your workflow struct and apply it directly to a node field:</p>
+<p><div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">retry</span><span class="p">::</span><span class="n">RetryPolicy</span><span class="p">;</span>
+</span><span id="__span-3-2"><span class="c1">// ... other imports ...</span>
+</span><span id="__span-3-3">
+</span><span id="__span-3-4"><span class="n">workflow</span><span class="o">!</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-5"><span class="w">  </span><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-3-6"><span class="w">  </span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">MyApiWorkflowWithAttr</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-7"><span class="w">    </span><span class="c1">// Define the policy as a field</span>
+</span><span id="__span-3-8"><span class="w">    </span><span class="n">api_retry_policy</span><span class="p">:</span><span class="w"> </span><span class="nc">RetryPolicy</span><span class="p">,</span>
+</span><span id="__span-3-9">
+</span><span id="__span-3-10"><span class="w">    </span><span class="c1">// Node instances</span>
+</span><span id="__span-3-11"><span class="w">    </span><span class="n">step1_start</span><span class="p">:</span><span class="w"> </span><span class="nc">StartNode</span><span class="p">,</span>
+</span><span id="__span-3-12"><span class="w">    </span><span class="c1">// Apply the policy directly using the attribute</span>
+</span><span id="__span-3-13"><span class="w">    </span><span class="cp">#[retry = api_retry_policy]</span>
+</span><span id="__span-3-14"><span class="w">    </span><span class="n">step2_call_api</span><span class="p">:</span><span class="w"> </span><span class="nc">CallApiNode</span><span class="p">,</span><span class="w"> </span><span class="c1">// Note: type is the original Node here!</span>
+</span><span id="__span-3-15"><span class="w">    </span><span class="n">step3_end</span><span class="p">:</span><span class="w"> </span><span class="nc">EndNode</span><span class="p">,</span>
+</span><span id="__span-3-16"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-17"><span class="w">  </span><span class="n">context</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SimpleContext</span><span class="p">;</span>
+</span><span id="__span-3-18"><span class="w">  </span><span class="n">start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">step1_start</span><span class="p">;</span>
+</span><span id="__span-3-19"><span class="w">  </span><span class="n">edges</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="cm">/* ... same edges ... */</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-3-20"><span class="p">}</span>
+</span><span id="__span-3-21">
+</span><span id="__span-3-22"><span class="c1">// --- How you might create this workflow instance ---</span>
+</span><span id="__span-3-23"><span class="c1">// let my_policy = RetryPolicy::new(/* ... */);</span>
+</span><span id="__span-3-24"><span class="c1">// let start_node = StartNode {};</span>
+</span><span id="__span-3-25"><span class="c1">// let original_api_node = CallApiNode { /* ... */ };</span>
+</span><span id="__span-3-26"><span class="c1">// let end_node = EndNode {};</span>
+</span><span id="__span-3-27"><span class="c1">//</span>
+</span><span id="__span-3-28"><span class="c1">// let my_workflow_attr = MyApiWorkflowWithAttr {</span>
+</span><span id="__span-3-29"><span class="c1">//   api_retry_policy: my_policy,</span>
+</span><span id="__span-3-30"><span class="c1">//   step1_start: start_node,</span>
+</span><span id="__span-3-31"><span class="c1">//   step2_call_api: original_api_node, // Provide the original node</span>
+</span><span id="__span-3-32"><span class="c1">//   step3_end: end_node,</span>
+</span><span id="__span-3-33"><span class="c1">// };</span>
+</span><span id="__span-3-34"><span class="c1">// The macro automatically wraps step2_call_api with the policy at compile time.</span>
+</span></code></pre></div>
+This attribute simplifies the workflow definition when using retries.</p>
+<h2 id="how-it-works-under-the-hood">How it Works Under the Hood<a class="headerlink" href="#how-it-works-under-the-hood" title="Permanent link">&para;</a></h2>
+<p>What happens when the engine calls <code>process</code> on a <code>RetryNode</code>?</p>
+<ol>
+<li><strong>Call Inner:</strong> The <code>RetryNode</code> calls the <code>process</code> method of the <code>inner</code> Node it contains, passing along the context and input.</li>
+<li><strong>Check Result:</strong> It examines the <code>Result&lt;Transition, FloxideError&gt;</code> returned by the inner Node.</li>
+<li><strong>Success?</strong> If the result is <code>Ok(Transition::Next(..))</code>, <code>Ok(Transition::NextAll(..))</code>, or <code>Ok(Transition::Hold)</code>, the <code>RetryNode</code> simply returns that result immediately. The job is done.</li>
+<li><strong>Failure?</strong> If the result is <code>Ok(Transition::Abort(e))</code> or <code>Err(e)</code>, the <code>RetryNode</code> catches the error <code>e</code>.</li>
+<li><strong>Check Policy:</strong> It calls <code>self.policy.should_retry(&amp;e, current_attempt)</code>. This checks two things:<ul>
+<li>Have we exceeded <code>max_attempts</code>?</li>
+<li>Is this <code>e</code> the kind of error the policy wants to retry (based on <code>RetryError</code> setting)?</li>
+</ul>
+</li>
+<li><strong>Retry?</strong> If <code>should_retry</code> returns <code>true</code>:<ul>
+<li>Calculate wait time: <code>let backoff = self.policy.backoff_duration(current_attempt);</code></li>
+<li>Wait: It calls <code>ctx.wait(backoff).await</code>. Using the <a href="../03__workflowctx_____context__trait_/"><code>WorkflowCtx</code></a> for waiting is important because it respects overall workflow cancellation or timeouts.</li>
+<li>Increment <code>current_attempt</code>.</li>
+<li>Loop back to step 1 (Call Inner again).</li>
+</ul>
+</li>
+<li><strong>Give Up?</strong> If <code>should_retry</code> returns <code>false</code>:<ul>
+<li>The <code>RetryNode</code> stops trying.</li>
+<li>It returns the original error <code>e</code> (as <code>Err(e)</code>). The workflow will then likely handle this as a permanent failure (perhaps using fallback edges defined in <code>workflow!</code>, or ultimately failing the run).</li>
+</ul>
+</li>
+</ol>
+<p>Here's a simplified sequence diagram:</p>
+<div class="mermaid">sequenceDiagram
+    participant Engine as Floxide Engine
+    participant RetryNode as RetryNode.process
+    participant InnerNode as InnerNode.process
+    participant Policy as RetryPolicy
+    participant Ctx as WorkflowCtx
+
+    Engine-&gt;&gt;RetryNode: process(ctx, input)
+    loop Until Success or Max Attempts
+        RetryNode-&gt;&gt;InnerNode: process(ctx, input)
+        InnerNode--&gt;&gt;RetryNode: Return Result (e.g., Err(e))
+        alt Success (Ok(Transition))
+            RetryNode--&gt;&gt;Engine: Return Ok(Transition)
+            Note over Engine: Processing continues
+        else Failure (Err(e) or Abort(e))
+            RetryNode-&gt;&gt;Policy: should_retry(e, attempt)?
+            Policy--&gt;&gt;RetryNode: Return decision (true/false)
+            alt Retry (decision is true)
+                RetryNode-&gt;&gt;Policy: backoff_duration(attempt)
+                Policy--&gt;&gt;RetryNode: Return duration
+                RetryNode-&gt;&gt;Ctx: wait(duration)
+                Ctx--&gt;&gt;RetryNode: Wait completes (or Cancelled)
+                RetryNode-&gt;&gt;RetryNode: Increment attempt count
+                Note over RetryNode: Loop back to call InnerNode
+            else Give Up (decision is false)
+                RetryNode--&gt;&gt;Engine: Return Err(e)
+                Note over Engine: Error handled (e.g., Abort)
+            end
+        end
+    end</div>
+<h2 id="deeper-dive-into-code">Deeper Dive into Code<a class="headerlink" href="#deeper-dive-into-code" title="Permanent link">&para;</a></h2>
+<p>The core logic resides in <code>floxide-core/src/retry.rs</code>.</p>
+<p><strong><code>RetryPolicy</code> Struct:</strong></p>
+<p><div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><span class="c1">// Simplified from crates/floxide-core/src/retry.rs</span>
+</span><span id="__span-4-2">
+</span><span id="__span-4-3"><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-4-4"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">RetryPolicy</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-5"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">max_attempts</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">,</span>
+</span><span id="__span-4-6"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">initial_backoff</span><span class="p">:</span><span class="w"> </span><span class="nc">Duration</span><span class="p">,</span>
+</span><span id="__span-4-7"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">max_backoff</span><span class="p">:</span><span class="w"> </span><span class="nc">Duration</span><span class="p">,</span>
+</span><span id="__span-4-8"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">strategy</span><span class="p">:</span><span class="w"> </span><span class="nc">BackoffStrategy</span><span class="p">,</span><span class="w"> </span><span class="c1">// Enum: Linear, Exponential</span>
+</span><span id="__span-4-9"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">jitter</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">Duration</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-4-10"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">retry_error</span><span class="p">:</span><span class="w"> </span><span class="nc">RetryError</span><span class="p">,</span><span class="w"> </span><span class="c1">// Enum: All, Cancelled, Timeout, Generic</span>
+</span><span id="__span-4-11"><span class="p">}</span>
+</span><span id="__span-4-12">
+</span><span id="__span-4-13"><span class="k">impl</span><span class="w"> </span><span class="n">RetryPolicy</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-14"><span class="w">    </span><span class="c1">// Determines if an error should be retried based on policy rules and attempt count.</span>
+</span><span id="__span-4-15"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">should_retry</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">FloxideError</span><span class="p">,</span><span class="w"> </span><span class="n">attempt</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-16"><span class="w">        </span><span class="c1">// Check max_attempts and error type based on retry_error setting</span>
+</span><span id="__span-4-17"><span class="w">        </span><span class="c1">// ... logic ...</span>
+</span><span id="__span-4-18"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-19">
+</span><span id="__span-4-20"><span class="w">    </span><span class="c1">// Calculates the duration to wait before the next attempt.</span>
+</span><span id="__span-4-21"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">backoff_duration</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">attempt</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Duration</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-22"><span class="w">        </span><span class="c1">// Calculate base duration based on strategy (Linear/Exponential)</span>
+</span><span id="__span-4-23"><span class="w">        </span><span class="c1">// Cap at max_backoff</span>
+</span><span id="__span-4-24"><span class="w">        </span><span class="c1">// Add jitter if configured</span>
+</span><span id="__span-4-25"><span class="w">        </span><span class="c1">// ... logic ...</span>
+</span><span id="__span-4-26"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-27"><span class="p">}</span>
+</span></code></pre></div>
+This struct holds the configuration, and the methods implement the rules for deciding whether to retry and how long to wait.</p>
+<p><strong><code>RetryNode</code> Struct:</strong></p>
+<p><div class="language-rust highlight"><pre><span></span><code><span id="__span-5-1"><span class="c1">// Simplified from crates/floxide-core/src/retry.rs</span>
+</span><span id="__span-5-2">
+</span><span id="__span-5-3"><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-5-4"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">RetryNode</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Generic over the inner Node type N</span>
+</span><span id="__span-5-5"><span class="w">    </span><span class="sd">/// Inner node to invoke.</span>
+</span><span id="__span-5-6"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">inner</span><span class="p">:</span><span class="w"> </span><span class="nc">N</span><span class="p">,</span>
+</span><span id="__span-5-7"><span class="w">    </span><span class="sd">/// Policy controlling retry attempts and backoff.</span>
+</span><span id="__span-5-8"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">policy</span><span class="p">:</span><span class="w"> </span><span class="nc">RetryPolicy</span><span class="p">,</span>
+</span><span id="__span-5-9"><span class="p">}</span>
+</span></code></pre></div>
+This simple struct just holds the inner node and the policy to apply to it.</p>
+<p><strong><code>RetryNode::process</code> Implementation:</strong></p>
+<p><div class="language-rust highlight"><pre><span></span><code><span id="__span-6-1"><span class="c1">// Simplified from crates/floxide-core/src/retry.rs</span>
+</span><span id="__span-6-2"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">node</span><span class="p">::</span><span class="n">Node</span><span class="p">;</span>
+</span><span id="__span-6-3"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">context</span><span class="p">::{</span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">WorkflowCtx</span><span class="p">};</span><span class="w"> </span><span class="c1">// Context needed for wait</span>
+</span><span id="__span-6-4"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">retry</span><span class="p">::</span><span class="n">RetryDelay</span><span class="p">;</span><span class="w"> </span><span class="c1">// Trait providing ctx.wait()</span>
+</span><span id="__span-6-5">
+</span><span id="__span-6-6"><span class="cp">#[async_trait::async_trait]</span>
+</span><span id="__span-6-7"><span class="k">impl</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">RetryNode</span><span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;</span>
+</span><span id="__span-6-8"><span class="k">where</span>
+</span><span id="__span-6-9"><span class="w">    </span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">RetryDelay</span><span class="p">,</span><span class="w"> </span><span class="c1">// Context must support waiting</span>
+</span><span id="__span-6-10"><span class="w">    </span><span class="n">N</span><span class="p">:</span><span class="w"> </span><span class="nc">Node</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Clone</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">,</span><span class="w"> </span><span class="c1">// Inner node requirements</span>
+</span><span id="__span-6-11"><span class="w">    </span><span class="n">N</span><span class="p">::</span><span class="n">Input</span><span class="p">:</span><span class="w"> </span><span class="nb">Clone</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="p">,</span>
+</span><span id="__span-6-12"><span class="w">    </span><span class="c1">// ... other bounds ...</span>
+</span><span id="__span-6-13"><span class="p">{</span>
+</span><span id="__span-6-14"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">Input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">N</span><span class="p">::</span><span class="n">Input</span><span class="p">;</span>
+</span><span id="__span-6-15"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">Output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">N</span><span class="p">::</span><span class="n">Output</span><span class="p">;</span>
+</span><span id="__span-6-16">
+</span><span id="__span-6-17"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span>
+</span><span id="__span-6-18"><span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-6-19"><span class="w">        </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">C</span><span class="p">,</span><span class="w"> </span><span class="c1">// The workflow context</span>
+</span><span id="__span-6-20"><span class="w">        </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">Input</span><span class="p">,</span>
+</span><span id="__span-6-21"><span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">Transition</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">Output</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-22"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">attempt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">// Start with attempt 1</span>
+</span><span id="__span-6-23">
+</span><span id="__span-6-24"><span class="w">        </span><span class="k">loop</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Keep trying until success or give up</span>
+</span><span id="__span-6-25"><span class="w">            </span><span class="c1">// Call the inner node&#39;s process method</span>
+</span><span id="__span-6-26"><span class="w">            </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">inner</span><span class="p">.</span><span class="n">process</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">.</span><span class="n">clone</span><span class="p">()).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-6-27">
+</span><span id="__span-6-28"><span class="w">            </span><span class="k">match</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-29"><span class="w">                </span><span class="c1">// Pass through successful transitions immediately</span>
+</span><span id="__span-6-30"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(</span><span class="n">out</span><span class="p">))</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(</span><span class="n">out</span><span class="p">)),</span>
+</span><span id="__span-6-31"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">NextAll</span><span class="p">(</span><span class="n">vs</span><span class="p">))</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">NextAll</span><span class="p">(</span><span class="n">vs</span><span class="p">)),</span>
+</span><span id="__span-6-32"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Hold</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Hold</span><span class="p">),</span>
+</span><span id="__span-6-33">
+</span><span id="__span-6-34"><span class="w">                </span><span class="c1">// Handle failures (Abort or Err)</span>
+</span><span id="__span-6-35"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Abort</span><span class="p">(</span><span class="n">e</span><span class="p">))</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-36"><span class="w">                    </span><span class="n">tracing</span><span class="p">::</span><span class="n">debug</span><span class="o">!</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="o">=%</span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;RetryNode: caught error&quot;</span><span class="p">);</span>
+</span><span id="__span-6-37">
+</span><span id="__span-6-38"><span class="w">                    </span><span class="c1">// Check if policy allows retrying this error at this attempt count</span>
+</span><span id="__span-6-39"><span class="w">                    </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">policy</span><span class="p">.</span><span class="n">should_retry</span><span class="p">(</span><span class="o">&amp;</span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="n">attempt</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-40"><span class="w">                        </span><span class="kd">let</span><span class="w"> </span><span class="n">backoff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">policy</span><span class="p">.</span><span class="n">backoff_duration</span><span class="p">(</span><span class="n">attempt</span><span class="p">);</span>
+</span><span id="__span-6-41"><span class="w">                        </span><span class="n">tracing</span><span class="p">::</span><span class="n">info</span><span class="o">!</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span><span class="w"> </span><span class="n">backoff</span><span class="o">=?</span><span class="n">backoff</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;RetryNode: retrying&quot;</span><span class="p">);</span>
+</span><span id="__span-6-42">
+</span><span id="__span-6-43"><span class="w">                        </span><span class="c1">// Wait for the backoff period, respecting context cancellation</span>
+</span><span id="__span-6-44"><span class="w">                        </span><span class="n">ctx</span><span class="p">.</span><span class="n">wait</span><span class="p">(</span><span class="n">backoff</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span><span class="w"> </span><span class="c1">// Returns Err if cancelled/timeout</span>
+</span><span id="__span-6-45">
+</span><span id="__span-6-46"><span class="w">                        </span><span class="n">attempt</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="c1">// Increment attempt count</span>
+</span><span id="__span-6-47"><span class="w">                        </span><span class="k">continue</span><span class="p">;</span><span class="w"> </span><span class="c1">// Go to the next iteration of the loop</span>
+</span><span id="__span-6-48"><span class="w">                    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-49"><span class="w">                        </span><span class="c1">// Max attempts reached or non-retryable error</span>
+</span><span id="__span-6-50"><span class="w">                        </span><span class="n">tracing</span><span class="p">::</span><span class="n">warn</span><span class="o">!</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="o">=%</span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;RetryNode: giving up&quot;</span><span class="p">);</span>
+</span><span id="__span-6-51"><span class="w">                        </span><span class="k">return</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">);</span><span class="w"> </span><span class="c1">// Return the final error</span>
+</span><span id="__span-6-52"><span class="w">                    </span><span class="p">}</span>
+</span><span id="__span-6-53"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-6-54"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-6-55"><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="c1">// End of loop</span>
+</span><span id="__span-6-56"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-6-57"><span class="p">}</span>
+</span></code></pre></div>
+This implementation clearly shows the loop structure, the call to the inner node, the error handling, the policy checks (<code>should_retry</code>, <code>backoff_duration</code>), the crucial <code>ctx.wait(backoff).await</code> call, and the final return of either success or the persistent error.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p><code>RetryPolicy</code> and <code>RetryNode</code> provide a powerful and flexible mechanism for adding automatic retries to individual steps in your Floxide workflows.</p>
+<ul>
+<li><strong><code>RetryPolicy</code></strong> defines <em>how</em> to retry (attempts, backoff, error types).</li>
+<li><strong><code>RetryNode</code></strong> acts as a wrapper that <em>applies</em> the policy to an existing Node.</li>
+<li>They work seamlessly with the rest of Floxide, including context-aware waiting (<code>ctx.wait</code>) that respects cancellation and timeouts.</li>
+<li>This significantly improves the <strong>fault tolerance</strong> of your workflows, especially in distributed environments where transient errors are common.</li>
+</ul>
+<p>By making individual steps more resilient, you make the entire distributed workflow more robust and reliable. This concludes our introduction to the core concepts of Floxide! You've learned about transitions, nodes, context, workflows, queues, checkpoints, workers, orchestrators, stores, and retries – everything you need to start building your own easy, distributed workflows.</p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

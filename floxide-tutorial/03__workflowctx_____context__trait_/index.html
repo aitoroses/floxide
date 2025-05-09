@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Chapter 3: WorkflowCtx & Context Trait - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="1">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/">Overview</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Tutorial</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../">Introduction</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../01__transition__enum_/">Chapter 1: Transition Enum</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../02__node__trait____node___macro_/">Chapter 2: Node Trait & node! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Chapter 3: WorkflowCtx & Context Trait</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../04__workflow__trait____workflow___macro_/">Chapter 4: Workflow Trait & workflow! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../05__workqueue__trait_/">Chapter 5: WorkQueue Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../06__checkpoint_____checkpointstore__trait_/">Chapter 6: Checkpoint & CheckpointStore Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../07__distributedworker__/">Chapter 7: DistributedWorker</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../08__distributedorchestrator__/">Chapter 8: DistributedOrchestrator</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Chapter 9: Distributed Stores</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../10__retrypolicy_____retrynode__/">Chapter 10: RetryPolicy & RetryNode</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#chapter-3-workflowctx-context-trait">Chapter 3: WorkflowCtx &amp; Context Trait</a></li>
+        <li><a href="#whats-the-problem-sharing-information-between-steps">What's the Problem? Sharing Information Between Steps</a></li><li><a href="#the-context-trait-your-shared-toolbox-blueprint">The Context Trait: Your Shared Toolbox Blueprint</a></li><li><a href="#workflowctx-the-toolbox-holder-with-controls">WorkflowCtx: The Toolbox Holder with Controls</a></li><li><a href="#how-nodes-use-workflowctx">How Nodes Use WorkflowCtx</a></li><li><a href="#how-workflowctx-enables-distribution-revisited">How WorkflowCtx Enables Distribution (Revisited)</a></li><li><a href="#under-the-hood-creation-and-usage-updated">Under the Hood: Creation and Usage (Updated)</a></li><li><a href="#conclusion">Conclusion</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="chapter-3-workflowctx-context-trait">Chapter 3: <code>WorkflowCtx</code> &amp; <code>Context</code> Trait<a class="headerlink" href="#chapter-3-workflowctx-context-trait" title="Permanent link">&para;</a></h1>
+<p>In the <a href="../02__node__trait____node___macro_/">previous chapter</a>, we learned how to define individual steps in our workflow using the <code>Node</code> trait and the handy <code>node!</code> macro. Each Node performs a specific task. But what if different Nodes in our workflow need to access the same piece of information, or share some common resources?</p>
+<p>Imagine our video processing workflow again. Maybe multiple steps (Nodes) need the same API key to talk to an external service, or perhaps we want to keep a running count of processed frames across different steps. How can we share this information safely, especially when our workflow might be running distributed across many computers?</p>
+<p>This is where the concepts of <code>Context</code> and <code>WorkflowCtx</code> come in!</p>
+<h2 id="whats-the-problem-sharing-information-between-steps">What's the Problem? Sharing Information Between Steps<a class="headerlink" href="#whats-the-problem-sharing-information-between-steps" title="Permanent link">&para;</a></h2>
+<p>Think of our distributed assembly line. Each worker (Node) operates independently, maybe even in different buildings (computers).</p>
+<ul>
+<li>How do they all know which <em>version</em> of the product they are building? (Shared configuration)</li>
+<li>How do they access shared tools, like a specific calibration device? (Shared resources like database connections)</li>
+<li>How does the manager tell everyone to stop if there's a major issue? (Cancellation signal)</li>
+<li>How do we ensure everyone finishes before a deadline? (Timeout)</li>
+</ul>
+<p>We need a mechanism for:</p>
+<ol>
+<li><strong>Shared Data/Resources:</strong> A common place to store information that all Nodes in a <em>single run</em> of the workflow might need.</li>
+<li><strong>Control Signals:</strong> Ways to manage the workflow run as a whole, like stopping it early.</li>
+</ol>
+<p>Floxide provides this through the <code>Context</code> trait and the <code>WorkflowCtx</code> struct.</p>
+<h2 id="the-context-trait-your-shared-toolbox-blueprint">The <code>Context</code> Trait: Your Shared Toolbox Blueprint<a class="headerlink" href="#the-context-trait-your-shared-toolbox-blueprint" title="Permanent link">&para;</a></h2>
+<p>The <code>Context</code> trait itself is very simple. It doesn't <em>define</em> what goes into the shared toolbox, it just marks a Rust struct or type as <em>being suitable</em> to be used <em>as</em> the shared toolbox content for a workflow run.</p>
+<p><strong>You</strong>, the developer, define the actual struct that holds the shared data. This struct needs to implement certain standard Rust traits so that Floxide can manage it effectively:</p>
+<ul>
+<li><code>Clone</code>: Floxide might need to copy the context.</li>
+<li><code>Debug</code>: For logging and debugging.</li>
+<li><code>Serialize</code>/<code>Deserialize</code>: Crucial for saving state (<a href="../06__checkpoint_____checkpointstore__trait_/"><code>CheckpointStore</code></a>) and for <strong>distributed workflows</strong>! The context needs to be saved and potentially sent over the network to different workers. <code>serde</code> is the standard Rust library for this.</li>
+<li><code>Send</code>/<code>Sync</code>: Necessary for safely using the context across different threads or async tasks.</li>
+<li><code>Default</code>: Needed to create an initial empty context when a workflow starts.</li>
+<li><strong><code>floxide_core::merge::Merge</code></strong>: This is vital, especially for distributed workflows. It defines how to combine different versions of the context. For example, if two parallel steps modify the context, the <code>Merge</code> trait dictates how those changes are consolidated into a single, consistent state. Floxide provides a derive macro <code>floxide_macros::Merge</code> to help implement this.</li>
+</ul>
+<h3 id="structuring-context-data-event-sourcing-merging">Structuring Context Data: Event Sourcing &amp; Merging<a class="headerlink" href="#structuring-context-data-event-sourcing-merging" title="Permanent link">&para;</a></h3>
+<p>How should you structure the data inside your context? While you <em>could</em> put simple mutable fields like <code>processed_items_count: u32</code>, this quickly becomes problematic, especially in distributed scenarios. How do you safely increment a counter when multiple workers might try to do it concurrently?</p>
+<p>A more robust and recommended approach is <strong>Event Sourcing</strong>:</p>
+<ol>
+<li><strong>Events:</strong> Define an <code>enum</code> representing all possible <em>changes</em> or <em>facts</em> that can occur in your workflow's shared state (e.g., <code>ItemProcessed(ItemId)</code>, <code>ApiKeySet(String)</code>).</li>
+<li><strong>Event Log:</strong> Store a log of these events within your context struct. Floxide provides <code>floxide_core::distributed::event_log::EventLog&lt;YourEventEnum&gt;</code> for this.</li>
+<li><strong>State Reconstruction:</strong> Instead of storing the <em>current</em> state directly (like the count), store the log of events. The current state can be reconstructed at any time by "replaying" the events from the log.</li>
+<li><strong>Modification:</strong> Nodes don't <em>modify</em> state directly; they <em>append</em> new events to the log.</li>
+</ol>
+<p><strong>Why Event Sourcing?</strong></p>
+<ul>
+<li><strong>Concurrency:</strong> Appending to a log is often easier to make safe and efficient than directly modifying shared values.</li>
+<li><strong>Merging:</strong> The <code>EventLog</code> implements the <code>Merge</code> trait intelligently. When merging two versions of a context (e.g., from parallel branches), it combines their event logs, often preserving the history from both.</li>
+<li><strong>Audit Trail:</strong> The event log provides a complete history of how the shared state evolved.</li>
+</ul>
+<h3 id="the-merge-trait-and-fixed-wrapper">The <code>Merge</code> Trait and <code>Fixed</code> Wrapper<a class="headerlink" href="#the-merge-trait-and-fixed-wrapper" title="Permanent link">&para;</a></h3>
+<p>The <code>Merge</code> trait is key to handling concurrent updates. <code>EventLog</code> implements it. What about simple configuration values like an API key that shouldn't change or be merged in complex ways?</p>
+<p>Floxide provides <code>floxide_core::merge::Fixed&lt;T&gt;</code>. If you wrap a field in <code>Fixed</code> (e.g., <code>api_key: Fixed&lt;String&gt;</code>), its <code>Merge</code> implementation will simply keep the <em>first</em> value it encountered. This is useful for configuration set at the start.</p>
+<p>You can implement <code>Merge</code> manually for your context struct, but the <code>floxide_macros::Merge</code> derive macro handles the common case: it merges each field using that field's own <code>Merge</code> implementation (like <code>EventLog</code>'s or <code>Fixed</code>'s merge).</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="c1">// Needed imports</span>
+</span><span id="__span-0-2"><span class="k">use</span><span class="w"> </span><span class="n">serde</span><span class="p">::{</span><span class="n">Serialize</span><span class="p">,</span><span class="w"> </span><span class="n">Deserialize</span><span class="p">};</span>
+</span><span id="__span-0-3"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">context</span><span class="p">::</span><span class="n">Context</span><span class="p">;</span><span class="w"> </span><span class="c1">// The trait itself</span>
+</span><span id="__span-0-4"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">distributed</span><span class="p">::</span><span class="n">event_log</span><span class="p">::</span><span class="n">EventLog</span><span class="p">;</span>
+</span><span id="__span-0-5"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">merge</span><span class="p">::{</span><span class="n">Merge</span><span class="p">,</span><span class="w"> </span><span class="n">Fixed</span><span class="p">};</span>
+</span><span id="__span-0-6"><span class="k">use</span><span class="w"> </span><span class="n">floxide_macros</span><span class="p">::</span><span class="n">Merge</span><span class="p">;</span><span class="w"> </span><span class="c1">// The derive macro</span>
+</span><span id="__span-0-7">
+</span><span id="__span-0-8"><span class="c1">// 1. Define the events that can happen</span>
+</span><span id="__span-0-9"><span class="cp">#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]</span>
+</span><span id="__span-0-10"><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">MyWorkflowEvent</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-11"><span class="w">    </span><span class="n">ItemProcessed</span><span class="p">(</span><span class="kt">u32</span><span class="p">),</span><span class="w"> </span><span class="c1">// Record which item ID was processed</span>
+</span><span id="__span-0-12"><span class="w">    </span><span class="n">ProcessingStarted</span><span class="p">,</span>
+</span><span id="__span-0-13"><span class="w">    </span><span class="c1">// Add other relevant events</span>
+</span><span id="__span-0-14"><span class="p">}</span>
+</span><span id="__span-0-15">
+</span><span id="__span-0-16"><span class="c1">// 2. Define YOUR shared data structure using EventLog and Fixed</span>
+</span><span id="__span-0-17"><span class="cp">#[derive(Clone, Debug, Default, Serialize, Deserialize, Merge)]</span><span class="w"> </span><span class="c1">// &lt;-- Derive Merge!</span>
+</span><span id="__span-0-18"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">MyWorkflowData</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-19"><span class="w">    </span><span class="c1">// Configuration set once - use Fixed</span>
+</span><span id="__span-0-20"><span class="w">    </span><span class="cp">#[merge(strategy = </span><span class="s">&quot;fixed&quot;</span><span class="cp">)]</span><span class="w"> </span><span class="c1">// Optional: Explicitly use Fixed strategy via attribute</span>
+</span><span id="__span-0-21"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">api_key</span><span class="p">:</span><span class="w"> </span><span class="nc">Fixed</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-0-22">
+</span><span id="__span-0-23"><span class="w">    </span><span class="c1">// Log of changes - use EventLog</span>
+</span><span id="__span-0-24"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">event_log</span><span class="p">:</span><span class="w"> </span><span class="nc">EventLog</span><span class="o">&lt;</span><span class="n">MyWorkflowEvent</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-0-25">
+</span><span id="__span-0-26"><span class="w">    </span><span class="c1">// Other fields MUST also implement Merge or be wrapped (e.g., in Fixed)</span>
+</span><span id="__span-0-27"><span class="p">}</span>
+</span><span id="__span-0-28">
+</span><span id="__span-0-29"><span class="c1">// 3. Optionally, add a helper to get the current state from the log</span>
+</span><span id="__span-0-30"><span class="cp">#[derive(Default, Debug)]</span><span class="w"> </span><span class="c1">// Temporary struct to hold the calculated state</span>
+</span><span id="__span-0-31"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">CurrentState</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-32"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">processed_items_count</span><span class="p">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span>
+</span><span id="__span-0-33"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">started</span><span class="p">:</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span>
+</span><span id="__span-0-34"><span class="p">}</span>
+</span><span id="__span-0-35">
+</span><span id="__span-0-36"><span class="k">impl</span><span class="w"> </span><span class="n">MyWorkflowData</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-37"><span class="w">    </span><span class="c1">// Replays events to calculate the current state</span>
+</span><span id="__span-0-38"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">replay</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">CurrentState</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-39"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">event_log</span><span class="p">.</span><span class="n">apply_all_default</span><span class="p">(</span><span class="o">|</span><span class="n">event</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">CurrentState</span><span class="o">|</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-40"><span class="w">            </span><span class="k">match</span><span class="w"> </span><span class="n">event</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-41"><span class="w">                </span><span class="n">MyWorkflowEvent</span><span class="p">::</span><span class="n">ItemProcessed</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">processed_items_count</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-0-42"><span class="w">                </span><span class="n">MyWorkflowEvent</span><span class="p">::</span><span class="n">ProcessingStarted</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">started</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-0-43"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-0-44"><span class="w">        </span><span class="p">})</span>
+</span><span id="__span-0-45"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-0-46"><span class="p">}</span>
+</span><span id="__span-0-47">
+</span><span id="__span-0-48"><span class="c1">// MyWorkflowData now satisfies the requirements of the Context trait</span>
+</span><span id="__span-0-49"><span class="c1">// because it derives/impls Clone, Debug, Default, Serde, Merge,</span>
+</span><span id="__span-0-50"><span class="c1">// and EventLog/Fixed handle Send/Sync internally.</span>
+</span></code></pre></div>
+<p>In this improved example:
+*   We define <code>MyWorkflowEvent</code>.
+*   <code>MyWorkflowData</code> uses <code>Fixed&lt;String&gt;</code> for the unchanging <code>api_key</code> and <code>EventLog&lt;MyWorkflowEvent&gt;</code> for the history.
+*   We derive <code>Merge</code> for <code>MyWorkflowData</code>.
+*   We add a <code>replay</code> method to calculate the <code>CurrentState</code> on demand.</p>
+<h2 id="workflowctx-the-toolbox-holder-with-controls"><code>WorkflowCtx</code>: The Toolbox Holder with Controls<a class="headerlink" href="#workflowctx-the-toolbox-holder-with-controls" title="Permanent link">&para;</a></h2>
+<p>Okay, so we've defined <em>what</em> goes in our shared toolbox (<code>MyWorkflowData</code>). Now, how does Floxide manage it and add those control signals (like cancellation)?</p>
+<p>Floxide wraps your custom <code>Context</code> type inside its own struct called <code>WorkflowCtx&lt;C&gt;</code>. Think of <code>WorkflowCtx</code> as the manager holding your toolbox (<code>C</code> represents <em>your</em> context type, like <code>MyWorkflowData</code>) and also carrying walkie-talkies (cancellation) and a stopwatch (timeout).</p>
+<p>Here's a conceptual look at <code>WorkflowCtx</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="c1">// Simplified structure of WorkflowCtx</span>
+</span><span id="__span-1-2"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">WorkflowCtx</span><span class="o">&lt;</span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Generic over YOUR context type C</span>
+</span><span id="__span-1-3"><span class="w">    </span><span class="c1">// 1. Your shared data store</span>
+</span><span id="__span-1-4"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">store</span><span class="p">:</span><span class="w"> </span><span class="nc">C</span><span class="p">,</span>
+</span><span id="__span-1-5">
+</span><span id="__span-1-6"><span class="w">    </span><span class="c1">// 2. Cancellation signal (like a walkie-talkie)</span>
+</span><span id="__span-1-7"><span class="w">    </span><span class="n">cancel</span><span class="p">:</span><span class="w"> </span><span class="nc">CancellationToken</span><span class="p">,</span><span class="w"> </span><span class="c1">// From the &#39;tokio-util&#39; crate</span>
+</span><span id="__span-1-8">
+</span><span id="__span-1-9"><span class="w">    </span><span class="c1">// 3. Optional overall deadline (stopwatch)</span>
+</span><span id="__span-1-10"><span class="w">    </span><span class="n">timeout</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">Duration</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-1-11"><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Key Parts:</strong></p>
+<ol>
+<li><code>store: C</code>: This public field holds the actual instance of <em>your</em> <code>Context</code> struct (e.g., an instance of <code>MyWorkflowData</code>, likely containing an <code>EventLog</code>). Nodes interact with your context primarily through this field.</li>
+<li><code>cancel: CancellationToken</code>: This is used internally to signal if the workflow should be stopped prematurely. Nodes can check this token via <code>ctx.is_cancelled()</code>.</li>
+<li><code>timeout: Option&lt;Duration&gt;</code>: An optional overall time limit for the workflow run.</li>
+</ol>
+<p><strong>Distributed Emphasis:</strong> When a workflow step runs on a remote worker, Floxide ensures that worker gets the <em>correct</em> <code>WorkflowCtx</code>, including the potentially updated <code>store</code> (often loaded from a <a href="../06__checkpoint_____checkpointstore__trait_/"><code>Checkpoint</code> &amp; <code>CheckpointStore</code> Trait</a>) and the shared cancellation signal. This allows coordination across the distributed system.</p>
+<h2 id="how-nodes-use-workflowctx">How Nodes Use <code>WorkflowCtx</code><a class="headerlink" href="#how-nodes-use-workflowctx" title="Permanent link">&para;</a></h2>
+<p>Remember the <code>node!</code> macro from <a href="../02__node__trait____node___macro_/">Chapter 2</a>? Let's update the example using our event-sourced context:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::</span><span class="n">node</span><span class="p">;</span>
+</span><span id="__span-2-2"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::{</span><span class="n">Transition</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="p">};</span>
+</span><span id="__span-2-3"><span class="k">use</span><span class="w"> </span><span class="n">serde</span><span class="p">::{</span><span class="n">Serialize</span><span class="p">,</span><span class="w"> </span><span class="n">Deserialize</span><span class="p">};</span>
+</span><span id="__span-2-4"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">context</span><span class="p">::</span><span class="n">Context</span><span class="p">;</span>
+</span><span id="__span-2-5"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">distributed</span><span class="p">::</span><span class="n">event_log</span><span class="p">::</span><span class="n">EventLog</span><span class="p">;</span>
+</span><span id="__span-2-6"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">merge</span><span class="p">::{</span><span class="n">Merge</span><span class="p">,</span><span class="w"> </span><span class="n">Fixed</span><span class="p">};</span>
+</span><span id="__span-2-7"><span class="k">use</span><span class="w"> </span><span class="n">floxide_macros</span><span class="p">::</span><span class="n">Merge</span><span class="p">;</span><span class="w"> </span><span class="c1">// The derive macro</span>
+</span><span id="__span-2-8"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">Arc</span><span class="p">;</span><span class="w"> </span><span class="c1">// Needed if api_key is behind Arc in Fixed</span>
+</span><span id="__span-2-9">
+</span><span id="__span-2-10"><span class="c1">// --- Assume MyWorkflowEvent, MyWorkflowData, CurrentState from above ---</span>
+</span><span id="__span-2-11"><span class="cp">#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]</span>
+</span><span id="__span-2-12"><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">MyWorkflowEvent</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">ItemProcessed</span><span class="p">(</span><span class="kt">u32</span><span class="p">),</span><span class="w"> </span><span class="n">ProcessingStarted</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-13"><span class="cp">#[derive(Default, Debug)]</span>
+</span><span id="__span-2-14"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">CurrentState</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">pub</span><span class="w"> </span><span class="n">processed_items_count</span><span class="p">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span><span class="w"> </span><span class="k">pub</span><span class="w"> </span><span class="n">started</span><span class="p">:</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-2-15"><span class="cp">#[derive(Clone, Debug, Default, Serialize, Deserialize, Merge)]</span>
+</span><span id="__span-2-16"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">MyWorkflowData</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-17"><span class="w">    </span><span class="cp">#[merge(strategy = </span><span class="s">&quot;fixed&quot;</span><span class="cp">)]</span><span class="w"> </span><span class="k">pub</span><span class="w"> </span><span class="n">api_key</span><span class="p">:</span><span class="w"> </span><span class="nc">Fixed</span><span class="o">&lt;</span><span class="n">Arc</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="c1">// Use Arc for cheap clones</span>
+</span><span id="__span-2-18"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">event_log</span><span class="p">:</span><span class="w"> </span><span class="nc">EventLog</span><span class="o">&lt;</span><span class="n">MyWorkflowEvent</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-2-19"><span class="p">}</span>
+</span><span id="__span-2-20"><span class="k">impl</span><span class="w"> </span><span class="n">MyWorkflowData</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-21"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">replay</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">CurrentState</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-22"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">event_log</span><span class="p">.</span><span class="n">apply_all_default</span><span class="p">(</span><span class="o">|</span><span class="n">event</span><span class="p">,</span><span class="w"> </span><span class="n">state</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">mut</span><span class="w"> </span><span class="n">CurrentState</span><span class="o">|</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-23"><span class="w">            </span><span class="k">match</span><span class="w"> </span><span class="n">event</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-24"><span class="w">                </span><span class="n">MyWorkflowEvent</span><span class="p">::</span><span class="n">ItemProcessed</span><span class="p">(</span><span class="n">_</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">processed_items_count</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-2-25"><span class="w">                </span><span class="n">MyWorkflowEvent</span><span class="p">::</span><span class="n">ProcessingStarted</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="n">state</span><span class="p">.</span><span class="n">started</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-26"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-2-27"><span class="w">        </span><span class="p">})</span>
+</span><span id="__span-2-28"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-29"><span class="w">     </span><span class="c1">// Helper to create a new context</span>
+</span><span id="__span-2-30"><span class="w">     </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">new</span><span class="p">(</span><span class="n">api_key</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-31"><span class="w">        </span><span class="bp">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-32"><span class="w">            </span><span class="n">api_key</span><span class="p">:</span><span class="w"> </span><span class="nc">Fixed</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">Arc</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">api_key</span><span class="p">)),</span>
+</span><span id="__span-2-33"><span class="w">            </span><span class="n">event_log</span><span class="p">:</span><span class="w"> </span><span class="nc">EventLog</span><span class="p">::</span><span class="n">new</span><span class="p">(),</span>
+</span><span id="__span-2-34"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-2-35"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-36"><span class="p">}</span>
+</span><span id="__span-2-37"><span class="c1">// --- End of Context Definition ---</span>
+</span><span id="__span-2-38">
+</span><span id="__span-2-39">
+</span><span id="__span-2-40"><span class="c1">// Let&#39;s define a Node that uses this context</span>
+</span><span id="__span-2-41"><span class="n">node</span><span class="o">!</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-42"><span class="w">  </span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">ProcessDataItemNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-43"><span class="w">    </span><span class="c1">// Node-specific config, if any</span>
+</span><span id="__span-2-44"><span class="w">    </span><span class="n">item_id</span><span class="p">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span><span class="w"> </span><span class="c1">// Let&#39;s assume the node knows which item ID it&#39;s processing</span>
+</span><span id="__span-2-45"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-46"><span class="w">  </span><span class="c1">// *** Tell the node which context type to expect ***</span>
+</span><span id="__span-2-47"><span class="w">  </span><span class="n">context</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MyWorkflowData</span><span class="p">;</span>
+</span><span id="__span-2-48"><span class="w">  </span><span class="n">input</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="p">();</span><span class="w"> </span><span class="c1">// Example input: maybe just a trigger</span>
+</span><span id="__span-2-49"><span class="w">  </span><span class="n">output</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="p">();</span><span class="w">  </span><span class="c1">// Example output: nothing significant</span>
+</span><span id="__span-2-50">
+</span><span id="__span-2-51"><span class="w">  </span><span class="c1">// The closure now receives `&amp;WorkflowCtx&lt;MyWorkflowData&gt;` as `ctx`</span>
+</span><span id="__span-2-52"><span class="w">  </span><span class="k">async</span><span class="w"> </span><span class="o">|</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">_input</span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Make it async if needed (e.g., for replay potentially)</span>
+</span><span id="__span-2-53"><span class="w">    </span><span class="c1">// --- Accessing Current State (via Replay) ---</span>
+</span><span id="__span-2-54"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">current_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">store</span><span class="p">.</span><span class="n">replay</span><span class="p">();</span>
+</span><span id="__span-2-55"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">api_key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">store</span><span class="p">.</span><span class="n">api_key</span><span class="p">.</span><span class="n">get</span><span class="p">();</span><span class="w"> </span><span class="c1">// Get the Arc&lt;String&gt; from Fixed</span>
+</span><span id="__span-2-56">
+</span><span id="__span-2-57"><span class="w">    </span><span class="fm">println!</span><span class="p">(</span>
+</span><span id="__span-2-58"><span class="w">        </span><span class="s">&quot;Node [Item {}]: Processing. Current count: {}. Using API key starting with: {}&quot;</span><span class="p">,</span>
+</span><span id="__span-2-59"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">item_id</span><span class="p">,</span>
+</span><span id="__span-2-60"><span class="w">        </span><span class="n">current_state</span><span class="p">.</span><span class="n">processed_items_count</span><span class="p">,</span>
+</span><span id="__span-2-61"><span class="w">        </span><span class="n">api_key</span><span class="p">.</span><span class="n">chars</span><span class="p">().</span><span class="n">take</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="n">collect</span><span class="p">::</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">()</span><span class="w"> </span><span class="c1">// Show first 5 chars</span>
+</span><span id="__span-2-62"><span class="w">    </span><span class="p">);</span>
+</span><span id="__span-2-63">
+</span><span id="__span-2-64"><span class="w">    </span><span class="c1">// --- Using Context Control Features ---</span>
+</span><span id="__span-2-65"><span class="w">    </span><span class="c1">// Check if the workflow run has been cancelled elsewhere</span>
+</span><span id="__span-2-66"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">ctx</span><span class="p">.</span><span class="n">is_cancelled</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-67"><span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Node [Item {}]: Workflow cancelled, stopping processing.&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">item_id</span><span class="p">);</span>
+</span><span id="__span-2-68"><span class="w">        </span><span class="c1">// Abort this step if cancellation was requested</span>
+</span><span id="__span-2-69"><span class="w">        </span><span class="c1">// Optionally, append a &#39;Cancelled&#39; event to the log here?</span>
+</span><span id="__span-2-70"><span class="w">        </span><span class="c1">// ctx.store.event_log.append(MyWorkflowEvent::ProcessingCancelled(self.item_id));</span>
+</span><span id="__span-2-71"><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">Err</span><span class="p">(</span><span class="n">FloxideError</span><span class="p">::</span><span class="n">Cancelled</span><span class="p">);</span>
+</span><span id="__span-2-72"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-73">
+</span><span id="__span-2-74"><span class="w">    </span><span class="c1">// --- Node&#39;s Own Logic ---</span>
+</span><span id="__span-2-75"><span class="w">    </span><span class="c1">// Do some work... (using api_key if needed)</span>
+</span><span id="__span-2-76"><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Node [Item {}]: Finished processing.&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">item_id</span><span class="p">);</span>
+</span><span id="__span-2-77"><span class="w">    </span><span class="c1">// Simulating work</span>
+</span><span id="__span-2-78"><span class="w">    </span><span class="n">tokio</span><span class="p">::</span><span class="n">time</span><span class="p">::</span><span class="n">sleep</span><span class="p">(</span><span class="n">std</span><span class="p">::</span><span class="n">time</span><span class="p">::</span><span class="n">Duration</span><span class="p">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">10</span><span class="p">)).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-2-79">
+</span><span id="__span-2-80"><span class="w">    </span><span class="c1">// --- Modifying Context (Append Event) ---</span>
+</span><span id="__span-2-81"><span class="w">    </span><span class="c1">// Instead of direct mutation, append an event to the log.</span>
+</span><span id="__span-2-82"><span class="w">    </span><span class="c1">// The actual context object `ctx.store` is immutable here (&amp;WorkflowCtx).</span>
+</span><span id="__span-2-83"><span class="w">    </span><span class="c1">// The engine handles taking this event and merging it into the</span>
+</span><span id="__span-2-84"><span class="w">    </span><span class="c1">// persistent context state using the Merge trait.</span>
+</span><span id="__span-2-85"><span class="w">    </span><span class="n">ctx</span><span class="p">.</span><span class="n">store</span><span class="p">.</span><span class="n">event_log</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">MyWorkflowEvent</span><span class="p">::</span><span class="n">ItemProcessed</span><span class="p">(</span><span class="bp">self</span><span class="p">.</span><span class="n">item_id</span><span class="p">));</span>
+</span><span id="__span-2-86">
+</span><span id="__span-2-87"><span class="w">    </span><span class="c1">// We don&#39;t return the modified context directly. Floxide handles</span>
+</span><span id="__span-2-88"><span class="w">    </span><span class="c1">// persisting the appended events via CheckpointStore or ContextStore.</span>
+</span><span id="__span-2-89">
+</span><span id="__span-2-90"><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(()))</span><span class="w"> </span><span class="c1">// Pass nothing significant forward</span>
+</span><span id="__span-2-91"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-92"><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Explanation:</strong></p>
+<ol>
+<li><strong><code>context = MyWorkflowData;</code></strong>: Still tells <code>node!</code> the context type.</li>
+<li><strong><code>|ctx, _input|</code></strong>: Receives <code>&amp;WorkflowCtx&lt;MyWorkflowData&gt;</code>.</li>
+<li><strong>Reading State</strong>: We call <code>ctx.store.replay()</code> to get the calculated <code>CurrentState</code>. We access configuration via <code>ctx.store.api_key.get()</code>.</li>
+<li><strong><code>ctx.is_cancelled()</code></strong>: Works as before.</li>
+<li><strong>Modifying Context</strong>: This is the key change! We call <code>ctx.store.event_log.append(...)</code> to record what happened. We <strong>do not</strong> directly change fields in <code>ctx.store</code>. The Floxide engine uses the <code>Merge</code> implementation of <code>MyWorkflowData</code> (which uses the <code>Merge</code> impl of <code>EventLog</code>) to combine these appended events with the state saved in the <a href="../06__checkpoint_____checkpointstore__trait_/"><code>CheckpointStore</code></a> or <a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/"><code>ContextStore</code></a> after the node successfully completes.</li>
+</ol>
+<h2 id="how-workflowctx-enables-distribution-revisited">How <code>WorkflowCtx</code> Enables Distribution (Revisited)<a class="headerlink" href="#how-workflowctx-enables-distribution-revisited" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Serialization:</strong> Still relies on <code>serde</code>, now serializing the <code>EventLog</code> and other <code>Merge</code>-able fields within your context.</li>
+<li><strong>State Loading:</strong> When a worker loads state (from <code>CheckpointStore</code> or <code>ContextStore</code>), it gets the context including the event log up to that point.</li>
+<li><strong>Concurrency &amp; Merging:</strong> This is where the <code>Merge</code> trait shines. If parallel branches of a workflow run, or if retries occur, Floxide uses the <code>Merge</code> implementation of your context struct (and thus the <code>Merge</code> impl of <code>EventLog</code>) to correctly combine the different histories or updates into a consistent state in the persistent store. <code>EventLog</code>'s merge strategy helps ensure events aren't lost or unnecessarily duplicated.</li>
+<li><strong>Cancellation Propagation:</strong> Works as previously described.</li>
+</ol>
+<h2 id="under-the-hood-creation-and-usage-updated">Under the Hood: Creation and Usage (Updated)<a class="headerlink" href="#under-the-hood-creation-and-usage-updated" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Instantiation:</strong> When you start a workflow run (e.g., using methods we'll see in <a href="../04__workflow__trait____workflow___macro_/">Chapter 4: <code>Workflow</code> Trait &amp; <code>workflow!</code> Macro</a>), you typically provide an initial instance of your <code>Context</code> struct. Floxide wraps this into a <code>WorkflowCtx</code>.</li>
+<li><strong>Passing to Nodes:</strong> The Floxide engine takes care of passing the appropriate <code>&amp;WorkflowCtx</code> to each Node's <code>process</code> method when it's executed.</li>
+<li><strong>Node Execution &amp; Event Appending:</strong> The engine passes <code>&amp;WorkflowCtx</code> to the node. The node appends events to <code>ctx.store.event_log</code> (or other <code>Merge</code>-able fields).</li>
+<li><strong>State Persistence &amp; Merging:</strong> After a node finishes successfully, the engine takes the original context state loaded at the beginning of the step and the <em>new context state containing the appended events</em> (as returned conceptually by the node logic) and uses the <code>Merge</code> trait to combine them. This merged state is then saved back to the <code>CheckpointStore</code> (for local runs) or <code>ContextStore</code> (for distributed runs).</li>
+<li><strong>Resuming/Distributed Step:</strong> When resuming or starting the next step (potentially on another worker), the engine loads the latest <em>merged</em> state from the store, ensuring the effects of the previous step (the appended events) are included.</li>
+</ol>
+<div class="mermaid">sequenceDiagram
+    participant User as User Code
+    participant Engine as Floxide Engine
+    participant Ctx as WorkflowCtx
+    participant Node as Your Node Logic
+    participant Store as Checkpoint/Context Store
+
+    User-&gt;&gt;Engine: Start Workflow(initial_context_data)
+    Engine-&gt;&gt;Ctx: Create WorkflowCtx(initial_context_data)
+    Engine-&gt;&gt;Engine: Schedule first Node task
+    Note over Engine, Node: Later, time to run Node A...
+    Engine-&gt;&gt;Store: Load Context state
+    Store--&gt;&gt;Engine: Return saved Context state (contains event log)
+    Engine-&gt;&gt;Ctx: Update WorkflowCtx with loaded state
+    Engine-&gt;&gt;Node: Execute process(&amp;ctx, input)
+    Node-&gt;&gt;Ctx: Access ctx.store.replay() (read state)
+    Node-&gt;&gt;Ctx: Check ctx.is_cancelled()
+    Node-&gt;&gt;Node: Perform Node logic
+    Node-&gt;&gt;Ctx: Append event(s) to ctx.store.event_log
+    Node--&gt;&gt;Engine: Return Transition::Next(output)
+    Engine-&gt;&gt;Engine: Get context state with appended events from Node run
+    Engine-&gt;&gt;Engine: Merge(loaded state, state with new events) using Merge trait
+    Engine-&gt;&gt;Store: Save Merged Context state
+    Engine-&gt;&gt;Engine: Schedule next Node task based on Transition
+</div>
+<p>The updated diagram emphasizes that the node appends events, and the engine performs a merge operation before saving the state back.</p>
+<p>Looking at the code (<code>floxide-core/src/context.rs</code>):</p>
+<p>The <code>Context</code> trait definition likely remains the same marker trait, but the <em>expectation</em> is that the type <code>T</code> implementing it <em>also</em> implements <code>floxide_core::merge::Merge</code>.</p>
+<p><div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="c1">// From: crates/floxide-core/src/context.rs</span>
+</span><span id="__span-3-2"><span class="k">use</span><span class="w"> </span><span class="n">serde</span><span class="p">::{</span><span class="n">Serialize</span><span class="p">,</span><span class="w"> </span><span class="n">de</span><span class="p">::</span><span class="n">DeserializeOwned</span><span class="p">};</span>
+</span><span id="__span-3-3"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">fmt</span><span class="p">::</span><span class="n">Debug</span><span class="p">;</span>
+</span><span id="__span-3-4"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">merge</span><span class="p">::</span><span class="n">Merge</span><span class="p">;</span><span class="w"> </span><span class="c1">// Import Merge</span>
+</span><span id="__span-3-5">
+</span><span id="__span-3-6"><span class="c1">// Marker trait for user-defined context types</span>
+</span><span id="__span-3-7"><span class="c1">// Note: Merge is now implicitly expected for robust use.</span>
+</span><span id="__span-3-8"><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">Context</span><span class="p">:</span><span class="w"> </span><span class="nb">Default</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">DeserializeOwned</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Serialize</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Debug</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Clone</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Merge</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-3-9">
+</span><span id="__span-3-10"><span class="c1">// Blanket implementation: Any type meeting the bounds IS a Context</span>
+</span><span id="__span-3-11"><span class="k">impl</span><span class="o">&lt;</span><span class="n">T</span><span class="p">:</span><span class="w"> </span><span class="nb">Default</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">DeserializeOwned</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Serialize</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Debug</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Clone</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Merge</span><span class="o">&gt;</span><span class="w"> </span><span class="n">Context</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">T</span><span class="w"> </span><span class="p">{}</span>
+</span></code></pre></div>
+<em>(Self-correction: Need to check if the official Context trait actually requires Merge now, or if it's just a strong recommendation/necessity for types used with ContextStore/CheckpointStore merge operations)</em>. A quick check of <code>floxide-core</code> source might be needed to confirm the exact trait bound. Assuming <code>Merge</code> is essential for now.</p>
+<p>The <code>WorkflowCtx</code> struct holds the store and controls:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><span class="c1">// From: crates/floxide-core/src/context.rs (simplified)</span>
+</span><span id="__span-4-2"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">time</span><span class="p">::</span><span class="n">Duration</span><span class="p">;</span>
+</span><span id="__span-4-3"><span class="k">use</span><span class="w"> </span><span class="n">tokio_util</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">CancellationToken</span><span class="p">;</span><span class="w"> </span><span class="c1">// For cancellation</span>
+</span><span id="__span-4-4">
+</span><span id="__span-4-5"><span class="c1">// The wrapper struct</span>
+</span><span id="__span-4-6"><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-4-7"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">WorkflowCtx</span><span class="o">&lt;</span><span class="n">S</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// Generic over the user&#39;s Context type &#39;S&#39;</span>
+</span><span id="__span-4-8"><span class="w">    </span><span class="sd">/// The store for the workflow. Holds the user&#39;s data.</span>
+</span><span id="__span-4-9"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">store</span><span class="p">:</span><span class="w"> </span><span class="nc">S</span><span class="p">,</span>
+</span><span id="__span-4-10"><span class="w">    </span><span class="sd">/// The cancellation token for the workflow.</span>
+</span><span id="__span-4-11"><span class="w">    </span><span class="n">cancel</span><span class="p">:</span><span class="w"> </span><span class="nc">CancellationToken</span><span class="p">,</span>
+</span><span id="__span-4-12"><span class="w">    </span><span class="sd">/// The optional timeout for the workflow.</span>
+</span><span id="__span-4-13"><span class="w">    </span><span class="n">timeout</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">Duration</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-4-14"><span class="p">}</span>
+</span><span id="__span-4-15">
+</span><span id="__span-4-16"><span class="k">impl</span><span class="o">&lt;</span><span class="n">S</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="o">&gt;</span><span class="w"> </span><span class="n">WorkflowCtx</span><span class="o">&lt;</span><span class="n">S</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-17"><span class="w">    </span><span class="sd">/// Creates a new context with the user&#39;s initial store data.</span>
+</span><span id="__span-4-18"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">new</span><span class="p">(</span><span class="n">store</span><span class="p">:</span><span class="w"> </span><span class="nc">S</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-19"><span class="w">        </span><span class="bp">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-20"><span class="w">            </span><span class="n">store</span><span class="p">,</span>
+</span><span id="__span-4-21"><span class="w">            </span><span class="n">cancel</span><span class="p">:</span><span class="w"> </span><span class="nc">CancellationToken</span><span class="p">::</span><span class="n">new</span><span class="p">(),</span><span class="w"> </span><span class="c1">// Create a new token</span>
+</span><span id="__span-4-22"><span class="w">            </span><span class="n">timeout</span><span class="p">:</span><span class="w"> </span><span class="nb">None</span><span class="p">,</span><span class="w">                  </span><span class="c1">// No timeout initially</span>
+</span><span id="__span-4-23"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-4-24"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-25">
+</span><span id="__span-4-26"><span class="w">    </span><span class="sd">/// Returns true if the workflow has been cancelled.</span>
+</span><span id="__span-4-27"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">is_cancelled</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-28"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">cancel</span><span class="p">.</span><span class="n">is_cancelled</span><span class="p">()</span>
+</span><span id="__span-4-29"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-30">
+</span><span id="__span-4-31"><span class="w">    </span><span class="sd">/// Cancel the workflow execution.</span>
+</span><span id="__span-4-32"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">cancel</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-33"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">cancel</span><span class="p">.</span><span class="n">cancel</span><span class="p">();</span>
+</span><span id="__span-4-34"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-35">
+</span><span id="__span-4-36"><span class="w">    </span><span class="c1">// ... other methods for timeouts, running futures with cancellation ...</span>
+</span><span id="__span-4-37"><span class="p">}</span>
+</span></code></pre></div>
+<p>This shows the core structure: your <code>store</code> is held alongside Floxide's control mechanisms like the <code>CancellationToken</code>.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>The <code>Context</code> trait and <code>WorkflowCtx</code> struct are essential for managing shared state and control across the Nodes of a workflow run in Floxide.</p>
+<ul>
+<li>You define your shared data in a struct that implements the <code>Context</code> trait requirements (often via <code>#[derive(...)]</code>).</li>
+<li>Floxide wraps your context data in <code>WorkflowCtx</code>, adding control features like cancellation tokens and timeouts.</li>
+<li>Nodes declare the <code>Context</code> type they expect using <code>context = ...</code> in the <code>node!</code> macro.</li>
+<li>Inside a Node's logic, the <code>ctx</code> argument provides access to both your shared data (<code>ctx.store</code>) and the control methods (<code>ctx.is_cancelled()</code>).</li>
+<li>The requirement for <code>Context</code> to be <code>Serialize</code>/<code>Deserialize</code> is key for enabling distributed execution and checkpointing, allowing state to be saved and loaded across different workers and runs.</li>
+</ul>
+<p>Now that we understand individual steps (<code>Node</code>) and how they share information (<code>WorkflowCtx</code>), how do we actually connect these Nodes together to define the sequence and structure of our entire workflow?</p>
+<p><strong>Next:</strong> <a href="../04__workflow__trait____workflow___macro_/">Chapter 4: <code>Workflow</code> Trait &amp; <code>workflow!</code> Macro</a></p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

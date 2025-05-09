@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Chapter 2: Node Trait & node! Macro - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="1">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/">Overview</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Tutorial</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../">Introduction</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../01__transition__enum_/">Chapter 1: Transition Enum</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Chapter 2: Node Trait & node! Macro</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../03__workflowctx_____context__trait_/">Chapter 3: WorkflowCtx & Context Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../04__workflow__trait____workflow___macro_/">Chapter 4: Workflow Trait & workflow! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../05__workqueue__trait_/">Chapter 5: WorkQueue Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../06__checkpoint_____checkpointstore__trait_/">Chapter 6: Checkpoint & CheckpointStore Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../07__distributedworker__/">Chapter 7: DistributedWorker</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../08__distributedorchestrator__/">Chapter 8: DistributedOrchestrator</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Chapter 9: Distributed Stores</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../10__retrypolicy_____retrynode__/">Chapter 10: RetryPolicy & RetryNode</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#chapter-2-node-trait-node-macro">Chapter 2: Node Trait &amp; node! Macro</a></li>
+        <li><a href="#whats-the-problem-defining-the-steps">What's the Problem? Defining the Steps</a></li><li><a href="#what-is-a-node">What is a Node?</a></li><li><a href="#the-node-trait-the-blueprint">The Node Trait: The Blueprint</a></li><li><a href="#the-node-macro-your-node-building-assistant">The node! Macro: Your Node-Building Assistant</a></li><li><a href="#example-a-simple-capitalizetextnode">Example: A Simple CapitalizeTextNode</a></li><li><a href="#example-using-node-fields-for-configuration">Example: Using Node Fields for Configuration</a></li><li><a href="#under-the-hood-what-does-node-do">Under the Hood: What Does node! Do?</a></li><li><a href="#conclusion">Conclusion</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="chapter-2-node-trait-node-macro">Chapter 2: <code>Node</code> Trait &amp; <code>node!</code> Macro<a class="headerlink" href="#chapter-2-node-trait-node-macro" title="Permanent link">&para;</a></h1>
+<p>In the <a href="../01__transition__enum_/">previous chapter</a>, we learned about the <code>Transition</code> enum, which is like a signal sent by a workflow step to tell the Floxide engine what to do next. Now, let's talk about the <em>source</em> of that signal: the <strong>Node</strong>.</p>
+<h2 id="whats-the-problem-defining-the-steps">What's the Problem? Defining the Steps<a class="headerlink" href="#whats-the-problem-defining-the-steps" title="Permanent link">&para;</a></h2>
+<p>Imagine our video processing workflow again: Download -&gt; Extract Audio -&gt; Generate Subtitles -&gt; Re-encode -&gt; Upload. Each of these actions is a distinct step. We need a way to define:</p>
+<ol>
+<li>What specific task does this step perform? (e.g., "Extract Audio")</li>
+<li>What kind of data does it need to start? (e.g., a path to the downloaded video file)</li>
+<li>What kind of data does it produce? (e.g., a path to the extracted audio file)</li>
+<li>Does it need any shared information? (e.g., API keys for an external service)</li>
+</ol>
+<p>In Floxide, the <strong><code>Node</code></strong> is the fundamental building block that represents exactly such a single, self-contained step or task within your workflow. Think of it as one specific station on our distributed assembly line.</p>
+<h2 id="what-is-a-node">What is a <code>Node</code>?<a class="headerlink" href="#what-is-a-node" title="Permanent link">&para;</a></h2>
+<p>A <code>Node</code> is essentially a piece of code that:</p>
+<ul>
+<li><strong>Receives an input:</strong> The data it needs to work on.</li>
+<li><strong>Performs processing:</strong> Runs its specific logic (like capitalizing text, calling an API, processing a file chunk).</li>
+<li><strong>Uses Context (Optional):</strong> Might access shared information available to the whole workflow run (we'll cover this in detail in <a href="../03__workflowctx_____context__trait_/">Chapter 3: <code>WorkflowCtx</code> &amp; <code>Context</code> Trait</a>).</li>
+<li><strong>Returns a <code>Transition</code>:</strong> Signals the outcome (<a href="../01__transition__enum_/"><code>Transition::Next(output)</code></a>, <a href="../01__transition__enum_/"><code>Transition::NextAll(outputs)</code></a>, etc.), potentially including the output data for the next step(s).</li>
+</ul>
+<p><strong>Distributed Emphasis:</strong> Each <code>Node</code> defines a unit of work. When you run a Floxide workflow, especially in a distributed manner, different Nodes (or different instances of the same Node processing different data items) can be executed by different <a href="../07__distributedworker__/"><code>DistributedWorker</code></a> processes, potentially running on separate machines. This is how Floxide distributes the workload.</p>
+<h2 id="the-node-trait-the-blueprint">The <code>Node</code> Trait: The Blueprint<a class="headerlink" href="#the-node-trait-the-blueprint" title="Permanent link">&para;</a></h2>
+<p>How does Floxide know what a "Node" looks like? It uses a Rust <code>trait</code>. A trait is like a contract or a blueprint that defines a set of methods a type must implement. The <code>Node</code> trait specifies the core functionality required for any workflow step.</p>
+<p>The most important part of the <code>Node</code> trait is the <code>process</code> method signature (simplified):</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="c1">// Simplified concept</span>
+</span><span id="__span-0-2"><span class="k">trait</span><span class="w"> </span><span class="n">Node</span><span class="o">&lt;</span><span class="n">Context</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-3"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">Input</span><span class="p">;</span><span class="w">  </span><span class="c1">// What data type does this Node expect?</span>
+</span><span id="__span-0-4"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">Output</span><span class="p">;</span><span class="w"> </span><span class="c1">// What data type does this Node produce?</span>
+</span><span id="__span-0-5">
+</span><span id="__span-0-6"><span class="w">    </span><span class="c1">// The core logic: takes context and input, returns a Transition</span>
+</span><span id="__span-0-7"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">Context</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="nc">Self</span><span class="p">::</span><span class="n">Input</span><span class="p">)</span>
+</span><span id="__span-0-8"><span class="w">        </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">Transition</span><span class="o">&lt;</span><span class="bp">Self</span><span class="p">::</span><span class="n">Output</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-0-9"><span class="p">}</span>
+</span></code></pre></div>
+<p>This tells us:</p>
+<ul>
+<li>A <code>Node</code> is associated with a specific <code>Context</code> type (shared info).</li>
+<li>It defines an <code>Input</code> type and an <code>Output</code> type.</li>
+<li>It has an <code>async fn process</code> method. This method:<ul>
+<li>Is <code>async</code> because Nodes often perform I/O (like network requests or file access) which benefits from asynchronous execution.</li>
+<li>Receives a reference to the <code>Context</code> (<code>ctx</code>) and the <code>Input</code> data (<code>input</code>).</li>
+<li>Returns a <code>Result</code> which, on success (<code>Ok</code>), contains a <a href="../01__transition__enum_/"><code>Transition</code></a> carrying the <code>Output</code> data, or an <code>Err</code> containing a <code>FloxideError</code> if something went wrong during processing.</li>
+</ul>
+</li>
+</ul>
+<p>You <em>could</em> implement this trait manually for your structs, but Floxide provides a much easier way!</p>
+<h2 id="the-node-macro-your-node-building-assistant">The <code>node!</code> Macro: Your Node-Building Assistant<a class="headerlink" href="#the-node-macro-your-node-building-assistant" title="Permanent link">&para;</a></h2>
+<p>Manually implementing the <code>Node</code> trait for every step can be repetitive. Floxide offers the <code>node!</code> macro to streamline this process significantly. It lets you define the Node's structure (its data fields), its input/output types, the context it needs, and its processing logic all in one place.</p>
+<p>Here's the basic syntax:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="c1">// General syntax of the node! macro</span>
+</span><span id="__span-1-2"><span class="n">node</span><span class="o">!</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-3"><span class="w">  </span><span class="c1">// 1. Define the struct (visibility, name, fields)</span>
+</span><span id="__span-1-4"><span class="w">  </span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">MyNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-5"><span class="w">    </span><span class="c1">// Fields store configuration or state for this node instance</span>
+</span><span id="__span-1-6"><span class="w">    </span><span class="n">config_value</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+</span><span id="__span-1-7"><span class="w">    </span><span class="n">retry_count</span><span class="p">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span>
+</span><span id="__span-1-8"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-1-9"><span class="w">  </span><span class="c1">// 2. Specify the Context type this node needs</span>
+</span><span id="__span-1-10"><span class="w">  </span><span class="n">context</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MyWorkflowContext</span><span class="p">;</span>
+</span><span id="__span-1-11"><span class="w">  </span><span class="c1">// 3. Specify the Input data type</span>
+</span><span id="__span-1-12"><span class="w">  </span><span class="n">input</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">InputDataType</span><span class="p">;</span>
+</span><span id="__span-1-13"><span class="w">  </span><span class="c1">// 4. Specify the Output data type (inside Transition::Next/NextAll)</span>
+</span><span id="__span-1-14"><span class="w">  </span><span class="n">output</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">OutputDataType</span><span class="p">;</span>
+</span><span id="__span-1-15">
+</span><span id="__span-1-16"><span class="w">  </span><span class="c1">// 5. Define the processing logic as a closure</span>
+</span><span id="__span-1-17"><span class="w">  </span><span class="c1">// |context_arg, input_arg| -&gt; Result&lt;Transition&lt;OutputDataType&gt;, FloxideError&gt;</span>
+</span><span id="__span-1-18"><span class="w">  </span><span class="o">|</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="o">|</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-19"><span class="w">    </span><span class="c1">// Access node fields using `self.field_name`</span>
+</span><span id="__span-1-20"><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Config: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">config_value</span><span class="p">);</span>
+</span><span id="__span-1-21">
+</span><span id="__span-1-22"><span class="w">    </span><span class="c1">// Access context using the `ctx` argument</span>
+</span><span id="__span-1-23"><span class="w">    </span><span class="c1">// let shared_info = ctx.get_shared_info();</span>
+</span><span id="__span-1-24">
+</span><span id="__span-1-25"><span class="w">    </span><span class="c1">// Access input using the `data` argument</span>
+</span><span id="__span-1-26"><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Processing input: {:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">);</span>
+</span><span id="__span-1-27">
+</span><span id="__span-1-28"><span class="w">    </span><span class="c1">// --- Your Node&#39;s specific logic goes here ---</span>
+</span><span id="__span-1-29"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">perform_task</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">?</span><span class="p">;</span><span class="w"> </span><span class="c1">// Example task</span>
+</span><span id="__span-1-30">
+</span><span id="__span-1-31"><span class="w">    </span><span class="c1">// Return a Transition</span>
+</span><span id="__span-1-32"><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+</span><span id="__span-1-33"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-1-34"><span class="p">}</span>
+</span></code></pre></div>
+<p>Let's break down the key parts:</p>
+<ol>
+<li><strong>Struct Definition:</strong> <code>pub struct MyNode { ... }</code> defines a regular Rust struct. You can add fields here to store configuration specific to this Node instance (like an API key, a file path template, retry settings, etc.).</li>
+<li><strong><code>context = Type;</code></strong>: Specifies the type of the shared workflow context this Node expects. We'll cover context in the <a href="../03__workflowctx_____context__trait_/">next chapter</a>. For simple nodes, you might use <code>()</code> (the unit type, meaning no context).</li>
+<li><strong><code>input = Type;</code></strong>: Specifies the data type the <code>process</code> logic will receive as input.</li>
+<li><strong><code>output = Type;</code></strong>: Specifies the data type that will be inside the <code>Transition::Next</code> or <code>Transition::NextAll</code> if the Node succeeds.</li>
+<li><strong>Processing Logic Closure:</strong> <code>|ctx, data| { ... }</code> is where you write the core logic of your Node.<ul>
+<li>The arguments (<code>ctx</code>, <code>data</code>) give you access to the workflow context and the input data. Their types match what you specified in <code>context = ...</code> and <code>input = ...</code>.</li>
+<li>Inside the closure, you can access the Node's own fields using <code>self</code> (e.g., <code>self.config_value</code>).</li>
+<li>The closure <em>must</em> return a <code>Result&lt;Transition&lt;OutputType&gt;, FloxideError&gt;</code>, matching the <code>Node</code> trait's <code>process</code> signature.</li>
+</ul>
+</li>
+</ol>
+<h2 id="example-a-simple-capitalizetextnode">Example: A Simple <code>CapitalizeTextNode</code><a class="headerlink" href="#example-a-simple-capitalizetextnode" title="Permanent link">&para;</a></h2>
+<p>Let's create a Node that takes a <code>String</code>, capitalizes it, and passes it on.</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="c1">// Needed imports for the example</span>
+</span><span id="__span-2-2"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::</span><span class="n">node</span><span class="p">;</span><span class="w"> </span><span class="c1">// The macro itself</span>
+</span><span id="__span-2-3"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::</span><span class="n">Node</span><span class="p">;</span><span class="w"> </span><span class="c1">// The trait (needed for type bounds)</span>
+</span><span id="__span-2-4"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::</span><span class="n">Context</span><span class="p">;</span><span class="w"> </span><span class="c1">// Trait for context types</span>
+</span><span id="__span-2-5"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::</span><span class="n">Transition</span><span class="p">;</span><span class="w"> </span><span class="c1">// The enum from Chapter 1</span>
+</span><span id="__span-2-6"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::</span><span class="n">FloxideError</span><span class="p">;</span><span class="w"> </span><span class="c1">// Standard error type</span>
+</span><span id="__span-2-7">
+</span><span id="__span-2-8"><span class="c1">// Define a simple empty context struct (more in Chapter 3)</span>
+</span><span id="__span-2-9"><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-2-10"><span class="k">struct</span><span class="w"> </span><span class="nc">SimpleContext</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-2-11"><span class="k">impl</span><span class="w"> </span><span class="n">Context</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">SimpleContext</span><span class="w"> </span><span class="p">{}</span><span class="w"> </span><span class="c1">// Mark it as a valid context type</span>
+</span><span id="__span-2-12">
+</span><span id="__span-2-13"><span class="c1">// Use the node! macro to define our capitalizing node</span>
+</span><span id="__span-2-14"><span class="n">node</span><span class="o">!</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-15"><span class="w">  </span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">CapitalizeTextNode</span><span class="w"> </span><span class="p">{}</span><span class="w"> </span><span class="c1">// No fields needed for this simple node</span>
+</span><span id="__span-2-16"><span class="w">  </span><span class="n">context</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SimpleContext</span><span class="p">;</span><span class="w"> </span><span class="c1">// Uses our simple context</span>
+</span><span id="__span-2-17"><span class="w">  </span><span class="n">input</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span><span class="w">        </span><span class="c1">// Expects a String as input</span>
+</span><span id="__span-2-18"><span class="w">  </span><span class="n">output</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span><span class="w">        </span><span class="c1">// Produces a String as output</span>
+</span><span id="__span-2-19">
+</span><span id="__span-2-20"><span class="w">  </span><span class="c1">// The processing logic:</span>
+</span><span id="__span-2-21"><span class="w">  </span><span class="o">|</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="o">|</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="c1">// We get context (ctx) and input (text)</span>
+</span><span id="__span-2-22"><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Node: Capitalizing &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
+</span><span id="__span-2-23"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">capitalized_text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">text</span><span class="p">.</span><span class="n">to_uppercase</span><span class="p">();</span>
+</span><span id="__span-2-24">
+</span><span id="__span-2-25"><span class="w">    </span><span class="c1">// Signal success and pass the capitalized text to the next step</span>
+</span><span id="__span-2-26"><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(</span><span class="n">capitalized_text</span><span class="p">))</span>
+</span><span id="__span-2-27"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-28"><span class="p">}</span>
+</span><span id="__span-2-29">
+</span><span id="__span-2-30"><span class="c1">// --- How you might use it (conceptual) ---</span>
+</span><span id="__span-2-31"><span class="c1">// let node_instance = CapitalizeTextNode {};</span>
+</span><span id="__span-2-32"><span class="c1">// let context_instance = SimpleContext {};</span>
+</span><span id="__span-2-33"><span class="c1">// let input_data = &quot;hello distributed world&quot;.to_string();</span>
+</span><span id="__span-2-34"><span class="c1">//</span>
+</span><span id="__span-2-35"><span class="c1">// // Floxide engine would call this internally:</span>
+</span><span id="__span-2-36"><span class="c1">// // let result = node_instance.process(&amp;context_instance, input_data).await;</span>
+</span><span id="__span-2-37"><span class="c1">// // result would be Ok(Transition::Next(&quot;HELLO DISTRIBUTED WORLD&quot;.to_string()))</span>
+</span></code></pre></div>
+<p><strong>Explanation:</strong></p>
+<ol>
+<li>We define <code>CapitalizeTextNode</code> with no fields.</li>
+<li>We specify it uses <code>SimpleContext</code> (an empty context for now), takes a <code>String</code> input, and produces a <code>String</code> output.</li>
+<li>The closure <code>|ctx, text| { ... }</code> receives the context and the input string (<code>text</code>).</li>
+<li>Inside, it performs the <code>to_uppercase()</code> operation.</li>
+<li>It returns <code>Ok(Transition::Next(capitalized_text))</code>, signaling success and providing the result for the next Node(s).</li>
+</ol>
+<p><strong>Distributed Emphasis:</strong> When this <code>CapitalizeTextNode</code> is part of a larger workflow, the Floxide engine can schedule its execution. If you use <code>Transition::NextAll</code> in a <em>previous</em> node to generate many strings, the engine could potentially run multiple instances of <code>CapitalizeTextNode</code> in parallel on different workers, each capitalizing a different string.</p>
+<h2 id="example-using-node-fields-for-configuration">Example: Using Node Fields for Configuration<a class="headerlink" href="#example-using-node-fields-for-configuration" title="Permanent link">&para;</a></h2>
+<p>Let's make the previous example slightly more complex. We'll add a prefix that the Node should add before capitalizing. This prefix will be stored in a field.</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::{</span><span class="n">node</span><span class="p">,</span><span class="w"> </span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">Context</span><span class="p">,</span><span class="w"> </span><span class="n">Transition</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="p">};</span>
+</span><span id="__span-3-2">
+</span><span id="__span-3-3"><span class="cp">#[derive(Clone, Debug)]</span>
+</span><span id="__span-3-4"><span class="k">struct</span><span class="w"> </span><span class="nc">SimpleContext</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-3-5"><span class="k">impl</span><span class="w"> </span><span class="n">Context</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">SimpleContext</span><span class="w"> </span><span class="p">{}</span>
+</span><span id="__span-3-6">
+</span><span id="__span-3-7"><span class="n">node</span><span class="o">!</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-8"><span class="w">  </span><span class="c1">// Define the struct with a field</span>
+</span><span id="__span-3-9"><span class="w">  </span><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PrefixAndCapitalizeNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-10"><span class="w">    </span><span class="n">prefix</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="c1">// Store the prefix here</span>
+</span><span id="__span-3-11"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-12"><span class="w">  </span><span class="n">context</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">SimpleContext</span><span class="p">;</span>
+</span><span id="__span-3-13"><span class="w">  </span><span class="n">input</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-3-14"><span class="w">  </span><span class="n">output</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span>
+</span><span id="__span-3-15">
+</span><span id="__span-3-16"><span class="w">  </span><span class="o">|</span><span class="n">ctx</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="o">|</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-17"><span class="w">    </span><span class="c1">// Access the node&#39;s field using `self.prefix`</span>
+</span><span id="__span-3-18"><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Node: Adding prefix &#39;{}&#39; and capitalizing &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">prefix</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
+</span><span id="__span-3-19"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">combined</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;{}: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">prefix</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
+</span><span id="__span-3-20"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">combined</span><span class="p">.</span><span class="n">to_uppercase</span><span class="p">();</span>
+</span><span id="__span-3-21">
+</span><span id="__span-3-22"><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+</span><span id="__span-3-23"><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-3-24"><span class="p">}</span>
+</span><span id="__span-3-25">
+</span><span id="__span-3-26"><span class="c1">// --- How you might use it (conceptual) ---</span>
+</span><span id="__span-3-27"><span class="c1">// let node_instance = PrefixAndCapitalizeNode {</span>
+</span><span id="__span-3-28"><span class="c1">//     prefix: &quot;LOG&quot;.to_string(), // Configure the node instance!</span>
+</span><span id="__span-3-29"><span class="c1">// };</span>
+</span><span id="__span-3-30"><span class="c1">// let context_instance = SimpleContext {};</span>
+</span><span id="__span-3-31"><span class="c1">// let input_data = &quot;task completed&quot;.to_string();</span>
+</span><span id="__span-3-32"><span class="c1">//</span>
+</span><span id="__span-3-33"><span class="c1">// // Floxide engine calls:</span>
+</span><span id="__span-3-34"><span class="c1">// // let result = node_instance.process(&amp;context_instance, input_data).await;</span>
+</span><span id="__span-3-35"><span class="c1">// // result would be Ok(Transition::Next(&quot;LOG: TASK COMPLETED&quot;.to_string()))</span>
+</span></code></pre></div>
+<p><strong>Explanation:</strong></p>
+<ol>
+<li>We added a <code>prefix: String</code> field to the <code>PrefixAndCapitalizeNode</code> struct definition within the macro.</li>
+<li>Inside the processing logic closure, we can now access this field using <code>self.prefix</code>.</li>
+<li>When creating an instance of this Node (<code>PrefixAndCapitalizeNode { ... }</code>), we provide the specific prefix value. This allows different instances of the same <em>type</em> of Node to behave differently based on their configuration.</li>
+</ol>
+<h2 id="under-the-hood-what-does-node-do">Under the Hood: What Does <code>node!</code> Do?<a class="headerlink" href="#under-the-hood-what-does-node-do" title="Permanent link">&para;</a></h2>
+<p>The <code>node!</code> macro is a piece of "metaprogramming" – code that writes code. When you use <code>node!</code>, the Rust compiler expands it into more detailed code <em>before</em> compiling the rest of your program.</p>
+<p>Essentially, <code>node!</code> generates two main things:</p>
+<ol>
+<li><strong>The Struct:</strong> The <code>pub struct YourNodeName { ... }</code> definition you provided.</li>
+<li><strong>The <code>impl Node</code> Block:</strong> It automatically writes the <code>impl Node&lt;ContextType&gt; for YourNodeName { ... }</code> block for you. It fills in the <code>Input</code> and <code>Output</code> associated types and creates the <code>async fn process(...)</code> method, placing the closure code you wrote inside that method's body.</li>
+</ol>
+<p>Here's a simplified view of the generated code for <code>PrefixAndCapitalizeNode</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><span class="c1">// --- Code GENERATED by the `node!` macro (conceptual) ---</span>
+</span><span id="__span-4-2">
+</span><span id="__span-4-3"><span class="c1">// 1. The struct definition</span>
+</span><span id="__span-4-4"><span class="cp">#[derive(Clone, Debug)]</span><span class="w"> </span><span class="c1">// Attributes added by the macro</span>
+</span><span id="__span-4-5"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">PrefixAndCapitalizeNode</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-6"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="n">prefix</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="c1">// Fields become public</span>
+</span><span id="__span-4-7"><span class="p">}</span>
+</span><span id="__span-4-8">
+</span><span id="__span-4-9"><span class="c1">// 2. The implementation of the Node trait</span>
+</span><span id="__span-4-10"><span class="cp">#[::async_trait::async_trait]</span><span class="w"> </span><span class="c1">// Macro adds async_trait support</span>
+</span><span id="__span-4-11"><span class="k">impl</span><span class="w"> </span><span class="p">::</span><span class="n">floxide_core</span><span class="p">::</span><span class="n">node</span><span class="p">::</span><span class="n">Node</span><span class="o">&lt;</span><span class="n">SimpleContext</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">PrefixAndCapitalizeNode</span>
+</span><span id="__span-4-12"><span class="k">where</span>
+</span><span id="__span-4-13"><span class="w">    </span><span class="n">SimpleContext</span><span class="p">:</span><span class="w"> </span><span class="nb">Clone</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="c1">// Adds necessary trait bounds</span>
+</span><span id="__span-4-14"><span class="p">{</span>
+</span><span id="__span-4-15"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">Input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span><span class="w">   </span><span class="c1">// Sets the Input type</span>
+</span><span id="__span-4-16"><span class="w">    </span><span class="k">type</span><span class="w"> </span><span class="nc">Output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">String</span><span class="p">;</span><span class="w">  </span><span class="c1">// Sets the Output type</span>
+</span><span id="__span-4-17">
+</span><span id="__span-4-18"><span class="w">    </span><span class="c1">// Defines the process method</span>
+</span><span id="__span-4-19"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span>
+</span><span id="__span-4-20"><span class="w">        </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="c1">// `self` gives access to fields like `self.prefix`</span>
+</span><span id="__span-4-21"><span class="w">        </span><span class="n">ctx</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="nc">SimpleContext</span><span class="p">,</span><span class="w"> </span><span class="c1">// Context argument</span>
+</span><span id="__span-4-22"><span class="w">        </span><span class="n">text</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="w">       </span><span class="c1">// Input argument (matches `input = ...`)</span>
+</span><span id="__span-4-23"><span class="w">    </span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">::</span><span class="n">floxide_core</span><span class="p">::</span><span class="n">transition</span><span class="p">::</span><span class="n">Transition</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="p">::</span><span class="n">floxide_core</span><span class="p">::</span><span class="n">error</span><span class="p">::</span><span class="n">FloxideError</span><span class="o">&gt;</span>
+</span><span id="__span-4-24"><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-4-25"><span class="w">        </span><span class="c1">// Your closure code is placed inside here!</span>
+</span><span id="__span-4-26"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">ctx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ctx</span><span class="p">;</span><span class="w"> </span><span class="c1">// Makes args available by original names</span>
+</span><span id="__span-4-27"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">text</span><span class="p">;</span>
+</span><span id="__span-4-28">
+</span><span id="__span-4-29"><span class="w">        </span><span class="c1">// --- Your logic from the macro ---</span>
+</span><span id="__span-4-30"><span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Node: Adding prefix &#39;{}&#39; and capitalizing &#39;{}&#39;&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">prefix</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
+</span><span id="__span-4-31"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">combined</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="fm">format!</span><span class="p">(</span><span class="s">&quot;{}: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">prefix</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">);</span>
+</span><span id="__span-4-32"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">combined</span><span class="p">.</span><span class="n">to_uppercase</span><span class="p">();</span>
+</span><span id="__span-4-33"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+</span><span id="__span-4-34"><span class="w">        </span><span class="c1">// --- End of your logic ---</span>
+</span><span id="__span-4-35"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-36"><span class="p">}</span>
+</span><span id="__span-4-37"><span class="c1">// --- End of generated code ---</span>
+</span></code></pre></div>
+<p>You don't need to write this boilerplate code yourself; the <code>node!</code> macro handles it for you!</p>
+<p>Here's a diagram showing how the engine interacts with a Node created by the macro:</p>
+<div class="mermaid">sequenceDiagram
+    participant Engine as Floxide Engine
+    participant NodeInstance as YourNode (e.g., PrefixAndCapitalizeNode)
+    participant NodeLogic as Your Logic (inside macro)
+
+    Engine-&gt;&gt;NodeInstance: Call process(context, input_data)
+    Note over NodeInstance: process method generated by node! macro
+    NodeInstance-&gt;&gt;NodeLogic: Execute the closure code you wrote
+    Note over NodeLogic: Accesses self.fields, context, input_data
+    NodeLogic--&gt;&gt;NodeInstance: Return Result&lt;Transition, Error&gt;
+    NodeInstance--&gt;&gt;Engine: Forward the Result&lt;Transition, Error&gt;
+    Engine-&gt;&gt;Engine: Act based on the Transition (e.g., schedule next step)</div>
+<p>The actual macro implementation lives in <code>floxide-macros/src/node.rs</code> and the <code>Node</code> trait definition is in <code>floxide-core/src/node.rs</code>.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>The <code>Node</code> is the core unit of work in a Floxide workflow, representing a single processing step. The <code>Node</code> trait defines the contract for these steps, specifying their input, output, context needs, and the essential <code>process</code> method.</p>
+<p>While you can implement the <code>Node</code> trait manually, the <code>node!</code> macro provides a convenient and concise way to define a Node's structure (fields) and its processing logic all at once, generating the necessary boilerplate code for you. These Nodes are the building blocks that Floxide can distribute across different workers for parallel execution.</p>
+<p>Now that we know how to define individual steps (Nodes), how do they access shared information relevant to the entire workflow run? That's where context comes in.</p>
+<p><strong>Next:</strong> <a href="../03__workflowctx_____context__trait_/">Chapter 3: <code>WorkflowCtx</code> &amp; <code>Context</code> Trait</a></p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Chapter 5: WorkQueue Trait - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="1">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/">Overview</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Tutorial</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../">Introduction</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../01__transition__enum_/">Chapter 1: Transition Enum</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../02__node__trait____node___macro_/">Chapter 2: Node Trait & node! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../03__workflowctx_____context__trait_/">Chapter 3: WorkflowCtx & Context Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../04__workflow__trait____workflow___macro_/">Chapter 4: Workflow Trait & workflow! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Chapter 5: WorkQueue Trait</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../06__checkpoint_____checkpointstore__trait_/">Chapter 6: Checkpoint & CheckpointStore Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../07__distributedworker__/">Chapter 7: DistributedWorker</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../08__distributedorchestrator__/">Chapter 8: DistributedOrchestrator</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Chapter 9: Distributed Stores</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../10__retrypolicy_____retrynode__/">Chapter 10: RetryPolicy & RetryNode</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#chapter-5-workqueue-trait">Chapter 5: WorkQueue Trait</a></li>
+        <li><a href="#whats-the-problem-distributing-the-work">What's the Problem? Distributing the Work</a></li><li><a href="#what-is-a-workqueue-the-digital-bulletin-board">What is a WorkQueue? The Digital Bulletin Board</a></li><li><a href="#the-workqueue-trait-the-contract-for-queues">The WorkQueue Trait: The Contract for Queues</a></li><li><a href="#how-the-system-uses-the-workqueue">How the System Uses the WorkQueue</a></li><li><a href="#different-flavors-of-queues-implementations">Different Flavors of Queues (Implementations)</a></li><li><a href="#under-the-hood-inmemoryworkqueue-example">Under the Hood: InMemoryWorkQueue Example</a></li><li><a href="#conclusion">Conclusion</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="chapter-5-workqueue-trait">Chapter 5: <code>WorkQueue</code> Trait<a class="headerlink" href="#chapter-5-workqueue-trait" title="Permanent link">&para;</a></h1>
+<p>In the <a href="../04__workflow__trait____workflow___macro_/">previous chapter</a>, we learned how to define the entire structure of our workflow using the <code>Workflow</code> trait and the <code>workflow!</code> macro. This blueprint tells Floxide which step (<a href="../02__node__trait____node___macro_/"><code>Node</code></a>) follows which, creating the map of our distributed assembly line.</p>
+<p>But now, think about the items moving on that assembly line. When one station finishes its task, how does the item physically get to the <em>next</em> station? Especially if the next station is handled by a different worker, possibly on a completely different computer? We need a delivery system!</p>
+<h2 id="whats-the-problem-distributing-the-work">What's the Problem? Distributing the Work<a class="headerlink" href="#whats-the-problem-distributing-the-work" title="Permanent link">&para;</a></h2>
+<p>Imagine our video processing workflow running across several computers (workers).
+*   Worker 1 finishes downloading a video chunk (<code>DownloadNode</code>).
+*   The workflow blueprint says the next step is <code>ExtractAudioNode</code>.
+*   Worker 2 is free and ready to extract audio.</p>
+<p>How does Worker 2 know that Worker 1 just finished a download and needs audio extraction? How does it get the information about <em>which</em> video chunk to process?</p>
+<p>In a single program on one computer, this is easy – you just call the next function. But in a <strong>distributed</strong> system, where workers are independent processes, maybe even on different machines, they need a shared place to coordinate tasks.</p>
+<p>This is where the <code>WorkQueue</code> comes in. It's the central dispatch system for tasks in Floxide.</p>
+<h2 id="what-is-a-workqueue-the-digital-bulletin-board">What is a <code>WorkQueue</code>? The Digital Bulletin Board<a class="headerlink" href="#what-is-a-workqueue-the-digital-bulletin-board" title="Permanent link">&para;</a></h2>
+<p>Think of the <code>WorkQueue</code> as a shared, digital bulletin board or a job list that all workers can see.</p>
+<ul>
+<li><strong>Work Item:</strong> Each task waiting to be done is represented by a <code>WorkItem</code>. A <code>WorkItem</code> contains information like:<ul>
+<li>Which workflow run does this task belong to? (e.g., "process_video_123")</li>
+<li>Which <a href="../02__node__trait____node___macro_/"><code>Node</code></a> needs to be executed? (e.g., <code>ExtractAudioNode</code>)</li>
+<li>What input data does that Node need? (e.g., the path to the downloaded video chunk)</li>
+<li>(Internally, Floxide uses the <code>WorkItem</code> enum generated by the <a href="../04__workflow__trait____workflow___macro_/"><code>workflow!</code> macro</a> to represent this).</li>
+</ul>
+</li>
+<li><strong>Enqueue:</strong> When a Node finishes its processing and the workflow definition indicates the next step(s), the Floxide engine takes the output and creates one or more new <code>WorkItem</code>s. It then "posts" these <code>WorkItem</code>s onto the shared bulletin board. This is called <strong>enqueuing</strong>.</li>
+<li><strong>Dequeue:</strong> Workers are constantly checking this bulletin board for new tasks. When a worker is free, it grabs the next available <code>WorkItem</code> from the board, effectively saying "I'll take this job!". This is called <strong>dequeuing</strong>. Once dequeued, the worker can execute the specified Node with the provided input data.</li>
+</ul>
+<p><strong>Distributed Emphasis:</strong> The <code>WorkQueue</code> is the <em>heart</em> of task distribution in Floxide. It decouples the Node that <em>produces</em> work from the worker that <em>consumes</em> it. This allows different parts of the workflow to run on different machines, coordinated only through this shared queue.</p>
+<div class="mermaid">graph LR
+    subgraph Worker Machine 1
+        NodeA[Node A finishes] -- Output --&gt; Engine1[Floxide Engine]
+    end
+
+    subgraph Shared Infrastructure
+        Queue[(Work Queue)]
+    end
+
+    subgraph Worker Machine 2
+        Engine2[Floxide Engine] -- "Get next task" --&gt; Worker2[Worker Process]
+        Worker2 -- "Execute Node B" --&gt; NodeB[Node B logic]
+    end
+
+    Engine1 -- "Enqueue Task (Node B, Output A)" --&gt; Queue
+    Queue -- "Dequeue Task (Node B, Output A)" --&gt; Engine2
+
+    style Queue fill:#f9f,stroke:#333,stroke-width:2px</div>
+<h2 id="the-workqueue-trait-the-contract-for-queues">The <code>WorkQueue</code> Trait: The Contract for Queues<a class="headerlink" href="#the-workqueue-trait-the-contract-for-queues" title="Permanent link">&para;</a></h2>
+<p>Floxide needs a standard way to interact with <em>any</em> kind of queueing system. Whether you use a simple in-memory list, a powerful Redis database, or a streaming platform like Kafka, Floxide needs to know how to put tasks in (<code>enqueue</code>) and take tasks out (<code>dequeue</code>).</p>
+<p>This is defined by the <code>WorkQueue</code> trait. It's a Rust contract specifying the essential operations.</p>
+<p>Here's a simplified view of the trait:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="c1">// Simplified concept from floxide-core/src/distributed/work_queue.rs</span>
+</span><span id="__span-0-2"><span class="k">use</span><span class="w"> </span><span class="n">async_trait</span><span class="p">::</span><span class="n">async_trait</span><span class="p">;</span>
+</span><span id="__span-0-3"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">context</span><span class="p">::</span><span class="n">Context</span><span class="p">;</span>
+</span><span id="__span-0-4"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">workflow</span><span class="p">::</span><span class="n">WorkItem</span><span class="p">;</span>
+</span><span id="__span-0-5"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">distributed</span><span class="p">::</span><span class="n">WorkQueueError</span><span class="p">;</span><span class="w"> </span><span class="c1">// Error type for queue operations</span>
+</span><span id="__span-0-6">
+</span><span id="__span-0-7"><span class="cp">#[async_trait]</span>
+</span><span id="__span-0-8"><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">WorkQueue</span><span class="o">&lt;</span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="p">,</span><span class="w"> </span><span class="n">WI</span><span class="p">:</span><span class="w"> </span><span class="nc">WorkItem</span><span class="o">&gt;</span><span class="p">:</span><span class="w"> </span><span class="nb">Clone</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-9"><span class="w">    </span><span class="c1">// Put a work item onto the queue for a specific workflow run.</span>
+</span><span id="__span-0-10"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">enqueue</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">work</span><span class="p">:</span><span class="w"> </span><span class="nc">WI</span><span class="p">)</span>
+</span><span id="__span-0-11"><span class="w">        </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">WorkQueueError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-0-12">
+</span><span id="__span-0-13"><span class="w">    </span><span class="c1">// Get the next available work item from the queue (from any run).</span>
+</span><span id="__span-0-14"><span class="w">    </span><span class="c1">// Returns None if the queue is empty.</span>
+</span><span id="__span-0-15"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">dequeue</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span>
+</span><span id="__span-0-16"><span class="w">        </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Option</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="n">WI</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">WorkQueueError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-0-17">
+</span><span id="__span-0-18"><span class="w">    </span><span class="c1">// Remove all pending work items for a specific workflow run.</span>
+</span><span id="__span-0-19"><span class="w">    </span><span class="c1">// Useful for cancellation or cleanup.</span>
+</span><span id="__span-0-20"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">purge_run</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">run_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span>
+</span><span id="__span-0-21"><span class="w">        </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">WorkQueueError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-0-22">
+</span><span id="__span-0-23"><span class="w">    </span><span class="c1">// (Other methods like getting pending work might exist)</span>
+</span><span id="__span-0-24"><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Explanation:</strong></p>
+<ul>
+<li><strong><code>#[async_trait]</code></strong>: These methods are asynchronous (<code>async</code>) because interacting with external queue systems (like Redis or Kafka) involves network I/O.</li>
+<li><strong><code>WorkQueue&lt;C: Context, WI: WorkItem&gt;</code></strong>: The trait is generic. It works with any <a href="../03__workflowctx_____context__trait_/"><code>Context</code></a> type <code>C</code> and any <code>WorkItem</code> type <code>WI</code> defined by your <a href="../04__workflow__trait____workflow___macro_/"><code>Workflow</code></a>.</li>
+<li><strong><code>enqueue(&amp;self, workflow_id: &amp;str, work: WI)</code></strong>: Adds a <code>work</code> item associated with <code>workflow_id</code> to the queue.</li>
+<li><strong><code>dequeue(&amp;self)</code></strong>: Attempts to retrieve the next available work item. It returns the <code>workflow_id</code> and the <code>WorkItem</code> itself, or <code>None</code> if no tasks are waiting.</li>
+<li><strong><code>purge_run(&amp;self, run_id: &amp;str)</code></strong>: Clears out any waiting tasks specifically for the given <code>run_id</code>.</li>
+</ul>
+<p>You typically don't implement this trait yourself unless you're integrating a custom queueing system. Floxide (or related crates) will provide implementations for common backends.</p>
+<h2 id="how-the-system-uses-the-workqueue">How the System Uses the <code>WorkQueue</code><a class="headerlink" href="#how-the-system-uses-the-workqueue" title="Permanent link">&para;</a></h2>
+<p>You, as the workflow developer using the <a href="../02__node__trait____node___macro_/"><code>node!</code></a> and <a href="../04__workflow__trait____workflow___macro_/"><code>workflow!</code></a> macros, usually don't call <code>enqueue</code> or <code>dequeue</code> directly. The Floxide engine and the <a href="../07__distributedworker__/"><code>DistributedWorker</code></a> handle this behind the scenes.</p>
+<ol>
+<li><strong>Engine (Processing Step):</strong> After a Node returns <code>Transition::Next(output)</code> or <code>Transition::NextAll(outputs)</code>, the engine (specifically, the code generated by <code>workflow!</code>) determines the next Node(s) based on the <code>edges</code>. For each successor Node, it creates a <code>WorkItem</code> and calls <code>queue.enqueue(...)</code>.</li>
+<li><strong>Worker (Idle):</strong> A <a href="../07__distributedworker__/"><code>DistributedWorker</code></a> process, when idle, calls <code>queue.dequeue()</code>.</li>
+<li><strong>Worker (Gets Task):</strong> If <code>dequeue</code> returns <code>Some((run_id, work_item))</code>, the worker gets the <code>run_id</code> and the <code>work_item</code>.</li>
+<li><strong>Worker (Executes Task):</strong> The worker loads the necessary state (using <a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/"><code>ContextStore</code></a> for distributed runs or <a href="../06__checkpoint_____checkpointstore__trait_/"><code>CheckpointStore</code></a> for local/manual ones) for that <code>run_id</code>, finds the correct Node implementation based on the <code>work_item</code>, and executes its <code>process</code> method.</li>
+<li><strong>Repeat:</strong> The worker finishes, potentially modifies the context (by appending events), and the engine (running within that worker) enqueues new tasks and ensures the context changes are persisted (via <code>ContextStore.merge</code> or <code>CheckpointStore.save</code>).</li>
+</ol>
+<div class="mermaid">sequenceDiagram
+    participant NodeLogic as Node Logic
+    participant Engine as Floxide Engine (via workflow! macro)
+    participant Queue as WorkQueue Instance
+    participant Worker as DistributedWorker
+
+    Note over NodeLogic, Engine: Worker processes WorkItem for Node A
+    NodeLogic-&gt;&gt;Engine: Returns Transition::Next(output_data)
+    Engine-&gt;&gt;Engine: Determines next step is Node B
+    Engine-&gt;&gt;Queue: enqueue("run_123", WorkItem::NodeB(output_data))
+
+    Note over Worker, Queue: Later, Worker becomes idle...
+    Worker-&gt;&gt;Queue: dequeue()
+    Queue--&gt;&gt;Worker: Returns Some(("run_123", WorkItem::NodeB(output_data)))
+    Worker-&gt;&gt;Worker: Loads state for "run_123"
+    Worker-&gt;&gt;Engine: Execute Node B with output_data
+    Note over Worker: Cycle repeats...</div>
+<h2 id="different-flavors-of-queues-implementations">Different Flavors of Queues (Implementations)<a class="headerlink" href="#different-flavors-of-queues-implementations" title="Permanent link">&para;</a></h2>
+<p>The power of using a trait (<code>WorkQueue</code>) is that you can swap out the underlying queue implementation without changing your core workflow logic.</p>
+<ul>
+<li><strong><code>InMemoryWorkQueue</code>:</strong> Floxide provides a simple queue that just uses standard Rust collections (like a <code>HashMap</code> mapping run IDs to <code>VecDeque</code>s) stored in the computer's memory.<ul>
+<li><strong>Pros:</strong> Very fast, easy for testing and local development, requires no external services.</li>
+<li><strong>Cons:</strong> Not truly distributed (only works if all workers are threads within the <em>same</em> process), state is lost if the process crashes.</li>
+</ul>
+</li>
+<li><strong>Redis Queue:</strong> An implementation (like <code>floxide_redis::RedisWorkQueue</code>) uses Redis LISTs. <code>enqueue</code> uses <code>LPUSH</code>, <code>dequeue</code> uses <code>BRPOP</code> (blocking pop).<ul>
+<li><strong>Pros:</strong> Persistent (if Redis persistence is configured), shared across multiple processes/machines, mature technology, readily available in the Floxide ecosystem.</li>
+<li><strong>Cons:</strong> Requires a separate Redis server, slightly higher latency than in-memory.</li>
+</ul>
+</li>
+<li><strong>Kafka Queue:</strong> An implementation could use Kafka topics. <code>enqueue</code> produces a message, <code>dequeue</code> consumes a message (often using consumer groups for load balancing).<ul>
+<li><strong>Pros:</strong> Highly scalable, durable, good for high-throughput scenarios, supports complex streaming patterns.</li>
+<li><strong>Cons:</strong> Requires a Kafka cluster, more complex setup than Redis.</li>
+</ul>
+</li>
+<li><strong>Database Queue:</strong> You could even implement a queue using a relational database table with locking.<ul>
+<li><strong>Pros:</strong> Leverages existing database infrastructure.</li>
+<li><strong>Cons:</strong> Can be less performant than dedicated queues, requires careful handling of locking to avoid contention.</li>
+</ul>
+</li>
+</ul>
+<p>The choice of implementation depends on your application's needs for scalability, persistence, and fault tolerance. For distributed execution, you'll need something other than <code>InMemoryWorkQueue</code>.</p>
+<h2 id="under-the-hood-inmemoryworkqueue-example">Under the Hood: <code>InMemoryWorkQueue</code> Example<a class="headerlink" href="#under-the-hood-inmemoryworkqueue-example" title="Permanent link">&para;</a></h2>
+<p>Let's peek at how the simple <code>InMemoryWorkQueue</code> might implement the trait. It uses a <code>Mutex</code> (to handle concurrent access from multiple threads/tasks) around a <code>HashMap</code>. The <code>HashMap</code> keys are the <code>run_id</code> strings, and the values are <code>VecDeque</code>s (double-ended queues) holding the <code>WorkItem</code>s for that run.</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="c1">// Simplified from floxide-core/src/distributed/work_queue.rs</span>
+</span><span id="__span-1-2">
+</span><span id="__span-1-3"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">collections</span><span class="p">::{</span><span class="n">HashMap</span><span class="p">,</span><span class="w"> </span><span class="n">VecDeque</span><span class="p">};</span>
+</span><span id="__span-1-4"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">Arc</span><span class="p">;</span>
+</span><span id="__span-1-5"><span class="k">use</span><span class="w"> </span><span class="n">tokio</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">Mutex</span><span class="p">;</span>
+</span><span id="__span-1-6"><span class="c1">// ... other imports: WorkItem, Context, WorkQueue, WorkQueueError, async_trait</span>
+</span><span id="__span-1-7">
+</span><span id="__span-1-8"><span class="c1">// The struct holds the shared, mutable state protected by a Mutex</span>
+</span><span id="__span-1-9"><span class="cp">#[derive(Clone)]</span>
+</span><span id="__span-1-10"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">InMemoryWorkQueue</span><span class="o">&lt;</span><span class="n">WI</span><span class="p">:</span><span class="w"> </span><span class="nc">WorkItem</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Arc</span><span class="o">&lt;</span><span class="n">Mutex</span><span class="o">&lt;</span><span class="n">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="n">VecDeque</span><span class="o">&lt;</span><span class="n">WI</span><span class="o">&gt;&gt;&gt;&gt;</span><span class="p">);</span>
+</span><span id="__span-1-11">
+</span><span id="__span-1-12"><span class="k">impl</span><span class="o">&lt;</span><span class="n">WI</span><span class="p">:</span><span class="w"> </span><span class="nc">WorkItem</span><span class="o">&gt;</span><span class="w"> </span><span class="n">InMemoryWorkQueue</span><span class="o">&lt;</span><span class="n">WI</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-13"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">new</span><span class="p">()</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Self</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-14"><span class="w">        </span><span class="bp">Self</span><span class="p">(</span><span class="n">Arc</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">Mutex</span><span class="p">::</span><span class="n">new</span><span class="p">(</span><span class="n">HashMap</span><span class="p">::</span><span class="n">new</span><span class="p">())))</span><span class="w"> </span><span class="c1">// Start with empty map</span>
+</span><span id="__span-1-15"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-16"><span class="p">}</span>
+</span><span id="__span-1-17">
+</span><span id="__span-1-18"><span class="cp">#[async_trait]</span>
+</span><span id="__span-1-19"><span class="k">impl</span><span class="o">&lt;</span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="p">,</span><span class="w"> </span><span class="n">WI</span><span class="p">:</span><span class="w"> </span><span class="nc">WorkItem</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="o">&gt;</span><span class="w"> </span><span class="n">WorkQueue</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">WI</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">InMemoryWorkQueue</span><span class="o">&lt;</span><span class="n">WI</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-20"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">enqueue</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">workflow_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">work</span><span class="p">:</span><span class="w"> </span><span class="nc">WI</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">WorkQueueError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-21"><span class="w">        </span><span class="c1">// 1. Lock the mutex to get exclusive access to the map</span>
+</span><span id="__span-1-22"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="mf">0.</span><span class="n">lock</span><span class="p">().</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-1-23"><span class="w">        </span><span class="c1">// 2. Find the queue for this workflow_id, or create it if it doesn&#39;t exist</span>
+</span><span id="__span-1-24"><span class="w">        </span><span class="c1">// 3. Add the work item to the end of that queue</span>
+</span><span id="__span-1-25"><span class="w">        </span><span class="n">map</span><span class="p">.</span><span class="n">entry</span><span class="p">(</span><span class="n">workflow_id</span><span class="p">.</span><span class="n">to_string</span><span class="p">())</span>
+</span><span id="__span-1-26"><span class="w">            </span><span class="p">.</span><span class="n">or_default</span><span class="p">()</span>
+</span><span id="__span-1-27"><span class="w">            </span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">work</span><span class="p">);</span>
+</span><span id="__span-1-28"><span class="w">        </span><span class="c1">// 4. Unlock happens automatically when &#39;map&#39; goes out of scope</span>
+</span><span id="__span-1-29"><span class="w">        </span><span class="nb">Ok</span><span class="p">(())</span>
+</span><span id="__span-1-30"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-31">
+</span><span id="__span-1-32"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">dequeue</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Option</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="n">WI</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">WorkQueueError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-33"><span class="w">        </span><span class="c1">// 1. Lock the mutex</span>
+</span><span id="__span-1-34"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="mf">0.</span><span class="n">lock</span><span class="p">().</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-1-35"><span class="w">        </span><span class="c1">// 2. Iterate through all known workflow runs</span>
+</span><span id="__span-1-36"><span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">run_id</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">)</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="n">map</span><span class="p">.</span><span class="n">iter_mut</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-37"><span class="w">            </span><span class="c1">// 3. Try to remove an item from the front of the run&#39;s queue</span>
+</span><span id="__span-1-38"><span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="kd">let</span><span class="w"> </span><span class="nb">Some</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">q</span><span class="p">.</span><span class="n">pop_front</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-39"><span class="w">                </span><span class="c1">// 4. If successful, return the run_id and the item</span>
+</span><span id="__span-1-40"><span class="w">                </span><span class="k">return</span><span class="w"> </span><span class="nb">Ok</span><span class="p">(</span><span class="nb">Some</span><span class="p">((</span><span class="n">run_id</span><span class="p">.</span><span class="n">clone</span><span class="p">(),</span><span class="w"> </span><span class="n">item</span><span class="p">)));</span>
+</span><span id="__span-1-41"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-1-42"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-43"><span class="w">        </span><span class="c1">// 5. If no items were found in any queue, return None</span>
+</span><span id="__span-1-44"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="nb">None</span><span class="p">)</span>
+</span><span id="__span-1-45"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-46">
+</span><span id="__span-1-47"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">purge_run</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">run_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">WorkQueueError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-48"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="mf">0.</span><span class="n">lock</span><span class="p">().</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-1-49"><span class="w">        </span><span class="c1">// Remove the entry for this run_id, discarding all its items</span>
+</span><span id="__span-1-50"><span class="w">        </span><span class="n">map</span><span class="p">.</span><span class="n">remove</span><span class="p">(</span><span class="n">run_id</span><span class="p">);</span>
+</span><span id="__span-1-51"><span class="w">        </span><span class="nb">Ok</span><span class="p">(())</span>
+</span><span id="__span-1-52"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-53">
+</span><span id="__span-1-54"><span class="w">    </span><span class="c1">// ... other methods ...</span>
+</span><span id="__span-1-55"><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Explanation:</strong></p>
+<ul>
+<li><code>Arc&lt;Mutex&lt;...&gt;&gt;</code>: This combination allows safe shared access to the <code>HashMap</code> from multiple asynchronous tasks. <code>Arc</code> allows multiple owners, <code>Mutex</code> ensures only one task accesses the data at a time.</li>
+<li><code>lock().await</code>: Acquires the lock. If another task holds the lock, this task waits (<code>await</code>s).</li>
+<li><code>map.entry(...).or_default().push_back(work)</code>: A concise way to get the <code>VecDeque</code> for a <code>workflow_id</code> (creating it if needed) and add the <code>work</code> item.</li>
+<li><code>map.iter_mut()</code>: Allows iterating through the runs and modifying their queues.</li>
+<li><code>q.pop_front()</code>: Removes and returns the first item from the <code>VecDeque</code>, if any.</li>
+<li><code>map.remove(run_id)</code>: Removes the entire queue for the specified run.</li>
+</ul>
+<p>This simple implementation fulfills the <code>WorkQueue</code> contract using standard Rust tools, making it suitable for single-process scenarios. For true distribution, you'd use a different implementation backed by a service like Redis or Kafka.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>The <code>WorkQueue</code> trait defines the standard interface for the task distribution mechanism in Floxide. It acts as the central coordinator in a distributed workflow, allowing Nodes finishing on one worker to enqueue tasks (<code>WorkItem</code>s) that can be dequeued and processed by other available workers.</p>
+<ul>
+<li>It's the <strong>core component enabling distributed execution</strong>.</li>
+<li>It decouples task producers (Nodes finishing) from task consumers (Workers starting).</li>
+<li>The <code>WorkQueue</code> trait provides standard <code>enqueue</code> and <code>dequeue</code> operations.</li>
+<li>Different implementations (in-memory, Redis, Kafka) can be used depending on requirements, all conforming to the same trait.</li>
+</ul>
+<p>While the queue manages <em>what</em> tasks need to be run, how does a worker resuming a task, or picking up a task mid-workflow, know the <em>state</em> of the shared <a href="../03__workflowctx_____context__trait_/"><code>Context</code></a>? For local/manual runs, we use the <a href="../06__checkpoint_____checkpointstore__trait_/"><code>CheckpointStore</code></a>. For distributed runs, we primarily use the <a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/"><code>ContextStore</code></a> to manage the shared data, working alongside the <code>WorkQueue</code> and other specialized stores.</p>
+<p><strong>Next:</strong> <a href="../06__checkpoint_____checkpointstore__trait_/">Chapter 6: <code>Checkpoint</code> &amp; <code>CheckpointStore</code> Trait</a>
+<strong>See Also:</strong> <a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Chapter 9: Distributed Stores</a> (Covers <code>ContextStore</code> and other stores used with <code>WorkQueue</code>)</p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

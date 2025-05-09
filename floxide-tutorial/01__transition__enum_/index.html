@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Chapter 1: Transition Enum - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="1">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/">Overview</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Tutorial</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../">Introduction</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Chapter 1: Transition Enum</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../02__node__trait____node___macro_/">Chapter 2: Node Trait & node! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../03__workflowctx_____context__trait_/">Chapter 3: WorkflowCtx & Context Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../04__workflow__trait____workflow___macro_/">Chapter 4: Workflow Trait & workflow! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../05__workqueue__trait_/">Chapter 5: WorkQueue Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../06__checkpoint_____checkpointstore__trait_/">Chapter 6: Checkpoint & CheckpointStore Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../07__distributedworker__/">Chapter 7: DistributedWorker</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../08__distributedorchestrator__/">Chapter 8: DistributedOrchestrator</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Chapter 9: Distributed Stores</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../10__retrypolicy_____retrynode__/">Chapter 10: RetryPolicy & RetryNode</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#chapter-1-transition-enum">Chapter 1: Transition Enum</a></li>
+        <li><a href="#whats-the-big-idea-controlling-the-flow">What's the Big Idea? Controlling the Flow</a></li><li><a href="#the-transition-enum-signals-for-your-workflow">The Transition Enum: Signals for Your Workflow</a></li><li><a href="#how-do-nodes-use-transition">How Do Nodes Use Transition?</a></li><li><a href="#how-floxide-uses-the-transition-signal">How Floxide Uses the Transition Signal</a></li><li><a href="#under-the-hood-the-enum-definition">Under the Hood: The Enum Definition</a></li><li><a href="#conclusion">Conclusion</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="chapter-1-transition-enum">Chapter 1: <code>Transition</code> Enum<a class="headerlink" href="#chapter-1-transition-enum" title="Permanent link">&para;</a></h1>
+<p>Welcome to the Floxide tutorial! Floxide is designed to make building distributed workflows easy. Imagine you have a complex task, like processing a large video file. You might break it down into steps: download the video, extract audio, generate subtitles, re-encode, and upload. Floxide helps you define these steps and run them, potentially across many computers working together. This "distributed" nature is Floxide's superpower!</p>
+<p>In this first chapter, we'll look at a fundamental building block: the <code>Transition</code> enum.</p>
+<h2 id="whats-the-big-idea-controlling-the-flow">What's the Big Idea? Controlling the Flow<a class="headerlink" href="#whats-the-big-idea-controlling-the-flow" title="Permanent link">&para;</a></h2>
+<p>Think about an assembly line in a factory. Each station performs a task on an item. When a worker finishes their task, they need to signal what should happen next.</p>
+<ul>
+<li>Should the item move to the <em>next</em> station?</li>
+<li>Did the task produce <em>multiple</em> items that need to go to the next stations? (Maybe splitting a large task?)</li>
+<li>Does the item need to <em>wait</em> at the current station?</li>
+<li>Did something go <em>wrong</em>, requiring the whole line to stop?</li>
+</ul>
+<p>In Floxide, each step in your workflow is called a "Node" (we'll cover this in the <a href="../02__node__trait____node___macro_/">next chapter</a>). When a Node finishes processing an item, it needs to signal the outcome, just like the assembly line worker. This signal is represented by the <code>Transition</code> enum. It tells the Floxide engine how the workflow should proceed.</p>
+<h2 id="the-transition-enum-signals-for-your-workflow">The <code>Transition</code> Enum: Signals for Your Workflow<a class="headerlink" href="#the-transition-enum-signals-for-your-workflow" title="Permanent link">&para;</a></h2>
+<p>The <code>Transition</code> enum has four possible variants, each representing a different signal:</p>
+<ol>
+<li>
+<p><strong><code>Transition::Next(output)</code></strong>: "All good! Pass this single item to the next step(s)."</p>
+<ul>
+<li><strong>Analogy:</strong> The worker finishes assembling a part and puts the single completed part onto the conveyor belt for the next station.</li>
+<li><code>output</code>: This is the data produced by the current Node that the next Node(s) will receive as input.</li>
+</ul>
+</li>
+<li>
+<p><strong><code>Transition::NextAll(outputs)</code></strong>: "I've split the work! Send each of these multiple items to the next step(s)."</p>
+<ul>
+<li><strong>Analogy:</strong> The worker takes a large sheet of metal, cuts it into several smaller pieces, and puts <em>all</em> those pieces onto the belt for the next stations.</li>
+<li><code>outputs</code>: This is a <code>Vec</code> (a list) of data items. Floxide will typically create a separate task for <em>each</em> item in the list, potentially running them in parallel across different workers. This is key for distributed processing!</li>
+<li><strong>Distributed Emphasis:</strong> This is how you can achieve parallelism. One Node can generate many pieces of work to be processed independently.</li>
+</ul>
+</li>
+<li>
+<p><strong><code>Transition::Hold</code></strong>: "Wait! Keep this item here for now."</p>
+<ul>
+<li><strong>Analogy:</strong> The worker needs to wait for glue to dry or for another part to arrive before continuing. The item stays at their station.</li>
+<li>The workflow pauses processing for <em>this specific item</em> at this Node. It might be resumed later (though mechanisms for resumption are more advanced topics).</li>
+</ul>
+</li>
+<li>
+<p><strong><code>Transition::Abort(error)</code></strong>: "Emergency Stop! Something went wrong."</p>
+<ul>
+<li><strong>Analogy:</strong> The worker discovers a critical defect or their machine breaks down. They hit the emergency stop button for the whole assembly line.</li>
+<li><code>error</code>: Contains information about what went wrong.</li>
+<li>This typically stops the execution of the entire workflow run associated with this item.</li>
+</ul>
+</li>
+</ol>
+<h2 id="how-do-nodes-use-transition">How Do Nodes Use <code>Transition</code>?<a class="headerlink" href="#how-do-nodes-use-transition" title="Permanent link">&para;</a></h2>
+<p>Nodes are the individual processing steps in your workflow. In Floxide, a Node is essentially a function (or more precisely, an object with a processing method) that takes some input and returns a <code>Result</code> containing a <code>Transition</code>.</p>
+<p>Let's imagine a very simple Node that just adds 1 to a number.</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">transition</span><span class="p">::</span><span class="n">Transition</span><span class="p">;</span>
+</span><span id="__span-0-2"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">error</span><span class="p">::</span><span class="n">FloxideError</span><span class="p">;</span>
+</span><span id="__span-0-3">
+</span><span id="__span-0-4"><span class="c1">// This is a simplified function representing a Node&#39;s logic.</span>
+</span><span id="__span-0-5"><span class="c1">// It takes an input number `i32`.</span>
+</span><span id="__span-0-6"><span class="c1">// It returns Ok(Transition&lt;i32&gt;) on success or Err(FloxideError) on failure.</span>
+</span><span id="__span-0-7"><span class="k">fn</span><span class="w"> </span><span class="nf">process_number</span><span class="p">(</span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="kt">i32</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">Transition</span><span class="o">&lt;</span><span class="kt">i32</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-8"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-0-9"><span class="w">    </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Processed {} -&gt; {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">,</span><span class="w"> </span><span class="n">result</span><span class="p">);</span>
+</span><span id="__span-0-10">
+</span><span id="__span-0-11"><span class="w">    </span><span class="c1">// Signal that processing is done, and pass the &#39;result&#39; to the next step.</span>
+</span><span id="__span-0-12"><span class="w">    </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+</span><span id="__span-0-13"><span class="p">}</span>
+</span><span id="__span-0-14">
+</span><span id="__span-0-15"><span class="c1">// --- Example Usage ---</span>
+</span><span id="__span-0-16"><span class="kd">let</span><span class="w"> </span><span class="n">outcome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">process_number</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+</span><span id="__span-0-17"><span class="c1">// outcome will be Ok(Transition::Next(6))</span>
+</span><span id="__span-0-18"><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;{:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">outcome</span><span class="p">);</span>
+</span></code></pre></div>
+<p>This simple function calculates <code>result</code> and then returns <code>Ok(Transition::Next(result))</code>. This tells the Floxide engine: "Success! The result is <code>6</code>. Send this value (<code>6</code>) to the next Node(s) in the workflow."</p>
+<p>Now, let's see how other transitions might look:</p>
+<p><strong>Example: Returning <code>NextAll</code> (Splitting Work)</strong></p>
+<p>Imagine a Node that takes a sentence and splits it into words.</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">transition</span><span class="p">::</span><span class="n">Transition</span><span class="p">;</span>
+</span><span id="__span-1-2"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">error</span><span class="p">::</span><span class="n">FloxideError</span><span class="p">;</span>
+</span><span id="__span-1-3">
+</span><span id="__span-1-4"><span class="c1">// Simplified Node logic: takes a sentence, returns individual words.</span>
+</span><span id="__span-1-5"><span class="k">fn</span><span class="w"> </span><span class="nf">split_sentence</span><span class="p">(</span><span class="n">sentence</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">Transition</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-6"><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="n">words</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sentence</span><span class="p">.</span><span class="n">split_whitespace</span><span class="p">().</span><span class="n">map</span><span class="p">(</span><span class="nb">String</span><span class="p">::</span><span class="n">from</span><span class="p">).</span><span class="n">collect</span><span class="p">();</span>
+</span><span id="__span-1-7">
+</span><span id="__span-1-8"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">words</span><span class="p">.</span><span class="n">is_empty</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-9"><span class="w">        </span><span class="c1">// If there are no words, maybe that&#39;s an error condition?</span>
+</span><span id="__span-1-10"><span class="w">        </span><span class="nb">Err</span><span class="p">(</span><span class="n">FloxideError</span><span class="p">::</span><span class="n">Generic</span><span class="p">(</span><span class="s">&quot;Input sentence was empty&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">()))</span>
+</span><span id="__span-1-11"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-12"><span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Splitting &#39;{}&#39; into: {:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">sentence</span><span class="p">,</span><span class="w"> </span><span class="n">words</span><span class="p">);</span>
+</span><span id="__span-1-13"><span class="w">        </span><span class="c1">// Signal to send *each word* as a separate item to the next step(s).</span>
+</span><span id="__span-1-14"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">NextAll</span><span class="p">(</span><span class="n">words</span><span class="p">))</span>
+</span><span id="__span-1-15"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-16"><span class="p">}</span>
+</span><span id="__span-1-17">
+</span><span id="__span-1-18"><span class="c1">// --- Example Usage ---</span>
+</span><span id="__span-1-19"><span class="kd">let</span><span class="w"> </span><span class="n">outcome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">split_sentence</span><span class="p">(</span><span class="s">&quot;Floxide is distributed&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">());</span>
+</span><span id="__span-1-20"><span class="c1">// outcome will be Ok(Transition::NextAll(vec![&quot;Floxide&quot;.to_string(), &quot;is&quot;.to_string(), &quot;distributed&quot;.to_string()]))</span>
+</span><span id="__span-1-21"><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;{:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">outcome</span><span class="p">);</span>
+</span></code></pre></div>
+<p>Here, <code>Transition::NextAll(words)</code> tells the engine: "I've produced multiple results (<code>Floxide</code>, <code>is</code>, <code>distributed</code>). Create separate tasks for each of these and send them to the next Node(s)." This is powerful for distributing the processing of each word.</p>
+<p><strong>Example: Returning <code>Abort</code></strong></p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">transition</span><span class="p">::</span><span class="n">Transition</span><span class="p">;</span>
+</span><span id="__span-2-2"><span class="k">use</span><span class="w"> </span><span class="n">floxide_core</span><span class="p">::</span><span class="n">error</span><span class="p">::</span><span class="n">FloxideError</span><span class="p">;</span>
+</span><span id="__span-2-3">
+</span><span id="__span-2-4"><span class="c1">// Simplified Node logic: checks if a number is too large.</span>
+</span><span id="__span-2-5"><span class="k">fn</span><span class="w"> </span><span class="nf">check_number</span><span class="p">(</span><span class="n">input</span><span class="p">:</span><span class="w"> </span><span class="kt">i32</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="n">Transition</span><span class="o">&lt;</span><span class="kt">i32</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-6"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-7"><span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Input {} is too large! Aborting.&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">);</span>
+</span><span id="__span-2-8"><span class="w">        </span><span class="c1">// Signal that a critical error occurred.</span>
+</span><span id="__span-2-9"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Abort</span><span class="p">(</span><span class="n">FloxideError</span><span class="p">::</span><span class="n">Generic</span><span class="p">(</span><span class="s">&quot;Value exceeded threshold&quot;</span><span class="p">.</span><span class="n">to_string</span><span class="p">())))</span>
+</span><span id="__span-2-10"><span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-11"><span class="w">        </span><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Input {} is okay. Proceeding.&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">input</span><span class="p">);</span>
+</span><span id="__span-2-12"><span class="w">        </span><span class="c1">// Signal to proceed normally.</span>
+</span><span id="__span-2-13"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">Transition</span><span class="p">::</span><span class="n">Next</span><span class="p">(</span><span class="n">input</span><span class="p">))</span><span class="w"> </span><span class="c1">// Pass the original input along</span>
+</span><span id="__span-2-14"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-2-15"><span class="p">}</span>
+</span><span id="__span-2-16">
+</span><span id="__span-2-17"><span class="c1">// --- Example Usage ---</span>
+</span><span id="__span-2-18"><span class="kd">let</span><span class="w"> </span><span class="n">outcome1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">check_number</span><span class="p">(</span><span class="mi">50</span><span class="p">);</span><span class="w">  </span><span class="c1">// Ok(Transition::Next(50))</span>
+</span><span id="__span-2-19"><span class="kd">let</span><span class="w"> </span><span class="n">outcome2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">check_number</span><span class="p">(</span><span class="mi">150</span><span class="p">);</span><span class="w"> </span><span class="c1">// Ok(Transition::Abort(FloxideError::Generic(...)))</span>
+</span><span id="__span-2-20"><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Outcome 1: {:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">outcome1</span><span class="p">);</span>
+</span><span id="__span-2-21"><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Outcome 2: {:?}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">outcome2</span><span class="p">);</span>
+</span></code></pre></div>
+<p>If the input is too large, <code>Transition::Abort</code> signals that the workflow run should stop due to an error.</p>
+<h2 id="how-floxide-uses-the-transition-signal">How Floxide Uses the <code>Transition</code> Signal<a class="headerlink" href="#how-floxide-uses-the-transition-signal" title="Permanent link">&para;</a></h2>
+<p>So, your Node returns a <code>Transition</code>. What does the Floxide engine <em>do</em> with it?</p>
+<ol>
+<li><strong>Receive:</strong> The engine calls your Node's processing logic and gets back the <code>Result&lt;Transition&lt;Output&gt;, FloxideError&gt;</code>.</li>
+<li><strong>Check Result:</strong> It first checks if the <code>Result</code> itself is an <code>Err</code>. If so, it usually treats it like an <code>Abort</code>.</li>
+<li><strong>Interpret Transition:</strong> If the <code>Result</code> is <code>Ok(transition)</code>, the engine looks at the <code>transition</code> variant:<ul>
+<li><strong><code>Next(output)</code>:</strong> The engine looks up which Node(s) should run next according to your workflow definition (<a href="../04__workflow__trait____workflow___macro_/"><code>workflow!</code> macro</a>). It then prepares a new task for the next Node(s), giving them the <code>output</code> data. In a distributed setup, it might place this task onto a shared <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a>.</li>
+<li><strong><code>NextAll(outputs)</code>:</strong> Similar to <code>Next</code>, but it iterates through the <code>outputs</code> list. For <em>each</em> item in the list, it prepares a new task for the next Node(s) and adds it to the <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a>. This fans out the work.</li>
+<li><strong><code>Hold</code>:</strong> The engine notes that this item is paused at this Node. No further tasks are scheduled for this item immediately.</li>
+<li><strong><code>Abort(error)</code>:</strong> The engine stops processing for this specific workflow run. It logs the error (perhaps using a distributed <a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/"><code>ErrorStore</code></a>) and potentially cleans up resources.</li>
+</ul>
+</li>
+</ol>
+<p>Here's a simplified diagram showing how the engine reacts to <code>Next</code> and <code>NextAll</code>:</p>
+<div class="mermaid">sequenceDiagram
+    participant NodeLogic as Node Logic
+    participant Engine as Floxide Engine
+    participant Queue as Work Queue
+
+    Note over NodeLogic, Engine: Process item 'A'
+
+    NodeLogic-&gt;&gt;Engine: Return Ok(Transition::Next(data_B))
+    Engine-&gt;&gt;Engine: Lookup next node(s) for item 'A' (e.g., NodeY)
+    Engine-&gt;&gt;Queue: Enqueue task (NodeY, data_B) for run 'A'
+
+    Note over NodeLogic, Engine: Process item 'X'
+
+    NodeLogic-&gt;&gt;Engine: Return Ok(Transition::NextAll([data_Y1, data_Y2]))
+    Engine-&gt;&gt;Engine: Lookup next node(s) for item 'X' (e.g., NodeZ)
+    Engine-&gt;&gt;Queue: Enqueue task (NodeZ, data_Y1) for run 'X'
+    Engine-&gt;&gt;Queue: Enqueue task (NodeZ, data_Y2) for run 'X'</div>
+<p>This diagram illustrates how <code>Next</code> leads to one new task, while <code>NextAll</code> leads to multiple new tasks, enabling parallel and distributed execution.</p>
+<h2 id="under-the-hood-the-enum-definition">Under the Hood: The Enum Definition<a class="headerlink" href="#under-the-hood-the-enum-definition" title="Permanent link">&para;</a></h2>
+<p>The actual definition in Floxide is straightforward:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="c1">// From: crates/floxide-core/src/transition.rs</span>
+</span><span id="__span-3-2">
+</span><span id="__span-3-3"><span class="sd">/// Transition result of a node.</span>
+</span><span id="__span-3-4"><span class="k">pub</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="nc">Transition</span><span class="o">&lt;</span><span class="n">Output</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-5"><span class="w">    </span><span class="sd">/// Emit a single output to successors.</span>
+</span><span id="__span-3-6"><span class="w">    </span><span class="n">Next</span><span class="p">(</span><span class="n">Output</span><span class="p">),</span>
+</span><span id="__span-3-7"><span class="w">    </span><span class="sd">/// Emit multiple outputs to successors (split / fan-out).</span>
+</span><span id="__span-3-8"><span class="w">    </span><span class="n">NextAll</span><span class="p">(</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Output</span><span class="o">&gt;</span><span class="p">),</span>
+</span><span id="__span-3-9"><span class="w">    </span><span class="sd">/// Hold this work item; do not emit any outputs until a condition is met.</span>
+</span><span id="__span-3-10"><span class="w">    </span><span class="n">Hold</span><span class="p">,</span>
+</span><span id="__span-3-11"><span class="w">    </span><span class="sd">/// Abort the workflow with an error.</span>
+</span><span id="__span-3-12"><span class="w">    </span><span class="n">Abort</span><span class="p">(</span><span class="k">crate</span><span class="p">::</span><span class="n">error</span><span class="p">::</span><span class="n">FloxideError</span><span class="p">),</span>
+</span><span id="__span-3-13"><span class="p">}</span>
+</span></code></pre></div>
+<ul>
+<li>It's a standard Rust <code>enum</code>.</li>
+<li>It's generic over <code>&lt;Output&gt;</code>. This means the <code>Next</code> and <code>NextAll</code> variants can carry any type of data needed for the next step, as long as that type is specified by the Node. <code>Hold</code> and <code>Abort</code> don't carry a successful output, so they don't use the <code>Output</code> type.</li>
+<li><code>Abort</code> carries a <code>FloxideError</code>, which is Floxide's standard error type.</li>
+</ul>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>The <code>Transition</code> enum is the fundamental way that individual steps (Nodes) in a Floxide workflow communicate their outcome and control the flow of execution. By returning <code>Next</code>, <code>NextAll</code>, <code>Hold</code>, or <code>Abort</code>, a Node tells the Floxide engine whether to proceed with a single item, split the work into multiple items (crucial for distributed processing), pause, or stop due to an error.</p>
+<p>Now that you understand how a Node signals its result, let's dive into how to actually define these Nodes!</p>
+<p><strong>Next:</strong> <a href="../02__node__trait____node___macro_/">Chapter 2: <code>Node</code> Trait &amp; <code>node!</code> Macro</a></p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

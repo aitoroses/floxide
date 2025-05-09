@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Chapter 7: DistributedWorker - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="1">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/">Overview</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Tutorial</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../">Introduction</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../01__transition__enum_/">Chapter 1: Transition Enum</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../02__node__trait____node___macro_/">Chapter 2: Node Trait & node! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../03__workflowctx_____context__trait_/">Chapter 3: WorkflowCtx & Context Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../04__workflow__trait____workflow___macro_/">Chapter 4: Workflow Trait & workflow! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../05__workqueue__trait_/">Chapter 5: WorkQueue Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../06__checkpoint_____checkpointstore__trait_/">Chapter 6: Checkpoint & CheckpointStore Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Chapter 7: DistributedWorker</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../08__distributedorchestrator__/">Chapter 8: DistributedOrchestrator</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Chapter 9: Distributed Stores</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../10__retrypolicy_____retrynode__/">Chapter 10: RetryPolicy & RetryNode</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#chapter-7-distributedworker">Chapter 7: DistributedWorker</a></li>
+        <li><a href="#whats-the-problem-actively-processing-tasks">What's the Problem? Actively Processing Tasks</a></li><li><a href="#what-is-a-distributedworker-the-engines-employee">What is a DistributedWorker? The Engine's Employee</a></li><li><a href="#how-a-distributedworker-uses-floxide-components">How a DistributedWorker Uses Floxide Components</a></li><li><a href="#the-worker-loop-in-action-simplified">The Worker Loop in Action (Simplified)</a></li><li><a href="#using-distributedworker">Using DistributedWorker</a></li><li><a href="#under-the-hood-the-step_distributed-method">Under the Hood: The step_distributed Method</a></li><li><a href="#worker-pools">Worker Pools</a></li><li><a href="#conclusion">Conclusion</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="chapter-7-distributedworker">Chapter 7: <code>DistributedWorker</code><a class="headerlink" href="#chapter-7-distributedworker" title="Permanent link">&para;</a></h1>
+<p>In the <a href="../06__checkpoint_____checkpointstore__trait_/">previous chapter</a>, we learned about <code>Checkpoint</code> and <code>CheckpointStore</code>, the "save game" system for Floxide workflows. This allows us to save the state of a workflow run (its shared <a href="../03__workflowctx_____context__trait_/"><code>Context</code></a> and pending tasks) so we can resume later or recover from crashes.</p>
+<p>But who actually <em>does</em> the work in a distributed setup? We have the blueprint (<a href="../04__workflow__trait____workflow___macro_/"><code>Workflow</code></a>), the task list (<a href="../05__workqueue__trait_/"><code>WorkQueue</code></a>, and the save system (<a href="../06__checkpoint_____checkpointstore__trait_/"><code>CheckpointStore</code></a>). Now we need the actual <em>employees</em> who run the assembly line stations.</p>
+<h2 id="whats-the-problem-actively-processing-tasks">What's the Problem? Actively Processing Tasks<a class="headerlink" href="#whats-the-problem-actively-processing-tasks" title="Permanent link">&para;</a></h2>
+<p>Imagine our distributed video processing factory. We have:
+*   A list of jobs (the <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a>).
+*   Instructions for each job (the <a href="../02__node__trait____node___macro_/"><code>Node</code></a> logic within the <a href="../04__workflow__trait____workflow___macro_/"><code>Workflow</code></a> blueprint).
+*   A way to save shared project state (the <a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/"><code>ContextStore</code></a>).
+*   Other ledgers for tracking progress, errors, etc. (the other <a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Distributed Stores</a>).</p>
+<p>But nothing happens on its own! We need programs – workers – that actively:
+1.  Look at the job list.
+2.  Pick up the next available job.
+3.  Figure out the current state of the project (load the latest shared <a href="../03__workflowctx_____context__trait_/"><code>Context</code></a> using the <code>ContextStore</code>).
+4.  Do the work for that job step.
+5.  Save the updated project state.
+6.  Potentially add new follow-up jobs to the list.
+7.  Go back to step 1 and repeat.</p>
+<p>This tireless entity is what Floxide calls a <code>DistributedWorker</code>.</p>
+<h2 id="what-is-a-distributedworker-the-engines-employee">What is a <code>DistributedWorker</code>? The Engine's Employee<a class="headerlink" href="#what-is-a-distributedworker-the-engines-employee" title="Permanent link">&para;</a></h2>
+<p>A <code>DistributedWorker</code> is an independent process or task whose main job is to execute workflow steps in a distributed Floxide setup. It's like an employee who performs the core work cycle:</p>
+<ol>
+<li><strong>Check Queue:</strong> Repeatedly asks the shared <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a>: "Any jobs available?"</li>
+<li><strong>Get Task:</strong> If a task (<code>WorkItem</code>) is available, the worker takes it.</li>
+<li><strong>Load State:</strong> Reads the latest shared <a href="../03__workflowctx_____context__trait_/"><code>Context</code></a> for the specific workflow run this task belongs to using the <code>ContextStore</code>.</li>
+<li><strong>Execute Step:</strong> Runs the processing logic defined by the corresponding <a href="../02__node__trait____node___macro_/"><code>Node</code></a> (using the <a href="../04__workflow__trait____workflow___macro_/"><code>Workflow</code></a> definition to find the right code). The node might append events to the context it received.</li>
+<li><strong>Handle Outcome:</strong> Based on the <a href="../01__transition__enum_/"><code>Transition</code></a> returned by the Node:<ul>
+<li>Enqueues new tasks onto the <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a> for subsequent steps.</li>
+<li>Updates the status of the current work item in the <code>WorkItemStateStore</code>.</li>
+</ul>
+</li>
+<li><strong>Save State:</strong> Merges the changes made to the context (the appended events) with the previously loaded state and saves the result back to the <code>ContextStore</code> using its <code>merge</code> capability. Also updates metrics (<code>MetricsStore</code>) and potentially logs errors (<code>ErrorStore</code>).</li>
+<li><strong>Repeat:</strong> Goes back to checking the queue for the next job.</li>
+</ol>
+<p><strong>Distributed Emphasis:</strong> The magic happens when you run <em>multiple</em> <code>DistributedWorker</code> instances. They can run on the same machine or, more importantly, on <em>different machines</em>. They all connect to the <em>same</em> shared <code>WorkQueue</code> and distributed stores (<code>ContextStore</code>, <code>ErrorStore</code>, etc.). This allows them to work together in parallel, processing different tasks for different workflow runs (or even different tasks for the <em>same</em> run if a step used <code>Transition::NextAll</code>). This parallel, distributed processing is Floxide's core strength.</p>
+<div class="mermaid">graph TD
+    subgraph Shared Infrastructure
+        WQ[(Work Queue)]
+        CS[(Context Store)]
+        ES[(Error Store)]
+        MS[(Metrics Store)]
+        LS[(Liveness Store)]
+        WIS[(WorkItemState Store)]
+        RIS[(RunInfo Store)]
+    end
+
+    subgraph Machine 1
+        W1[Worker 1]
+    end
+
+    subgraph Machine 2
+        W2[Worker 2]
+        W3[Worker 3]
+    end
+
+    %% Worker Interactions (Same pattern for all)
+    W1 -- "Get/Put Task" --&gt; WQ
+    W1 -- "Load/Save State" --&gt; CS
+    W1 -- "Process Step" --&gt; W1
+
+    W2 -- "Get/Put Task" --&gt; WQ
+    W2 -- "Load/Save State" --&gt; CS
+    W2 -- "Process Step" --&gt; W2
+
+    W3 -- "Get/Put Task" --&gt; WQ
+    W3 -- "Load/Save State" --&gt; CS
+    W3 -- "Process Step" --&gt; W3</div>
+<h2 id="how-a-distributedworker-uses-floxide-components">How a <code>DistributedWorker</code> Uses Floxide Components<a class="headerlink" href="#how-a-distributedworker-uses-floxide-components" title="Permanent link">&para;</a></h2>
+<p>The <code>DistributedWorker</code> doesn't do everything from scratch. It relies heavily on the other abstractions we've learned about:</p>
+<ul>
+<li><a href="../04__workflow__trait____workflow___macro_/"><code>Workflow</code></a>: The worker needs the workflow definition to know <em>which</em> Node logic to execute for a given <code>WorkItem</code> and how to handle transitions based on the defined <code>edges</code>. It primarily uses the <code>step_distributed</code> method provided by the <code>Workflow</code> trait implementation (generated by the <code>workflow!</code> macro).</li>
+<li><a href="../05__workqueue__trait_/"><code>WorkQueue</code></a>: The worker constantly interacts with the queue to <code>dequeue</code> tasks to process and <code>enqueue</code> subsequent tasks.</li>
+<li><a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/"><code>ContextStore</code></a>: Before executing a step, the worker <code>get</code>s the current context state. After successful execution, it <code>merge</code>s the changes (appended events) back into the store.</li>
+<li><a href="../09_distributed_stores___runinfostore____metricsstore____errorstore____livenessstore____workitemstatestore___/">Other Distributed Stores (Chapter 9)</a>: Workers also interact with these stores to report their status (<code>LivenessStore</code>), record errors (<code>ErrorStore</code>), update metrics (<code>MetricsStore</code>), track run status (<code>RunInfoStore</code>), and manage the state of individual work items (<code>WorkItemStateStore</code>). This provides observability and control.</li>
+<li><a href="../10__retrypolicy_____retrynode__/"><code>RetryPolicy</code> (Chapter 10)</a>: The worker can be configured with a retry policy to automatically handle transient errors during step execution.</li>
+</ul>
+<h2 id="the-worker-loop-in-action-simplified">The Worker Loop in Action (Simplified)<a class="headerlink" href="#the-worker-loop-in-action-simplified" title="Permanent link">&para;</a></h2>
+<p>Let's walk through a single cycle for one worker (Worker #42):</p>
+<ol>
+<li><strong>Dequeue:</strong> Worker #42 calls <code>queue.dequeue()</code>.</li>
+<li><strong>Result:</strong> It receives <code>Some(("video_abc", WorkItem::ExtractAudio("chunk_3.mp4")))</code>. (It got a job!)</li>
+<li><strong>Load Context:</strong> Worker #42 calls <code>context_store.get("video_abc")</code>. It gets back the latest <code>MyWorkflowData</code> context (perhaps with an event log indicating <code>processed_chunks: 2</code>).</li>
+<li><strong>Execute Step:</strong> The worker looks at <code>WorkItem::ExtractAudio</code>. Using the <code>Workflow</code> definition, it finds the <code>ExtractAudioNode</code> logic. It calls the <code>process</code> method of that Node, passing the loaded <code>Context</code> (via <code>WorkflowCtx</code>) and the input <code>"chunk_3.mp4"</code>.</li>
+<li><strong>Node Returns &amp; Appends Event:</strong> The <code>ExtractAudioNode</code> finishes and returns <code>Ok(Transition::Next("chunk_3.aac"))</code>. Internally, it also called <code>ctx.store.event_log.append(MyWorkflowEvent::AudioExtracted(...))</code>.</li>
+<li><strong>Handle Transition:</strong> The worker sees <code>Transition::Next</code>. It checks the <code>Workflow</code>'s <code>edges</code> for <code>ExtractAudioNode</code>. Let's say the edge points to <code>GenerateSubtitlesNode</code>.</li>
+<li><strong>Enqueue Next:</strong> The worker creates <code>WorkItem::GenerateSubtitles("chunk_3.aac")</code> (using the output from step 5) and calls <code>queue.enqueue("video_abc", new_work_item)</code>.</li>
+<li><strong>Merge &amp; Save Context:</strong> The worker takes the context returned from the node execution (containing the new <code>AudioExtracted</code> event) and calls <code>context_store.merge("video_abc", context_with_new_event)</code>. The <code>ContextStore</code> implementation uses the <code>Merge</code> trait on <code>MyWorkflowData</code> (and <code>EventLog</code>) to combine this correctly with any other concurrent changes.</li>
+<li><strong>Update Other Stores:</strong> The worker might also call <code>metrics_store.update_metrics(...)</code>, <code>work_item_state_store.set_status(...)</code>, etc.</li>
+<li><strong>Loop:</strong> Worker #42 goes back to step 1, ready for the next job.</li>
+</ol>
+<p>If in step 2, <code>queue.dequeue()</code> returned <code>None</code>, the worker would typically wait for a short period and then try again.</p>
+<h2 id="using-distributedworker">Using <code>DistributedWorker</code><a class="headerlink" href="#using-distributedworker" title="Permanent link">&para;</a></h2>
+<p>You typically don't interact with the <code>DistributedWorker</code> struct directly in your <code>Node</code> logic. Instead, you configure and run it as a separate process or task. Floxide provides helpers to build and run workers.</p>
+<p>First, you need instances of your workflow definition and all the required store implementations (using appropriate distributed backends like Redis or Kafka, not just in-memory ones for real distribution).</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="k">use</span><span class="w"> </span><span class="n">floxide</span><span class="p">::{</span>
+</span><span id="__span-0-2"><span class="w">    </span><span class="n">Workflow</span><span class="p">,</span><span class="w"> </span><span class="n">DistributedWorker</span><span class="p">,</span><span class="w"> </span><span class="n">WorkQueue</span><span class="p">,</span><span class="w"> </span><span class="n">ContextStore</span><span class="p">,</span><span class="w"> </span><span class="n">Context</span><span class="p">,</span>
+</span><span id="__span-0-3"><span class="w">    </span><span class="c1">// Import other store traits: RunInfoStore, MetricsStore, ErrorStore, LivenessStore, WorkItemStateStore</span>
+</span><span id="__span-0-4"><span class="w">    </span><span class="c1">// Import your specific workflow, context, and store implementations</span>
+</span><span id="__span-0-5"><span class="w">    </span><span class="c1">// e.g., TextProcessor, SimpleContext, RedisWorkQueue, RedisContextStore etc.</span>
+</span><span id="__span-0-6"><span class="p">};</span>
+</span><span id="__span-0-7"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">Arc</span><span class="p">;</span>
+</span><span id="__span-0-8"><span class="c1">// Assume these are properly configured instances for distributed use</span>
+</span><span id="__span-0-9"><span class="c1">// let my_workflow: TextProcessor = // ... initialized workflow struct</span>
+</span><span id="__span-0-10"><span class="c1">// let my_queue: RedisWorkQueue&lt;...&gt; = // ... connected queue</span>
+</span><span id="__span-0-11"><span class="c1">// let my_context_store: RedisContextStore&lt;...&gt; = // ... connected context store</span>
+</span><span id="__span-0-12"><span class="c1">// let my_run_info_store: RedisRunInfoStore = // ...</span>
+</span><span id="__span-0-13"><span class="c1">// ... etc for all stores ...</span>
+</span><span id="__span-0-14">
+</span><span id="__span-0-15"><span class="c1">// Create a worker instance using the builder pattern</span>
+</span><span id="__span-0-16"><span class="kd">let</span><span class="w"> </span><span class="n">worker</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DistributedWorker</span><span class="p">::</span><span class="n">builder</span><span class="p">()</span>
+</span><span id="__span-0-17"><span class="w">    </span><span class="p">.</span><span class="n">workflow</span><span class="p">(</span><span class="n">my_workflow</span><span class="p">)</span>
+</span><span id="__span-0-18"><span class="w">    </span><span class="p">.</span><span class="n">queue</span><span class="p">(</span><span class="n">my_queue</span><span class="p">)</span>
+</span><span id="__span-0-19"><span class="w">    </span><span class="p">.</span><span class="n">context_store</span><span class="p">(</span><span class="n">my_context_store</span><span class="p">)</span>
+</span><span id="__span-0-20"><span class="w">    </span><span class="p">.</span><span class="n">run_info_store</span><span class="p">(</span><span class="n">my_run_info_store</span><span class="p">)</span>
+</span><span id="__span-0-21"><span class="w">    </span><span class="p">.</span><span class="n">metrics_store</span><span class="p">(</span><span class="n">my_metrics_store</span><span class="p">)</span>
+</span><span id="__span-0-22"><span class="w">    </span><span class="p">.</span><span class="n">error_store</span><span class="p">(</span><span class="n">my_error_store</span><span class="p">)</span>
+</span><span id="__span-0-23"><span class="w">    </span><span class="p">.</span><span class="n">liveness_store</span><span class="p">(</span><span class="n">my_liveness_store</span><span class="p">)</span>
+</span><span id="__span-0-24"><span class="w">    </span><span class="p">.</span><span class="n">work_item_state_store</span><span class="p">(</span><span class="n">my_work_item_state_store</span><span class="p">)</span>
+</span><span id="__span-0-25"><span class="w">    </span><span class="p">.</span><span class="n">build</span><span class="p">();</span>
+</span><span id="__span-0-26">
+</span><span id="__span-0-27"><span class="c1">// Optional: Configure retry policy</span>
+</span><span id="__span-0-28"><span class="c1">// worker.set_retry_policy(RetryPolicy::default());</span>
+</span><span id="__span-0-29">
+</span><span id="__span-0-30"><span class="c1">// Define a unique ID for this worker instance (e.g., from hostname/PID)</span>
+</span><span id="__span-0-31"><span class="kd">let</span><span class="w"> </span><span class="n">worker_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">;</span><span class="w"> </span><span class="c1">// Or generate dynamically</span>
+</span></code></pre></div>
+<p>This code sets up a <code>DistributedWorker</code> instance, providing it with everything it needs to operate: the workflow logic, the queue, and various state stores.</p>
+<p>Then, you typically run the worker's main loop in an async task:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="c1">// This would usually be run within an async runtime like Tokio</span>
+</span><span id="__span-1-2">
+</span><span id="__span-1-3"><span class="c1">// Clone the worker if needed (it&#39;s designed to be Clone-able)</span>
+</span><span id="__span-1-4"><span class="kd">let</span><span class="w"> </span><span class="n">worker_clone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">worker</span><span class="p">.</span><span class="n">clone</span><span class="p">();</span>
+</span><span id="__span-1-5">
+</span><span id="__span-1-6"><span class="c1">// Spawn an async task to run the worker loop forever</span>
+</span><span id="__span-1-7"><span class="n">tokio</span><span class="p">::</span><span class="n">spawn</span><span class="p">(</span><span class="k">async</span><span class="w"> </span><span class="k">move</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-8"><span class="w">    </span><span class="c1">// run_forever loops indefinitely, processing tasks as they appear</span>
+</span><span id="__span-1-9"><span class="w">    </span><span class="n">worker_clone</span><span class="p">.</span><span class="n">run_forever</span><span class="p">(</span><span class="n">worker_id</span><span class="p">).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-1-10"><span class="w">    </span><span class="c1">// Note: run_forever technically never returns Ok, it runs until cancelled or panics.</span>
+</span><span id="__span-1-11"><span class="p">});</span>
+</span><span id="__span-1-12">
+</span><span id="__span-1-13"><span class="fm">println!</span><span class="p">(</span><span class="s">&quot;Worker {} started and polling for tasks...&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">worker_id</span><span class="p">);</span>
+</span><span id="__span-1-14"><span class="c1">// Keep the main program alive, or manage worker tasks (e.g., using WorkerPool)</span>
+</span><span id="__span-1-15"><span class="c1">// ...</span>
+</span></code></pre></div>
+<p>This code starts the worker. The <code>run_forever</code> method contains the core loop described earlier (dequeue, load, process, save, enqueue). You would typically launch many such worker tasks, potentially across multiple machines, all configured with the same shared stores and workflow definition.</p>
+<h2 id="under-the-hood-the-step_distributed-method">Under the Hood: The <code>step_distributed</code> Method<a class="headerlink" href="#under-the-hood-the-step_distributed-method" title="Permanent link">&para;</a></h2>
+<p>The <code>DistributedWorker</code> itself doesn't contain the complex logic for loading, executing, saving, and enqueuing based on transitions. It delegates most of this to the <a href="../04__workflow__trait____workflow___macro_/"><code>Workflow</code></a> trait's <code>step_distributed</code> method (which is implemented by the code generated by the <a href="../04__workflow__trait____workflow___macro_/"><code>workflow!</code> macro</a>).</p>
+<p>The <code>worker.run_once(worker_id)</code> method essentially does this:</p>
+<ol>
+<li>Calls <code>queue.dequeue()</code>.</li>
+<li>If a <code>work_item</code> and <code>run_id</code> are received:<ul>
+<li>Updates worker status (liveness, work item state) using the provided stores.</li>
+<li>Calls <code>self.workflow.step_distributed(...)</code>, passing the <code>context_store</code>, <code>queue</code>, <code>run_id</code>, <code>work_item</code>, and potentially other stores needed for state updates within the step execution logic (like metrics/error stores).</li>
+<li>The <code>step_distributed</code> implementation (generated by <code>workflow!</code>) handles:<ul>
+<li>Loading the context (<code>context_store.get(run_id)</code>).</li>
+<li>Calling the correct Node's <code>process</code> method (using <code>process_work_item</code>). Node appends events.</li>
+<li>Handling the <code>Transition</code> and enqueuing next items (<code>queue.enqueue(...)</code>).</li>
+<li>Merging and saving the context (<code>context_store.merge(run_id, ...)</code>).</li>
+</ul>
+</li>
+<li>Updates worker status based on the result of <code>step_distributed</code>.</li>
+</ul>
+</li>
+<li>If no item is dequeued, it indicates idleness.</li>
+</ol>
+<p>Here's a simplified sequence diagram of <code>run_once</code>:</p>
+<div class="mermaid">sequenceDiagram
+    participant Worker as DistributedWorker (run_once)
+    participant WQ as WorkQueue
+    participant WorkflowImpl as Workflow (step_distributed)
+    participant CtxStore as ContextStore
+    participant Stores as Other Stores (Liveness, etc.)
+
+    Worker-&gt;&gt;WQ: dequeue()
+    alt Task Found (run_id, item)
+        WQ--&gt;&gt;Worker: Return Some((run_id, item))
+        Worker-&gt;&gt;Stores: Update status (starting item)
+        Worker-&gt;&gt;WorkflowImpl: step_distributed(ctx_store, queue, run_id, item, ...)
+        Note right of WorkflowImpl: Loads Context (CtxStore), &lt;br/&gt;Executes Node (appends events),&lt;br/&gt;Merges/Saves Context (CtxStore),&lt;br/&gt;Enqueues Next Tasks (WQ)
+        WorkflowImpl--&gt;&gt;Worker: Return Result (Ok(None) or Ok(Some(output)) or Err)
+        Worker-&gt;&gt;Stores: Update status (item finished/failed)
+        Worker--&gt;&gt;Worker: Return result to caller
+    else No Task Found
+        WQ--&gt;&gt;Worker: Return None
+        Worker-&gt;&gt;Stores: Update status (idle)
+        Worker--&gt;&gt;Worker: Return Ok(None)
+    end
+</div>
+<p>Let's look at simplified code from <code>floxide-core/src/distributed/worker.rs</code>:</p>
+<p>The <code>DistributedWorker</code> struct holds all the necessary components:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-2-1"><span class="c1">// Simplified from crates/floxide-core/src/distributed/worker.rs</span>
+</span><span id="__span-2-2"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">distributed</span><span class="p">::{</span><span class="w"> </span><span class="n">ContextStore</span><span class="p">,</span><span class="w"> </span><span class="n">ErrorStore</span><span class="p">,</span><span class="w"> </span><span class="n">LivenessStore</span><span class="p">,</span><span class="w"> </span><span class="n">MetricsStore</span><span class="p">,</span><span class="w"> </span><span class="n">RunInfoStore</span><span class="p">,</span><span class="w"> </span><span class="n">WorkItemStateStore</span><span class="p">,</span><span class="w"> </span><span class="n">WorkQueue</span><span class="w"> </span><span class="p">};</span>
+</span><span id="__span-2-3">
+</span><span id="__span-2-4"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">DistributedWorker</span><span class="o">&lt;</span><span class="n">W</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">Q</span><span class="p">,</span><span class="w"> </span><span class="n">CS</span><span class="p">,</span><span class="w"> </span><span class="n">RIS</span><span class="p">,</span><span class="w"> </span><span class="n">MS</span><span class="p">,</span><span class="w"> </span><span class="n">ES</span><span class="p">,</span><span class="w"> </span><span class="n">LS</span><span class="p">,</span><span class="w"> </span><span class="n">WIS</span><span class="o">&gt;</span>
+</span><span id="__span-2-5"><span class="k">where</span>
+</span><span id="__span-2-6"><span class="w">    </span><span class="n">W</span><span class="p">:</span><span class="w"> </span><span class="nc">Workflow</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">WorkItem</span><span class="p">:</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-2-7"><span class="w">    </span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="p">,</span>
+</span><span id="__span-2-8"><span class="w">    </span><span class="n">Q</span><span class="p">:</span><span class="w"> </span><span class="nc">WorkQueue</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">W</span><span class="p">::</span><span class="n">WorkItem</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-2-9"><span class="w">    </span><span class="n">CS</span><span class="p">:</span><span class="w"> </span><span class="nc">ContextStore</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-2-10"><span class="w">    </span><span class="n">RIS</span><span class="p">:</span><span class="w"> </span><span class="nc">RunInfoStore</span><span class="p">,</span>
+</span><span id="__span-2-11"><span class="w">    </span><span class="n">MS</span><span class="p">:</span><span class="w"> </span><span class="nc">MetricsStore</span><span class="p">,</span>
+</span><span id="__span-2-12"><span class="w">    </span><span class="n">ES</span><span class="p">:</span><span class="w"> </span><span class="nc">ErrorStore</span><span class="p">,</span>
+</span><span id="__span-2-13"><span class="w">    </span><span class="n">LS</span><span class="p">:</span><span class="w"> </span><span class="nc">LivenessStore</span><span class="p">,</span>
+</span><span id="__span-2-14"><span class="w">    </span><span class="n">WIS</span><span class="p">:</span><span class="w"> </span><span class="nc">WorkItemStateStore</span><span class="o">&lt;</span><span class="n">W</span><span class="p">::</span><span class="n">WorkItem</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-2-15"><span class="p">{</span>
+</span><span id="__span-2-16"><span class="w">    </span><span class="n">workflow</span><span class="p">:</span><span class="w"> </span><span class="nc">W</span><span class="p">,</span>
+</span><span id="__span-2-17"><span class="w">    </span><span class="n">queue</span><span class="p">:</span><span class="w"> </span><span class="nc">Q</span><span class="p">,</span>
+</span><span id="__span-2-18"><span class="w">    </span><span class="n">context_store</span><span class="p">:</span><span class="w"> </span><span class="nc">CS</span><span class="p">,</span>
+</span><span id="__span-2-19"><span class="w">    </span><span class="n">run_info_store</span><span class="p">:</span><span class="w"> </span><span class="nc">RIS</span><span class="p">,</span>
+</span><span id="__span-2-20"><span class="w">    </span><span class="n">metrics_store</span><span class="p">:</span><span class="w"> </span><span class="nc">MS</span><span class="p">,</span>
+</span><span id="__span-2-21"><span class="w">    </span><span class="n">error_store</span><span class="p">:</span><span class="w"> </span><span class="nc">ES</span><span class="p">,</span>
+</span><span id="__span-2-22"><span class="w">    </span><span class="n">liveness_store</span><span class="p">:</span><span class="w"> </span><span class="nc">LS</span><span class="p">,</span>
+</span><span id="__span-2-23"><span class="w">    </span><span class="n">work_item_state_store</span><span class="p">:</span><span class="w"> </span><span class="nc">WIS</span><span class="p">,</span>
+</span><span id="__span-2-24"><span class="w">    </span><span class="n">retry_policy</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">RetryPolicy</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-2-25"><span class="w">    </span><span class="n">phantom</span><span class="p">:</span><span class="w"> </span><span class="nc">std</span><span class="p">::</span><span class="n">marker</span><span class="p">::</span><span class="n">PhantomData</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="p">,</span>
+</span><span id="__span-2-26"><span class="p">}</span>
+</span></code></pre></div>
+<p>The <code>run_forever</code> method loops, calling <code>run_once</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-3-1"><span class="c1">// Simplified from crates/floxide-core/src/distributed/worker.rs</span>
+</span><span id="__span-3-2"><span class="k">impl</span><span class="o">&lt;..</span><span class="p">.</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DistributedWorker</span><span class="o">&lt;..</span><span class="p">.</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-3"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">run_forever</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">worker_id</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">std</span><span class="p">::</span><span class="n">convert</span><span class="p">::</span><span class="n">Infallible</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-4"><span class="w">        </span><span class="k">loop</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-5"><span class="w">            </span><span class="k">match</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">run_once</span><span class="p">(</span><span class="n">worker_id</span><span class="p">).</span><span class="k">await</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-6"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="nb">Some</span><span class="p">((</span><span class="n">_run_id</span><span class="p">,</span><span class="w"> </span><span class="n">_output</span><span class="p">)))</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-7"><span class="w">                    </span><span class="c1">// Work was done, loop immediately for more</span>
+</span><span id="__span-3-8"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-3-9"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="nb">None</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-10"><span class="w">                    </span><span class="c1">// No work found, sleep briefly</span>
+</span><span id="__span-3-11"><span class="w">                    </span><span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="p">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">100</span><span class="p">)).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-3-12"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-3-13"><span class="w">                </span><span class="nb">Err</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-14"><span class="w">                    </span><span class="c1">// Error occurred, log and sleep</span>
+</span><span id="__span-3-15"><span class="w">                    </span><span class="n">error</span><span class="o">!</span><span class="p">(</span><span class="n">worker_id</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Worker error&quot;</span><span class="p">);</span>
+</span><span id="__span-3-16"><span class="w">                    </span><span class="n">sleep</span><span class="p">(</span><span class="n">Duration</span><span class="p">::</span><span class="n">from_millis</span><span class="p">(</span><span class="mi">100</span><span class="p">)).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-3-17"><span class="w">                </span><span class="p">}</span>
+</span><span id="__span-3-18"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-3-19"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-3-20"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-3-21"><span class="p">}</span>
+</span></code></pre></div>
+<p>And <code>run_once</code> orchestrates the call to the workflow's core distributed step logic:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-4-1"><span class="c1">// Simplified CONCEPT from crates/floxide-core/src/distributed/worker.rs</span>
+</span><span id="__span-4-2"><span class="c1">// The actual implementation uses callbacks for state updates.</span>
+</span><span id="__span-4-3"><span class="k">impl</span><span class="o">&lt;..</span><span class="p">.</span><span class="o">&gt;</span><span class="w"> </span><span class="n">DistributedWorker</span><span class="o">&lt;..</span><span class="p">.</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-4"><span class="w">    </span><span class="k">pub</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">run_once</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">worker_id</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Option</span><span class="o">&lt;</span><span class="p">(</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="n">W</span><span class="p">::</span><span class="n">Output</span><span class="p">)</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-5">
+</span><span id="__span-4-6"><span class="w">        </span><span class="c1">// Update liveness/heartbeat (simplified)</span>
+</span><span id="__span-4-7"><span class="w">        </span><span class="bp">self</span><span class="p">.</span><span class="n">heartbeat</span><span class="p">(</span><span class="n">worker_id</span><span class="p">).</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-4-8">
+</span><span id="__span-4-9"><span class="w">        </span><span class="c1">// *** Core Logic: Delegate to Workflow::step_distributed ***</span>
+</span><span id="__span-4-10"><span class="w">        </span><span class="c1">// This method encapsulates: dequeue, load, process, save, enqueue</span>
+</span><span id="__span-4-11"><span class="w">        </span><span class="k">match</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">workflow</span><span class="p">.</span><span class="n">step_distributed</span><span class="p">(</span>
+</span><span id="__span-4-12"><span class="w">            </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">.</span><span class="n">context_store</span><span class="p">,</span>
+</span><span id="__span-4-13"><span class="w">            </span><span class="o">&amp;</span><span class="bp">self</span><span class="p">.</span><span class="n">queue</span><span class="p">,</span>
+</span><span id="__span-4-14"><span class="w">            </span><span class="n">worker_id</span><span class="p">,</span>
+</span><span id="__span-4-15"><span class="w">            </span><span class="bp">self</span><span class="p">.</span><span class="n">build_callbacks</span><span class="p">(</span><span class="n">worker_id</span><span class="p">)</span><span class="w"> </span><span class="c1">// Provides hooks for state updates</span>
+</span><span id="__span-4-16"><span class="w">        </span><span class="p">).</span><span class="k">await</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-17"><span class="w">            </span><span class="nb">Ok</span><span class="p">(</span><span class="nb">Some</span><span class="p">((</span><span class="n">run_id</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">)))</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-18"><span class="w">                </span><span class="c1">// Workflow run completed!</span>
+</span><span id="__span-4-19"><span class="w">                </span><span class="c1">// Update status to idle</span>
+</span><span id="__span-4-20"><span class="w">                </span><span class="bp">self</span><span class="p">.</span><span class="n">on_idle_state_updates</span><span class="p">(</span><span class="n">worker_id</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-4-21"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="nb">Some</span><span class="p">((</span><span class="n">run_id</span><span class="p">,</span><span class="w"> </span><span class="n">output</span><span class="p">)))</span>
+</span><span id="__span-4-22"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-4-23"><span class="w">            </span><span class="nb">Ok</span><span class="p">(</span><span class="nb">None</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-24"><span class="w">                </span><span class="c1">// Step processed, but workflow not finished OR queue was empty</span>
+</span><span id="__span-4-25"><span class="w">                </span><span class="c1">// Update status to idle</span>
+</span><span id="__span-4-26"><span class="w">                </span><span class="bp">self</span><span class="p">.</span><span class="n">on_idle_state_updates</span><span class="p">(</span><span class="n">worker_id</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-4-27"><span class="w">                </span><span class="nb">Ok</span><span class="p">(</span><span class="nb">None</span><span class="p">)</span>
+</span><span id="__span-4-28"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-4-29"><span class="w">            </span><span class="nb">Err</span><span class="p">(</span><span class="n">step_error</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-30"><span class="w">                </span><span class="c1">// Handle step error (potentially using retry policy logic)</span>
+</span><span id="__span-4-31"><span class="w">                </span><span class="c1">// Update status to idle or failed</span>
+</span><span id="__span-4-32"><span class="w">                </span><span class="bp">self</span><span class="p">.</span><span class="n">on_idle_state_updates</span><span class="p">(</span><span class="n">worker_id</span><span class="p">).</span><span class="k">await</span><span class="o">?</span><span class="p">;</span>
+</span><span id="__span-4-33"><span class="w">                </span><span class="nb">Err</span><span class="p">(</span><span class="n">step_error</span><span class="p">.</span><span class="n">error</span><span class="p">)</span><span class="w"> </span><span class="c1">// Return the underlying FloxideError</span>
+</span><span id="__span-4-34"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-4-35"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-4-36"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-37">
+</span><span id="__span-4-38"><span class="w">    </span><span class="c1">// Helper to create callback object</span>
+</span><span id="__span-4-39"><span class="w">    </span><span class="k">fn</span><span class="w"> </span><span class="nf">build_callbacks</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">worker_id</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">Arc</span><span class="o">&lt;</span><span class="k">dyn</span><span class="w"> </span><span class="n">StepCallbacks</span><span class="o">&lt;</span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">W</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-40"><span class="w">        </span><span class="c1">// ... creates an object that updates stores on events ...</span>
+</span><span id="__span-4-41"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-4-42">
+</span><span id="__span-4-43"><span class="w">    </span><span class="c1">// Helpers for state updates via callbacks (simplified)</span>
+</span><span id="__span-4-44"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">on_idle_state_updates</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">worker_id</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">FloxideError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-4-45"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">heartbeat</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">worker_id</span><span class="p">:</span><span class="w"> </span><span class="kt">usize</span><span class="p">);</span>
+</span><span id="__span-4-46"><span class="w">    </span><span class="c1">// ... other state update helpers for start, success, error ...</span>
+</span><span id="__span-4-47"><span class="p">}</span>
+</span></code></pre></div>
+<p>The key takeaway is that the <code>DistributedWorker</code> acts as the runner or host process, performing the loop and calling the appropriate methods on the <code>Workflow</code>, <code>WorkQueue</code>, and <code>ContextStore</code> to execute the distributed steps defined by your application.</p>
+<h2 id="worker-pools">Worker Pools<a class="headerlink" href="#worker-pools" title="Permanent link">&para;</a></h2>
+<p>Running and managing individual worker tasks can be tedious. Floxide often provides a <code>WorkerPool</code> utility (shown in the provided context code) that simplifies starting, stopping, and monitoring multiple <code>DistributedWorker</code> instances concurrently.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>The <code>DistributedWorker</code> is the active entity in a Floxide distributed workflow. It's the "employee" that continuously:
+*   Pulls tasks from the shared <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a>.
+*   Loads the necessary state from the <code>ContextStore</code>.
+*   Executes the <a href="../02__node__trait____node___macro_/"><code>Node</code></a> logic defined in the <a href="../04__workflow__trait____workflow___macro_/"><code>Workflow</code></a> (via <code>step_distributed</code>).
+*   Saves the updated state back to the <code>ContextStore</code>.
+*   Enqueues follow-up tasks.</p>
+<p>By running multiple workers, potentially across many machines, all interacting with the same shared queue and stores, Floxide achieves parallel and distributed workflow execution.</p>
+<p>But how do we <em>start</em> a new workflow run in this distributed environment? We can't just call <code>my_workflow.run()</code> anymore. We need a way to kick things off, create the initial checkpoint, and put the very first task onto the queue for the workers to find. That's the job of the <code>DistributedOrchestrator</code>.</p>
+<p><strong>Next:</strong> <a href="../08__distributedorchestrator__/">Chapter 8: <code>DistributedOrchestrator</code></a></p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="generator" content="mkdocs-1.6.1, mkdocs-terminal-4.7.0">
+    
+    <meta name="description" content="Documentation for the Floxide framework - A type-safe, composable directed graph workflow system written in Rust"> 
+    
+    <meta name="author" content="Floxide Team"> 
+    <link rel="icon" type="image/png" sizes="192x192" href="../../img/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="../../img/android-chrome-512x512.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="../../img/apple-touch-icon.png" />
+<link rel="shortcut icon" type="image/png" sizes="48x48" href="../../img/favicon.ico" />
+<link rel="icon" type="image/png" sizes="16x16" href="../../img/favicon-16x16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="../../img/favicon-32x32.png" />
+
+
+    
+ 
+<title>Chapter 9: Distributed Stores - Floxide Documentation</title>
+
+
+<link href="../../css/fontawesome/css/fontawesome.min.css" rel="stylesheet">
+<link href="../../css/fontawesome/css/solid.min.css" rel="stylesheet">
+<link href="../../css/normalize.css" rel="stylesheet">
+<link href="../../css/terminal.css" rel="stylesheet">
+<link href="../../css/theme.css" rel="stylesheet">
+<link href="../../css/theme.tile_grid.css" rel="stylesheet">
+<link href="../../css/theme.footer.css" rel="stylesheet">
+<!-- dark color palette -->
+<link href="../../css/palettes/dark.css" rel="stylesheet">
+
+<!-- page layout -->
+<style>
+/* initially set page layout to a one column grid */
+.terminal-mkdocs-main-grid {
+    display: grid;
+    grid-column-gap: 1.4em;
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+/*  
+*   when side navigation is not hidden, use a two column grid.  
+*   if the screen is too narrow, fall back to the initial one column grid layout.
+*   in this case the main content will be placed under the navigation panel. 
+*/
+@media only screen and (min-width: 70em) {
+    .terminal-mkdocs-main-grid {
+        grid-template-columns: 4fr 9fr;
+    }
+}</style>
+
+
+
+    
+    <link href="../../css/extra.css" rel="stylesheet">  
+    
+    
+
+    
+    <!-- search css support -->
+<link href="../../css/search/bootstrap-modal.css" rel="stylesheet">
+<!-- search scripts -->
+<script>
+    var base_url = "../..",
+    shortcuts = "{}";
+</script>
+<script src="../../js/jquery/jquery-1.10.1.min.js" defer></script>
+<script src="../../js/bootstrap/bootstrap.min.js" defer></script>
+<script src="../../js/mkdocs/base.js" defer></script>
+    
+    
+    
+    
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    
+    <script src="../../search/main.js"></script>
+    
+
+    
+</head>
+
+<body class="terminal"><div class="container">
+    <div class="terminal-nav">
+        <header class="terminal-logo">
+            <div id="mkdocs-terminal-site-name" class="logo terminal-prompt"><a href="/" class="no-style">Floxide Documentation</a></div>
+        </header>
+        
+        <nav class="terminal-menu">
+            
+            <ul vocab="https://schema.org/" typeof="BreadcrumbList">
+                
+                
+                <li property="itemListElement" typeof="ListItem">
+                    <a href="../.." class="menu-item " property="item" typeof="WebPage">
+                        <span property="name">Home</span>
+                    </a>
+                    <meta property="position" content="0">
+                </li>
+                
+                
+                
+                
+                
+                    
+                    
+
+
+<li property="itemListElement" typeof="ListItem">
+    <a href="#" class="menu-item" data-toggle="modal" data-target="#mkdocs_search_modal" property="item" typeof="SearchAction">
+        <i aria-hidden="true" class="fa fa-search"></i> <span property="name">Search</span>
+    </a>
+    <meta property="position" content="1">
+</li>
+                    
+            </ul>
+            
+        </nav>
+    </div>
+</div>
+        
+    <div class="container">
+        <div class="terminal-mkdocs-main-grid"><aside id="terminal-mkdocs-side-panel"><nav>
+  
+    <ul class="terminal-mkdocs-side-nav-items">
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../..">Home</a>
+        
+    
+    
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        
+            
+            
+            <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item terminal-mkdocs-side-nav-section-no-index">Core Concepts</span>
+        
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../../core-concepts/">Overview</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+          
+
+
+
+<li class="terminal-mkdocs-side-nav-li">
+    
+    
+        
+        
+
+        
+            
+    
+        
+        <span class="
+        
+    
+
+    terminal-mkdocs-side-nav-item--active terminal-mkdocs-side-nav-section-no-index">Tutorial</span>
+    
+    
+        
+      
+        
+            <ul class="terminal-mkdocs-side-nav-li-ul">
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../">Introduction</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../01__transition__enum_/">Chapter 1: Transition Enum</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../02__node__trait____node___macro_/">Chapter 2: Node Trait & node! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../03__workflowctx_____context__trait_/">Chapter 3: WorkflowCtx & Context Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../04__workflow__trait____workflow___macro_/">Chapter 4: Workflow Trait & workflow! Macro</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../05__workqueue__trait_/">Chapter 5: WorkQueue Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../06__checkpoint_____checkpointstore__trait_/">Chapter 6: Checkpoint & CheckpointStore Trait</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../07__distributedworker__/">Chapter 7: DistributedWorker</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../08__distributedorchestrator__/">Chapter 8: DistributedOrchestrator</a>
+        
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        <span class="
+
+    terminal-mkdocs-side-nav-item--active">Chapter 9: Distributed Stores</span>
+    
+    </li>
+            
+        
+            
+            
+
+             
+                <li class="terminal-mkdocs-side-nav-li-ul-li">
+    
+        
+        
+            <a class="
+
+    terminal-mkdocs-side-nav-item" href="../10__retrypolicy_____retrynode__/">Chapter 10: RetryPolicy & RetryNode</a>
+        
+    
+    </li>
+            
+            
+    </ul>
+        
+    
+  </li>
+        
+    </ul>
+  
+</nav><hr>
+<nav>
+    <ul>
+        <li><a href="#chapter-9-distributed-stores-runinfostore-metricsstore-errorstore-livenessstore-workitemstatestore">Chapter 9: Distributed Stores (RunInfoStore, MetricsStore, ErrorStore, LivenessStore, WorkItemStateStore)</a></li>
+        <li><a href="#whats-the-problem-keeping-track-of-everything">What's the Problem? Keeping Track of Everything</a></li><li><a href="#what-are-distributed-stores-specialized-ledgers">What are Distributed Stores? Specialized Ledgers</a></li><li><a href="#the-different-stores-explained">The Different Stores Explained</a></li><li><a href="#how-they-enable-distribution">How They Enable Distribution</a></li><li><a href="#using-the-stores-conceptual">Using the Stores (Conceptual)</a></li><li><a href="#the-store-traits">The Store Traits</a></li><li><a href="#implementations-in-memory-vs-distributed">Implementations: In-Memory vs. Distributed</a></li><li><a href="#under-the-hood-orchestrator-and-worker-interaction">Under the Hood: Orchestrator and Worker Interaction</a></li><li><a href="#conclusion">Conclusion</a></li>
+    </ul>
+</nav>
+</aside>
+            <main id="terminal-mkdocs-main-content">
+<section id="mkdocs-terminal-content">
+    <h1 id="chapter-9-distributed-stores-runinfostore-metricsstore-errorstore-livenessstore-workitemstatestore">Chapter 9: Distributed Stores (<code>RunInfoStore</code>, <code>MetricsStore</code>, <code>ErrorStore</code>, <code>LivenessStore</code>, <code>WorkItemStateStore</code>)<a class="headerlink" href="#chapter-9-distributed-stores-runinfostore-metricsstore-errorstore-livenessstore-workitemstatestore" title="Permanent link">&para;</a></h1>
+<p>In the <a href="../08__distributedorchestrator__/">previous chapter</a>, we met the <code>DistributedOrchestrator</code>, the project manager for our distributed workflow factory. It starts new runs, checks their status, and manages them. We also have our <a href="../07__distributedworker__/"><code>DistributedWorker</code></a>s diligently processing tasks from the <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a> and saving progress using the <a href="../06__checkpoint_____checkpointstore__trait_/"><code>CheckpointStore</code></a>.</p>
+<p>But how does the orchestrator <em>know</em> the status of a run? How does it track errors? How do workers report they are still alive? How do we count how many tasks succeeded or failed? Simply saving the workflow's core data (<code>Checkpoint</code>) isn't enough for monitoring and management.</p>
+<h2 id="whats-the-problem-keeping-track-of-everything">What's the Problem? Keeping Track of Everything<a class="headerlink" href="#whats-the-problem-keeping-track-of-everything" title="Permanent link">&para;</a></h2>
+<p>Imagine running that video processing factory. Besides the main blueprints (<a href="../04__workflow__trait____workflow___macro_/"><code>Workflow</code></a>) and the task list (<a href="../05__workqueue__trait_/"><code>WorkQueue</code></a>), the factory manager (<a href="../08__distributedorchestrator__/"><code>DistributedOrchestrator</code></a>) and the floor supervisors need several specialized logbooks or ledgers to keep things running smoothly:</p>
+<ul>
+<li><strong>Shared Project Data:</strong> Where is the latest version of the project's shared information (like configuration, progress counters, aggregated results) stored?</li>
+<li><strong>Project Status Board:</strong> Which videos are currently being processed? Which are finished? Which failed?</li>
+<li><strong>Quality Control Log:</strong> How many steps completed successfully? How many failed? How many needed retries?</li>
+<li><strong>Incident Report Book:</strong> What errors occurred, when, and during which step?</li>
+<li><strong>Employee Attendance Sheet:</strong> Which workers are currently active? When did they last check in?</li>
+<li><strong>Detailed Task Checklist:</strong> For each video, what's the exact status of <em>each specific step</em> (Download, Extract Audio, etc.) – is it waiting, running, done, or failed?</li>
+</ul>
+<p>In a <strong>distributed</strong> system, these logbooks need to be accessible and updatable by everyone involved (the orchestrator and all workers), even if they are on different computers.</p>
+<p>Floxide provides a set of specialized "Distributed Stores" to act as these shared, digital logbooks.</p>
+<h2 id="what-are-distributed-stores-specialized-ledgers">What are Distributed Stores? Specialized Ledgers<a class="headerlink" href="#what-are-distributed-stores-specialized-ledgers" title="Permanent link">&para;</a></h2>
+<p>In a distributed Floxide system, managing state involves several specialized storage traits. Unlike the <a href="../06__checkpoint_____checkpointstore__trait_/"><code>CheckpointStore</code></a> (used primarily for local persistence), these stores separate concerns for better scalability and observability in a multi-worker environment:</p>
+<ul>
+<li><strong><code>ContextStore</code></strong>: Manages the shared workflow <a href="../03__workflowctx_____context__trait_/"><code>Context</code></a> data.</li>
+<li><code>RunInfoStore</code>: Tracks overall run status.</li>
+<li><code>MetricsStore</code>: Counts completed/failed items.</li>
+<li><code>ErrorStore</code>: Logs errors encountered.</li>
+<li><code>LivenessStore</code>: Tracks worker heartbeats and health.</li>
+<li><code>WorkItemStateStore</code>: Tracks the status of individual tasks within a run.</li>
+</ul>
+<p>These stores work together with the <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a> to provide a complete picture and enable coordination between the orchestrator and workers.</p>
+<h2 id="the-different-stores-explained">The Different Stores Explained<a class="headerlink" href="#the-different-stores-explained" title="Permanent link">&para;</a></h2>
+<p>Let's look at what each store is responsible for:</p>
+<h3 id="1-contextstore-the-shared-project-data-store">1. <code>ContextStore</code>: The Shared Project Data Store<a class="headerlink" href="#1-contextstore-the-shared-project-data-store" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Purpose:</strong> To reliably save, load, and <em>merge</em> the shared <a href="../03__workflowctx_____context__trait_/"><code>Context</code></a> data associated with each workflow run.</li>
+<li><strong>Analogy:</strong> A central, version-controlled document repository where each project's shared notes and configuration are stored. When multiple people edit concurrently, the system knows how to merge their changes.</li>
+<li><strong>Key Info Stored:</strong> The complete <code>Context</code> object for each <code>run_id</code>.</li>
+<li><strong>Key Operations:</strong><ul>
+<li><code>set(run_id, context)</code>: Saves the initial or overwrites the context.</li>
+<li><code>get(run_id)</code>: Retrieves the latest saved context.</li>
+<li><code>merge(run_id, context_fragment)</code>: <strong>Crucially</strong>, merges a partial update (e.g., new events appended by a worker) into the existing stored context using the <code>Merge</code> trait defined on the context type (see <a href="../03__workflowctx_____context__trait_/">Chapter 3</a>).</li>
+</ul>
+</li>
+<li><strong>Used By:</strong><ul>
+<li>Orchestrator: To <code>set</code> the initial context when starting a run, and potentially <code>get</code> the final context.</li>
+<li>Worker: To <code>get</code> the context before processing a step, and to <code>merge</code> the updated context (with appended events) after successfully completing a step.</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-runinfostore-the-project-status-board">2. <code>RunInfoStore</code>: The Project Status Board<a class="headerlink" href="#2-runinfostore-the-project-status-board" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Purpose:</strong> Keeps track of the high-level status of each workflow run.</li>
+<li><strong>Analogy:</strong> A whiteboard listing all ongoing projects (video runs) and their current status (Running, Completed, Failed, Paused, Cancelled).</li>
+<li><strong>Key Info Stored:</strong> For each <code>run_id</code>: status, start time, end time.</li>
+<li><strong>Used By:</strong><ul>
+<li>Orchestrator: To <code>start_run</code> (sets status to Running), <code>status()</code>, <code>list_runs()</code>, <code>cancel()</code>, <code>pause()</code>, <code>resume()</code>.</li>
+<li>Worker: Potentially updates status to Completed or Failed upon run completion (often via callbacks).</li>
+</ul>
+</li>
+</ul>
+<h3 id="3-metricsstore-the-quality-control-log">3. <code>MetricsStore</code>: The Quality Control Log<a class="headerlink" href="#3-metricsstore-the-quality-control-log" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Purpose:</strong> Collects numerical metrics about each workflow run's execution.</li>
+<li><strong>Analogy:</strong> A tally sheet tracking how many items passed quality control, how many failed, and how many needed rework (retries).</li>
+<li><strong>Key Info Stored:</strong> For each <code>run_id</code>: count of completed items, failed items, retried items.</li>
+<li><strong>Used By:</strong><ul>
+<li>Worker: Updates counts after processing each step (e.g., increment completed or failed count).</li>
+<li>Orchestrator: To query <code>metrics()</code> for a run.</li>
+</ul>
+</li>
+</ul>
+<h3 id="4-errorstore-the-incident-report-book">4. <code>ErrorStore</code>: The Incident Report Book<a class="headerlink" href="#4-errorstore-the-incident-report-book" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Purpose:</strong> Records detailed information about errors that occur during workflow execution.</li>
+<li><strong>Analogy:</strong> A logbook where workers report any machine malfunctions or defects found, noting the time, machine, and details.</li>
+<li><strong>Key Info Stored:</strong> For each <code>run_id</code>: a list of errors, including the step (<code>WorkItem</code>), the error details, the attempt number, and the timestamp.</li>
+<li><strong>Used By:</strong><ul>
+<li>Worker: Records an error when a <a href="../02__node__trait____node___macro_/"><code>Node</code></a>'s <code>process</code> method returns an <code>Err</code> or <a href="../01__transition__enum_/"><code>Transition::Abort</code></a>.</li>
+<li>Orchestrator: To query <code>errors()</code> for a run to diagnose problems.</li>
+</ul>
+</li>
+</ul>
+<h3 id="5-livenessstore-the-employee-attendance-health-monitor">5. <code>LivenessStore</code>: The Employee Attendance &amp; Health Monitor<a class="headerlink" href="#5-livenessstore-the-employee-attendance-health-monitor" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Purpose:</strong> Tracks whether workers are active and responsive.</li>
+<li><strong>Analogy:</strong> An automated system where employees clock in/out and report their status (Idle, Working, On Break). The manager can see who is currently active.</li>
+<li><strong>Key Info Stored:</strong> For each <code>worker_id</code>: the timestamp of the last heartbeat, current status (Idle, InProgress, Retrying), current task being worked on, error count.</li>
+<li><strong>Used By:</strong><ul>
+<li>Worker: Periodically sends <code>heartbeat()</code> updates and updates its status (<code>update_health()</code>) when starting/finishing/retrying tasks.</li>
+<li>Orchestrator: To check <code>liveness()</code> or <code>list_worker_health()</code> to monitor the workforce.</li>
+</ul>
+</li>
+</ul>
+<h3 id="6-workitemstatestore-the-detailed-task-checklist">6. <code>WorkItemStateStore</code>: The Detailed Task Checklist<a class="headerlink" href="#6-workitemstatestore-the-detailed-task-checklist" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Purpose:</strong> Tracks the specific status of <em>each individual</em> <code>WorkItem</code> (task) within a workflow run. This is more granular than <code>RunInfoStore</code>.</li>
+<li><strong>Analogy:</strong> A detailed checklist attached to each product on the assembly line, where each station worker marks their specific task as Pending, InProgress, Completed, or Failed.</li>
+<li><strong>Key Info Stored:</strong> For each <code>run_id</code> and each unique <code>WorkItem</code> instance within that run: status (Pending, InProgress, Failed, WaitingRetry, PermanentlyFailed, Completed), number of attempts.</li>
+<li><strong>Used By:</strong><ul>
+<li>Worker: Updates the status before starting a task (Pending -&gt; InProgress), after success (-&gt; Completed), or after failure (-&gt; Failed/WaitingRetry/PermanentlyFailed). Increments attempt count.</li>
+<li>Orchestrator: Can query <code>list_work_items()</code> to see the detailed state of all steps in a run. Useful for debugging or resuming complex workflows.</li>
+</ul>
+</li>
+</ul>
+<h2 id="how-they-enable-distribution">How They Enable Distribution<a class="headerlink" href="#how-they-enable-distribution" title="Permanent link">&para;</a></h2>
+<p>These stores are defined as traits (interfaces). The key idea is that for a real distributed system, you provide implementations of these traits that use a shared, persistent backend accessible by all orchestrators and workers. Common backends include:</p>
+<ul>
+<li><strong>Redis:</strong> A fast in-memory data store, suitable for all stores. The <code>floxide-redis</code> crate provides implementations like <code>RedisContextStore</code>, <code>RedisRunInfoStore</code>, etc.</li>
+<li><strong>Databases (SQL/NoSQL):</strong> Can be used, especially for stores requiring more structured data like <code>RunInfoStore</code> or <code>ErrorStore</code>.</li>
+<li><strong>Cloud Services:</strong> Specific services like AWS DynamoDB, Google Cloud Datastore, or Azure Cosmos DB can back these stores.</li>
+</ul>
+<p>When Worker 1 on Machine A successfully processes a step and calls <code>context_store.merge(...)</code> and <code>metrics_store.update_metrics(...)</code>, the underlying Redis or database implementation updates the shared state. Subsequently, the Orchestrator or another worker querying <code>context_store.get(...)</code> or <code>metrics_store.get_metrics(...)</code> will see the results of Worker 1's actions.</p>
+<h2 id="using-the-stores-conceptual">Using the Stores (Conceptual)<a class="headerlink" href="#using-the-stores-conceptual" title="Permanent link">&para;</a></h2>
+<p>You generally don't interact with these stores directly in your <a href="../02__node__trait____node___macro_/"><code>Node</code></a> logic. The <a href="../07__distributedworker__/"><code>DistributedWorker</code></a> and <a href="../08__distributedorchestrator__/"><code>DistributedOrchestrator</code></a> use them internally as part of their operations.</p>
+<ul>
+<li>When the orchestrator calls <code>start_run</code>, it uses <code>RunInfoStore.insert_run(...)</code>.</li>
+<li>When the orchestrator calls <code>status()</code>, it uses <code>RunInfoStore.get_run(...)</code>.</li>
+<li>When a worker starts a task, it calls <code>context_store.get(...)</code>, <code>LivenessStore.update_health(...)</code> and <code>WorkItemStateStore.set_status(..., InProgress)</code>.</li>
+<li>When a worker finishes a task successfully, it calls <code>context_store.merge(...)</code>, <code>MetricsStore.update_metrics(...)</code> and <code>WorkItemStateStore.set_status(..., Completed)</code>.</li>
+<li>When a worker encounters an error, it calls <code>ErrorStore.record_error(...)</code>, <code>MetricsStore.update_metrics(...)</code>, <code>LivenessStore.update_health(...)</code> and <code>WorkItemStateStore.set_status(..., Failed/...)</code>. Note: It typically <em>does not</em> merge context changes on error.</li>
+<li>Periodically, the worker calls <code>LivenessStore.update_heartbeat(...)</code>.</li>
+</ul>
+<h2 id="the-store-traits">The Store Traits<a class="headerlink" href="#the-store-traits" title="Permanent link">&para;</a></h2>
+<p>Each store has a corresponding trait defining its methods. We saw <code>RunInfoStore</code> earlier. Here's a conceptual look at <code>ContextStore</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-0-1"><span class="c1">// Simplified concept from floxide-core/src/distributed/context_store.rs</span>
+</span><span id="__span-0-2"><span class="k">use</span><span class="w"> </span><span class="n">async_trait</span><span class="p">::</span><span class="n">async_trait</span><span class="p">;</span>
+</span><span id="__span-0-3"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">context</span><span class="p">::</span><span class="n">Context</span><span class="p">;</span>
+</span><span id="__span-0-4"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">distributed</span><span class="p">::</span><span class="n">ContextStoreError</span><span class="p">;</span>
+</span><span id="__span-0-5">
+</span><span id="__span-0-6"><span class="sd">/// Store for workflow run context data.</span>
+</span><span id="__span-0-7"><span class="cp">#[async_trait]</span>
+</span><span id="__span-0-8"><span class="k">pub</span><span class="w"> </span><span class="k">trait</span><span class="w"> </span><span class="n">ContextStore</span><span class="o">&lt;</span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="o">&gt;</span><span class="p">:</span><span class="w"> </span><span class="nb">Clone</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Send</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">Sync</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">&#39;</span><span class="nb">static</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-9"><span class="w">    </span><span class="sd">/// Set (or overwrite) the entire context for a run.</span>
+</span><span id="__span-0-10"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">run_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="nc">C</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">ContextStoreError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-0-11">
+</span><span id="__span-0-12"><span class="w">    </span><span class="sd">/// Get the current context for a run.</span>
+</span><span id="__span-0-13"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">run_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">ContextStoreError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-0-14">
+</span><span id="__span-0-15"><span class="w">    </span><span class="sd">/// Merge a context fragment into the existing context for a run.</span>
+</span><span id="__span-0-16"><span class="w">    </span><span class="sd">/// This relies on the `Merge` trait implemented by type `C`.</span>
+</span><span id="__span-0-17"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">run_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">context_fragment</span><span class="p">:</span><span class="w"> </span><span class="nc">C</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">ContextStoreError</span><span class="o">&gt;</span><span class="p">;</span>
+</span><span id="__span-0-18">
+</span><span id="__span-0-19"><span class="w">    </span><span class="c1">// Potentially other methods like `delete`</span>
+</span><span id="__span-0-20"><span class="p">}</span>
+</span></code></pre></div>
+<p>This defines the standard operations. The key method here is <code>merge</code>, which enables concurrent updates using the event sourcing pattern described in <a href="../03__workflowctx_____context__trait_/">Chapter 3</a>.</p>
+<h2 id="implementations-in-memory-vs-distributed">Implementations: In-Memory vs. Distributed<a class="headerlink" href="#implementations-in-memory-vs-distributed" title="Permanent link">&para;</a></h2>
+<p>Floxide provides default <code>InMemory...Store</code> implementations for all these traits (e.g., <code>InMemoryContextStore</code>, <code>InMemoryRunInfoStore</code>). These are useful for testing and single-process use.</p>
+<p>The <code>floxide-redis</code> crate provides <code>Redis...Store</code> implementations (e.g., <code>RedisContextStore</code>) for use with a Redis backend in truly distributed scenarios.</p>
+<p>Here's a conceptual look at <code>InMemoryContextStore</code>:</p>
+<div class="language-rust highlight"><pre><span></span><code><span id="__span-1-1"><span class="c1">// Simplified concept</span>
+</span><span id="__span-1-2"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">collections</span><span class="p">::</span><span class="n">HashMap</span><span class="p">;</span>
+</span><span id="__span-1-3"><span class="k">use</span><span class="w"> </span><span class="n">std</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">Arc</span><span class="p">;</span>
+</span><span id="__span-1-4"><span class="k">use</span><span class="w"> </span><span class="n">tokio</span><span class="p">::</span><span class="n">sync</span><span class="p">::</span><span class="n">Mutex</span><span class="p">;</span>
+</span><span id="__span-1-5"><span class="k">use</span><span class="w"> </span><span class="k">crate</span><span class="p">::</span><span class="n">merge</span><span class="p">::</span><span class="n">Merge</span><span class="p">;</span><span class="w"> </span><span class="c1">// &lt;-- Requires Context to implement Merge</span>
+</span><span id="__span-1-6">
+</span><span id="__span-1-7"><span class="sd">/// In-memory context store.</span>
+</span><span id="__span-1-8"><span class="cp">#[derive(Clone, Default)]</span>
+</span><span id="__span-1-9"><span class="k">pub</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">InMemoryContextStore</span><span class="o">&lt;</span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-10"><span class="w">    </span><span class="n">inner</span><span class="p">:</span><span class="w"> </span><span class="nc">Arc</span><span class="o">&lt;</span><span class="n">Mutex</span><span class="o">&lt;</span><span class="n">HashMap</span><span class="o">&lt;</span><span class="nb">String</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+</span><span id="__span-1-11"><span class="p">}</span>
+</span><span id="__span-1-12">
+</span><span id="__span-1-13"><span class="cp">#[async_trait]</span>
+</span><span id="__span-1-14"><span class="k">impl</span><span class="o">&lt;</span><span class="n">C</span><span class="p">:</span><span class="w"> </span><span class="nc">Context</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ContextStore</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">InMemoryContextStore</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-15"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">run_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">context</span><span class="p">:</span><span class="w"> </span><span class="nc">C</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">ContextStoreError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-16"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">inner</span><span class="p">.</span><span class="n">lock</span><span class="p">().</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-1-17"><span class="w">        </span><span class="n">map</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">run_id</span><span class="p">.</span><span class="n">to_string</span><span class="p">(),</span><span class="w"> </span><span class="n">context</span><span class="p">);</span>
+</span><span id="__span-1-18"><span class="w">        </span><span class="nb">Ok</span><span class="p">(())</span>
+</span><span id="__span-1-19"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-20">
+</span><span id="__span-1-21"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">run_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">ContextStoreError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-22"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="n">map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">inner</span><span class="p">.</span><span class="n">lock</span><span class="p">().</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-1-23"><span class="w">        </span><span class="nb">Ok</span><span class="p">(</span><span class="n">map</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="n">run_id</span><span class="p">).</span><span class="n">cloned</span><span class="p">())</span>
+</span><span id="__span-1-24"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-25">
+</span><span id="__span-1-26"><span class="w">    </span><span class="k">async</span><span class="w"> </span><span class="k">fn</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="o">&amp;</span><span class="bp">self</span><span class="p">,</span><span class="w"> </span><span class="n">run_id</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="kt">str</span><span class="p">,</span><span class="w"> </span><span class="n">context_fragment</span><span class="p">:</span><span class="w"> </span><span class="nc">C</span><span class="p">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nb">Result</span><span class="o">&lt;</span><span class="p">(),</span><span class="w"> </span><span class="n">ContextStoreError</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-27"><span class="w">        </span><span class="kd">let</span><span class="w"> </span><span class="k">mut</span><span class="w"> </span><span class="n">map</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="bp">self</span><span class="p">.</span><span class="n">inner</span><span class="p">.</span><span class="n">lock</span><span class="p">().</span><span class="k">await</span><span class="p">;</span>
+</span><span id="__span-1-28"><span class="w">        </span><span class="k">match</span><span class="w"> </span><span class="n">map</span><span class="p">.</span><span class="n">entry</span><span class="p">(</span><span class="n">run_id</span><span class="p">.</span><span class="n">to_string</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-29"><span class="w">            </span><span class="n">std</span><span class="p">::</span><span class="n">collections</span><span class="p">::</span><span class="n">hash_map</span><span class="p">::</span><span class="n">Entry</span><span class="p">::</span><span class="n">Occupied</span><span class="p">(</span><span class="k">mut</span><span class="w"> </span><span class="n">entry</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-30"><span class="w">                </span><span class="c1">// Use the Merge trait to combine the fragment</span>
+</span><span id="__span-1-31"><span class="w">                </span><span class="n">entry</span><span class="p">.</span><span class="n">get_mut</span><span class="p">().</span><span class="n">merge</span><span class="p">(</span><span class="n">context_fragment</span><span class="p">);</span>
+</span><span id="__span-1-32"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-1-33"><span class="w">            </span><span class="n">std</span><span class="p">::</span><span class="n">collections</span><span class="p">::</span><span class="n">hash_map</span><span class="p">::</span><span class="n">Entry</span><span class="p">::</span><span class="n">Vacant</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-34"><span class="w">                </span><span class="c1">// If no existing context, just insert the fragment</span>
+</span><span id="__span-1-35"><span class="w">                </span><span class="n">entry</span><span class="p">.</span><span class="n">insert</span><span class="p">(</span><span class="n">context_fragment</span><span class="p">);</span>
+</span><span id="__span-1-36"><span class="w">            </span><span class="p">}</span>
+</span><span id="__span-1-37"><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-38"><span class="w">        </span><span class="nb">Ok</span><span class="p">(())</span>
+</span><span id="__span-1-39"><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-40"><span class="p">}</span>
+</span></code></pre></div>
+<p><strong>Important:</strong> For <em>true</em> distribution across multiple machines, you <strong>must</strong> use implementations backed by external, shared services. The <code>floxide-redis</code> crate provides these for Redis.</p>
+<h2 id="under-the-hood-orchestrator-and-worker-interaction">Under the Hood: Orchestrator and Worker Interaction<a class="headerlink" href="#under-the-hood-orchestrator-and-worker-interaction" title="Permanent link">&para;</a></h2>
+<p>The orchestrator and workers rely heavily on these stores to coordinate.</p>
+<div class="mermaid">sequenceDiagram
+    participant Orch as Orchestrator
+    participant Stores as Distributed Stores
+    participant Worker as Distributed Worker
+
+    Note over Orch, Worker: Managing Run "video_xyz"
+
+    Orch-&gt;&gt;Stores: RunInfoStore.insert_run("video_xyz", Running)
+    Orch-&gt;&gt;Stores: ContextStore.set("video_xyz", initial_context)
+    Note over Orch, Worker: (Workflow started, first task queued)
+
+    Worker-&gt;&gt;Stores: LivenessStore.update_health(worker_1, InProgress)
+    Worker-&gt;&gt;Stores: WorkItemStateStore.set_status("video_xyz", task_A, InProgress)
+    Worker-&gt;&gt;Stores: ContextStore.get("video_xyz")
+    Stores--&gt;&gt;Worker: Return current_context
+    Note over Worker: Processing Task A... Node appends events to context
+    Worker-&gt;&gt;Stores: ContextStore.merge("video_xyz", context_with_events)
+    Worker-&gt;&gt;Stores: MetricsStore.update_metrics("video_xyz", completed_count++)
+    Worker-&gt;&gt;Stores: LivenessStore.update_health(worker_1, Idle)
+    Worker-&gt;&gt;Stores: WorkItemStateStore.set_status("video_xyz", task_A, Completed)
+
+    Orch-&gt;&gt;Stores: RunInfoStore.get_run("video_xyz")
+    Stores--&gt;&gt;Orch: Return RunInfo { status: Running }
+    Orch-&gt;&gt;Stores: ContextStore.get("video_xyz")
+    Stores--&gt;&gt;Orch: Return latest_merged_context
+
+    Worker-&gt;&gt;Stores: LivenessStore.update_heartbeat(worker_1, now)</div>
+<p>This diagram shows how different actions trigger updates or queries to the various specialized stores, using <code>ContextStore</code> specifically for the shared workflow data.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>The distributed stores (<code>ContextStore</code>, <code>RunInfoStore</code>, <code>MetricsStore</code>, <code>ErrorStore</code>, <code>LivenessStore</code>, <code>WorkItemStateStore</code>) are essential components for managing and monitoring Floxide workflows in a distributed environment. They act as specialized, shared ledgers, providing:</p>
+<ul>
+<li><strong>State Management (<code>ContextStore</code>):</strong> Reliably persists and merges shared workflow data using the <code>Merge</code> trait.</li>
+<li><strong>Visibility:</strong> Allows the orchestrator and users to see the status of runs, worker health, errors, and performance metrics.</li>
+<li><strong>Coordination:</strong> Enables workers and the orchestrator to access consistent state information, even when running on different machines.</li>
+<li><strong>Control:</strong> Provides the foundation for actions like cancelling runs or checking worker liveness.</li>
+</ul>
+<p>While in-memory versions are provided, real distributed applications require implementations backed by shared, persistent storage. The <code>floxide-redis</code> crate provides implementations for Redis.</p>
+<p>These stores work together with the <a href="../05__workqueue__trait_/"><code>WorkQueue</code></a> to make distributed workflow execution manageable and robust.</p>
+<p>Now that we understand how errors are tracked (<code>ErrorStore</code>) and how individual task states are managed (<code>WorkItemStateStore</code>), how can we build workflows that automatically handle transient failures? Let's look at how Floxide supports retries.</p>
+<p><strong>Next:</strong> <a href="../10__retrypolicy_____retrynode__/">Chapter 10: <code>RetryPolicy</code> &amp; <code>RetryNode</code></a></p>
+</section>
+
+            </main>
+        </div>
+        <hr><footer>
+    <div class="terminal-mkdocs-footer-grid">
+        <div id="terminal-mkdocs-footer-copyright-info">
+             Site built with <a href="http://www.mkdocs.org">MkDocs</a> and <a href="https://github.com/ntno/mkdocs-terminal">Terminal for MkDocs</a>.
+        </div>
+    </div>
+</footer>
+    </div>
+
+    
+    <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="alertdialog" aria-modal="true" aria-labelledby="searchModalLabel">
+    <div class="modal-dialog modal-lg" role="search">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchModalLabel">Search</h5>
+                <button type="button" class="close btn btn-default btn-ghost" data-dismiss="modal"><span aria-hidden="true">x</span><span class="sr-only">Close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="searchInputLabel">Type to start searching</p>
+                <form>
+                    <div class="form-group">
+                        <input type="search" class="form-control" aria-labelledby="searchInputLabel" placeholder="" id="mkdocs-search-query" title="Please enter search terms here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results" data-no-results-text="No document matches found"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+    
+    
+</body>
+
+</html>
