@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::merge::Merge;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LoggedEvent<E> {
     pub uuid: Uuid,
     pub timestamp: u128,

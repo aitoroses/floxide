@@ -50,7 +50,7 @@ use tracing::{debug, info, span, Level};
 /// Implementations provide a way to serialize and deserialize work items, and
 /// track unique instances within a workflow run.
 pub trait WorkItem:
-    Debug + Display + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq + Eq
+    Debug + Display + Send + Sync + Serialize + DeserializeOwned + Clone + PartialEq
 {
     /// Returns a unique identifier for this work item instance.
     fn instance_id(&self) -> String;
