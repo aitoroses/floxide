@@ -168,13 +168,17 @@ pub trait Workflow<C: Context>: Debug + Clone + Send + Sync {
             info!("Workflow already completed (empty queue)");
             return Err(FloxideError::AlreadyCompleted);
         }
+        // Use parent's WorkflowCtx, but replace the internal store with the checkpoint's context
+        let mut wf_ctx = ctx.clone();
+        wf_ctx.store = cp.context.clone();
+        let ctx_ref = &mut wf_ctx;
         while let Some(item) = queue.pop_front() {
             debug!(?item, queue_len = queue.len(), "Processing work item");
-            if let Some(output) = self.process_work_item(ctx, item, &mut queue).await? {
+            if let Some(output) = self.process_work_item(ctx_ref, item, &mut queue).await? {
                 return Ok(output);
             }
             debug!(queue_len = queue.len(), "Queue state after processing");
-            cp.context = ctx.store.clone();
+            cp.context = ctx_ref.store.clone();
             cp.queue = queue.clone();
             store
                 .save(id, &cp)
